@@ -2,6 +2,7 @@
 """
 FTIR class definitions and functions for processing and plotting FTIR spectra
 
+TESTING SYNCING WITH GITHUB
 
 The MIT License (MIT)
 
