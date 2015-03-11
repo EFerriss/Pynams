@@ -434,7 +434,8 @@ class Spectrum():
               folder=default_folder, delim=',', numformat='{:.0f}',
               shiftline=None):
         """Produce water estimate without error for a single FTIR spectrum. 
-        See water_from_spectra() for errors and lists."""
+        Use water_from_spectra() for errors, lists, and 
+        non-Bell calibrations."""
         
         # Get or make absorbance and wavenumber range for baseline
         if (self.base_abs is None) or (self.base_wn is None):
@@ -576,13 +577,22 @@ def water_from_spectra(list3, mineral_name='cpx',
                        proper3=False, numformat='{:.0f}',
                        savebaselines=False, show_plots=True, 
                        bline_file_ending='-3baselines.CSV', 
-                       folder=default_folder, delim=','):
+                       folder=default_folder, delim=',', 
+                       calibration='Bell'):
     """Produce water estimate from list of FTIR spectra; 
-    ideally 3 that are polarized in orthogonal directions"""
-    # Default is to estimate area and total water from each spectrum.
-    # Then average and std the results. I'm not worrying about error 
-    # propagation with that because we already know this is a bad estimate, 
-    # and we should be using 3 polarized, orthogonal spectra (proper3=True).
+    Default calibration is Bell et al. 1995, ideally using 
+    3 spectra that are polarized in orthogonal directions (proper3=True)
+    Default (proper3=False) is to estimate area and total water from each spectrum.
+    Then average and std the results."""
+    if calibration == 'Bell':
+        pass
+    elif calibration == 'Paterson':
+        print 'Paterson calibration!'
+        return
+    else:
+        print 'Only Bell (default) or Paterson calibration so far'
+        return
+        
     if proper3 == True and len(list3) != 3:
         print ' '
         print 'For proper3=True, list should contain only 3 spectra'
