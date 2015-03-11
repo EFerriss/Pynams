@@ -2,9 +2,13 @@
 """
 FTIR class definitions and functions for processing and plotting FTIR spectra
 
-TESTING SYNCING WITH GITHUB
+The main unit is a class called Spectrum, which includes attributes 
+such as sample thickness and lists of wavenumbers and absorbances. 
+A few defaults are set up that are geared toward H in nominally anhydrous
+minerals (NAMs) such a plotting wavenumber range from 3000 to 4000 /cm and
+creating baselines between 3200 and 3700 /cm. 
 
-The MIT License (MIT)
+More detailed instructions coming soon...
 
 Copyright (c) 2015 Elizabeth Ferriss
 
@@ -27,6 +31,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 """
+# import necessary python modules
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +41,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
 
-# where to save figures and other files
+# optional: set where to locate and/or save files
 default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
 
 # plotting styles
@@ -51,6 +56,7 @@ style_summed = {'color' : 'orangered',
                 'linewidth' : 2,
                 'linestyle' : '--'}
 
+# Define classes, attributes, and functions related to samples
 class StudySample():
     mineral_name = None
     source = None
@@ -93,6 +99,7 @@ def area2water(area_cm2, mineral='cpx'):
         return
     return w
         
+# Define classes and functions related to FTIR spectra        
 class Spectrum():
     fname = None  # Used to set filename.CSV
     sample = None
@@ -112,7 +119,7 @@ class Spectrum():
     position_microns_a = None
     position_microns_b = None
     position_microns_c = None
-    instrument = 'AMNH'
+    instrument = None
     spot_size_x_microns = 100
     spot_size_y_microns = 100
     resolution_cm = 4
@@ -700,9 +707,10 @@ def list_with_attribute(classname, attributename, attributevalue):
             if getattr(obj, attributename) == attributevalue:
                 my_list.append(obj.fname)
     return my_list
-#
-# Begin experimental section
 
+#
+# Begin experimental section - have not done much with this yet
+#
 
 class InTheLab():
     sample_tested = None
@@ -714,6 +722,9 @@ class InTheLab():
     time_minutes = None
     final_profiles = None
 
+#
+# Define classes and functions for working with profiles of spectra
+#
 
 class Profile():
     # Required
@@ -914,6 +925,10 @@ class Profile():
             x.abs_full_cm = abs_matched
         return
 
+#
+# Other functions
+#
+
 def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
     """Subtract spectrum 1 from spectrum 0 input as list between given
     wavenumbers (defaults to 4000 and 3000 cm-1). Spectra do not need 
@@ -961,8 +976,6 @@ def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
     area = dx * dy
     return area
 
-        
-
     if len(list2[0].base_wn) != len(list2[1].base_wn):
         print 'Length problem in subtract_spectra. To be dealt with.'
         return
@@ -983,6 +996,7 @@ def make_all_specta_lists(classname=Profile):
 #
 # General plot setup
 #
+
 def plotsetup_3x3minus2(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
                         xtickgrid=250, ytickgrid=0.5):
     """Setup plot for spectra comparison e.g., Kunlun_peakcheck.py"""
