@@ -8,7 +8,9 @@ A few defaults are set up that are geared toward H in nominally anhydrous
 minerals (NAMs) such a plotting wavenumber range from 3000 to 4000 /cm and
 creating baselines between 3200 and 3700 /cm. 
 
-More detailed instructions coming soon...
+More detailed instructions and examples are to be written. For an example 
+of how to instantiate these classes, check out my_spectra.py in my 
+CpxCode GitHub repository.
 
 Copyright (c) 2015 Elizabeth Ferriss
 
@@ -44,7 +46,8 @@ from matplotlib.ticker import MultipleLocator
 import string as string
 
 # Optional: Set default folder where to find and/or save files for use with 
-# functions like save_spectrum and save_baseline.
+# functions like save_spectrum and save_baseline. Eventually I will get 
+# rid of this, but for now having it hard-coded here is helpful for me.
 default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
 
 # plotting styles
