@@ -30,6 +30,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+This software was developed using Python 2.7.
+
 """
 # import necessary python modules
 import gc
@@ -41,7 +43,8 @@ import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
 
-# optional: set where to locate and/or save files
+# Optional: Set default folder where to find and/or save files for use with 
+# functions like save_spectrum and save_baseline.
 default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
 
 # plotting styles
