@@ -39,6 +39,7 @@ This software was developed using Python 2.7.
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 from uncertainties import ufloat
 import os.path
 import matplotlib.gridspec as gridspec
@@ -50,17 +51,44 @@ import string as string
 # rid of this, but for now having it hard-coded here is helpful for me.
 default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
 
-# plotting styles
-style_base = {'color' : 'k',
-              'linewidth' : 1,
-              'linestyle' :'-'}
-style_spectrum = {'color' : 'b',
-                  'linewidth' : 3}
-style_fitpeak = {'color' : 'g',
-                 'linewidth' : 1}
-style_summed = {'color' : 'orangered',
-                'linewidth' : 2,
-                'linestyle' : '--'}
+## plotting style defaults
+style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
+style_spectrum = {'color' : 'b', 'linewidth' : 3}
+style_fitpeak = {'color' : 'g', 'linewidth' : 1}
+style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
+style_profile = {'markeredgecolor' : 'blue', 'linestyle' : '', 'marker' : 's', 
+                 'markerfacecolor' : 'blue', 'fillstyle' : 'none'}
+style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None}
+style_unoriented = {'fillstyle' : 'none'}
+# different profile directions
+style_Dx = {'fillstyle' : 'left'}
+style_Dy = {'fillstyle' : 'bottom'}
+style_Dz = {'fillstyle' : 'right'}
+style_Dx_line = {'linestyle' : '--'}
+style_Dy_line = {'linestyle' : '-.'}
+style_Dz_line = {'linestyle' : ':'}
+style_unoriented_line = {'linestyle' : '-'}
+# different ray paths
+style_Rx = {'marker' : 'd'}
+style_Ry = {'marker' : 'o'}
+style_Rz = {'marker' : 's'}
+
+def make_line_style(direction, style_marker):
+    """Take direction and marker style and return line style dictionary
+    that reflects the direction (x, y, z, or u for unoriented) with the 
+    color of the base style"""
+    if direction == 'x':
+        d = style_Dx_line
+    if direction == 'y':
+        d = style_Dy_line
+    if direction == 'z':
+        d = style_Dz_line
+    if direction == 'u':
+        d = style_unoriented_line        
+    d.update({'color' : style_marker['markeredgecolor'],
+              'linewidth' : 2})
+    return d
+
 
 # Define classes, attributes, and functions related to samples
 class StudySample():
@@ -94,10 +122,14 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
 
-def area2water(area_cm2, mineral='cpx'):
+def area2water(area_cm2, mineral='cpx', calibration='Bell'):
     """Takes area in cm-2, multiplies by absorption coefficient, 
     return water concentration in ppm H2O"""
-    cpx_calib_Bell95 = 1.0 / ufloat(7.09, 0.32)
+    if calibration == 'Bell':
+        cpx_calib_Bell95 = 1.0 / ufloat(7.09, 0.32)
+    else:
+        print 'only Bell calibration so far'
+        return
     if mineral == 'cpx':           
         w = cpx_calib_Bell95*area_cm2
     else:
@@ -151,7 +183,7 @@ class Spectrum():
     heights = None
     widths = None
     fitpeakareas = None
-    peakshape = None    
+    peakshape = None        
     
     def set_thick(self):
         """Set spectrum thick_microns from raypath and sample.thick_microns.
@@ -278,16 +310,15 @@ class Spectrum():
         self.base_abs = base_abs
         return base_abs
 
-    def subtract_baseline(self, polyorder=1, bline=None, shifter=None):
+    def subtract_baseline(self, polyorder=1, bline=None, 
+                          show_plot=False, shifter=None):
         """Make baseline and return baseline-subtracted absorbance.
         Preferred baseline used is (1) input bline, (2) self.base_abs, 
         (3) one made using polyorder, default is linear"""
-#        base_abs = self.make_baseline(polyorder)
         if self.wn is None:
             self.start_at_zero()
         
         if bline is not None:
-#            print 'using baseline directly input as bline='
             base_abs = bline
         elif shifter is not None:
             print 'making custom baseline with shiftline=shifter'
@@ -304,7 +335,67 @@ class Spectrum():
             
         humps = self.abs_cm[index_lo:index_hi]
         abs_nobase_cm = humps - base_abs
+
+        # plotting
+        if show_plot is True:
+            fig, ax = self.plot_spectrum_outline()
+            plt.plot(self.wn, self.abs_cm, **style_spectrum) 
+            ax.plot(self.base_wn, base_abs, **style_baseline)
+            yhigh = max(self.abs_cm) + 0.1*max(self.abs_cm)
+            if min(base_abs) > 0:
+                ylow = 0
+            else:
+                ylow = min(base_abs) + 0.1*min(base_abs)
+            plt.ylim(ylow, yhigh)
+            plt.show(fig)
+            
         return abs_nobase_cm
+
+    def area_under_curve(self, polyorder=1, area_plot=True, shiftline=None,
+                      printout=True, numformat='{:.1f}'):
+        """Returns area under the curve in cm^2"""
+        # initial check baseline range is specified
+        if (self.base_high_wn is None) or (self.base_low_wn is None):
+            print 'Need to specify spectrum baseline wavenumber range'
+            return False
+
+        # Get or make absorbance and wavenumber range for baseline
+        if (self.base_abs is None) or (self.base_wn is None):
+            print 'Making baseline...'
+            abs_baseline = self.make_baseline(polyorder, shiftline)
+        else:
+            print ('Using previously fit baseline. ' + 
+                   'Use make_baseline to change it.')
+            abs_baseline = self.base_abs
+
+        abs_nobase_cm = self.subtract_baseline(bline=abs_baseline,
+                                               show_plot=area_plot)
+
+        dx = self.base_high_wn - self.base_low_wn
+        dy = np.mean(abs_nobase_cm)
+        area = dx * dy
+        if printout is True:
+            print self.fname
+            print 'area:', numformat.format(area), '/cm^2'
+        return area
+
+    def water(self, polyorder=1, mineral_name='cpx', numformat='{:.1f}',
+              show_plot=True, show_water=True, printout_area=False,
+              shiftline=None):
+        """Produce water estimate without error for a single FTIR spectrum. 
+        Use water_from_spectra() for errors, lists, and 
+        non-Bell calibrations."""
+        # determine area
+        area = self.area_under_curve(polyorder, show_plot, shiftline, 
+                                     printout_area)
+        w = area2water(area, mineral=mineral_name)
+                        
+        # output for each spectrum
+        if show_water is True:
+            print self.fname
+            print 'area:', numformat.format(area), '/cm^2'
+            print 'water:', numformat.format(w), 'ppm H2O'
+        return area, w
 
     def save_spectrum(self, folder=default_folder, delim='\t',
                       file_ending='-per-cm.txt'):
@@ -393,14 +484,7 @@ class Spectrum():
             return
         data = np.genfromtxt(filename, delimiter=',', dtype='float', 
                              skip_header=1)
-        return data
-#        print data(1,1)
-#        self.base_wn = data[1:,0]
-#        baseline1 = data[1:,1]
-#        baseline2 = data[1:,2]
-#        baseline3 = data[1:,3]
-#        return baseline1, baseline2, baseline3
-                            
+        return data                            
                 
     def get_peakfit(self, folder=default_folder, delim=',', 
                     file_ending='-peakfit.CSV'):
@@ -422,6 +506,9 @@ class Spectrum():
             print 'Remember to savefit.m after FTIR_peakfit_afterpython.m'
             return False
 
+        if self.base_wn is None:
+            self.make_baseline()
+            
         peakfitcurves = np.ones([len(self.peakpos), len(self.base_wn)])
         summed_spectrum = np.zeros_like(self.base_wn)
         for k in range(len(self.peakpos)):
@@ -439,52 +526,7 @@ class Spectrum():
                 return
                 
         if self.base_wn is None:
-            self.make_baseline()
-            
-
-    def water(self, polyorder=1, mineral_name='cpx', 
-              show_plot=True, show_water=True,
-              folder=default_folder, delim=',', numformat='{:.0f}',
-              shiftline=None):
-        """Produce water estimate without error for a single FTIR spectrum. 
-        Use water_from_spectra() for errors, lists, and 
-        non-Bell calibrations."""
-        
-        # Get or make absorbance and wavenumber range for baseline
-        if (self.base_abs is None) or (self.base_wn is None):
-            print 'Making baseline...'
-            abs_baseline = self.make_baseline(polyorder, shiftline)
-        else:
-            print ('Using previously fit baseline. ' + 
-                   'Use make_baseline to change it.')
-            abs_baseline = self.base_abs
-        wn_baseline = self.base_wn
-            
-        abs_nobase_cm = self.subtract_baseline(bline=abs_baseline)
-
-        if show_plot is True:
-            fig, ax = self.plot_spectrum_outline()
-            plt.plot(self.wn, self.abs_cm, **style_spectrum) 
-            ax.plot(wn_baseline, abs_baseline, **style_base)
-            yhigh = max(self.abs_cm) + 0.1*max(self.abs_cm)
-            if min(abs_baseline) > 0:
-                ylow = 0
-            else:
-                ylow = min(abs_baseline) + 0.1*min(abs_baseline)
-            plt.ylim(ylow, yhigh)
-            plt.show(fig)
-            
-        dx = self.base_high_wn - self.base_low_wn
-        dy = np.mean(abs_nobase_cm)
-        area = dx * dy
-        w = area2water(area, mineral=mineral_name)
-                        
-        # output for each spectrum
-        if show_water is True:
-            print self.fname
-            print 'area:', numformat.format(area), '/cm^2'
-            print 'water:', numformat.format(w), 'ppm H2O'
-        return area, w
+            self.make_baseline()            
 
     def plot_spectrum_outline(self, size_inches=(3, 3), shrinker=0.05):
         """Make standard figure outline for plotting FTIR spectra"""
@@ -562,7 +604,7 @@ class Spectrum():
                 abs_baseline = self.base_abs
             
         ax.plot(self.wn, self.abs_cm, **style_spectrum)
-        ax.plot(wn_baseline, abs_baseline, **style_base)        
+        ax.plot(wn_baseline, abs_baseline, **style_baseline)        
         return fig, ax
 
     def plot_subtractbaseline(self, polyorder=1):
@@ -598,9 +640,10 @@ def water_from_spectra(list3, mineral_name='cpx',
     Default (proper3=False) is to estimate area and total water from each spectrum.
     Then average and std the results."""
     if calibration == 'Bell':
+        print 'Bell calibration'
         pass
     elif calibration == 'Paterson':
-        print 'Paterson calibration!'
+        print 'Paterson calibration not available quite yet...'
         return
     else:
         print 'Only Bell (default) or Paterson calibration so far'
@@ -613,26 +656,25 @@ def water_from_spectra(list3, mineral_name='cpx',
     
     uarea_list = []
     uwater_list = []
+    
     for spec in list3:
         if show_plots is True:
+            print 'Showing spectrum for', spec.fname
             fig, ax = spec.plot_spectrum_outline()
             plt.plot(spec.wn, spec.abs_cm, **style_spectrum) 
         
-        dx = spec.base_high_wn - spec.base_low_wn
-
         main_yshift = spec.base_mid_yshift                        
         window_large = spec.base_w_large
         window_small = spec.base_w_small
 
         if spec.abs_cm is None:
             spec.start_at_zero()
-
         # Generate list of 3 possible areas under the curve
         area_list = np.array([])
         spec.make_baseline()
         baseline_list = np.ones([3, len(spec.base_wn)])
         pek_list = np.ones([3, len(spec.base_wn)])
-        
+#        
         k = 0
         for bam in [window_small, -window_small, -window_large]:
             # Setting up 3 different baseline shapes
@@ -640,17 +682,19 @@ def water_from_spectra(list3, mineral_name='cpx',
             base_abs = spec.make_baseline(2, shiftline=main_yshift)
             abs_nobase_cm = spec.subtract_baseline(bline=base_abs)
             if show_plots is True:
-                ax.plot(spec.base_wn, base_abs, **style_base)
-            dy = np.mean(abs_nobase_cm)
-            area = dx * dy
+                ax.plot(spec.base_wn, base_abs, **style_baseline)
+
+            area = spec.area_under_curve(area_plot=False, printout=False)
             area_list = np.append(area_list, area)
             baseline_list[k,:] = base_abs
             pek_list[k,:] = abs_nobase_cm
             k+=1
 
+        # list areas and water with uncertainties
         uarea = ufloat(np.mean(area_list), np.std(area_list))
         uarea_list.append(uarea)
         uwater = area2water(uarea, mineral=mineral_name)
+
         # Water estimate depends on if you are adding 3 areas 
         # or just multiplying by three and later averaging
         if proper3 is False:
@@ -740,7 +784,7 @@ class Profile():
     spectrumclass_string = None
     # Optional
     direction = None
-    name_profile = None
+    profile_name = None
     initial_profile = None
     spectrum_class_name = None
     # Made by make_spectra_list
@@ -748,10 +792,48 @@ class Profile():
     spectra_list = []
     len_microns = None
     thick_microns = None
-    # Made by make_water_list
+    # Made by make_water_list etc. below
     waters_list = []
     waters_errors = []
     areas_list = []
+    areas_bestfitline_p = None
+    # Whole-block 3D-WB
+    wb_area_ratio = None
+    # for plotting
+    style_base = style_profile
+    style_x_marker = None
+    style_y_marker = None
+    style_z_marker = None
+    style_x_line = None
+    style_y_line = None
+    style_z_line = None
+
+    def make_style_subtypes(self):
+        """Make direction-specific marker and line style dictionaries for 
+        profile based on profile's self.style_base"""
+        if self.style_base is None:
+            print 'Set base style (style_base) for profile first'
+            return False
+        self.style_x_marker =  dict(self.style_base.items() + style_Dx.items())
+        self.style_y_marker =  dict(self.style_base.items() + style_Dy.items())
+        self.style_z_marker =  dict(self.style_base.items() + style_Dz.items())
+        self.style_x_line = make_line_style('x', self.style_base)
+        self.style_y_line = make_line_style('y', self.style_base)
+        self.style_z_line = make_line_style('z', self.style_base)
+        
+        if self.raypath == 'a':
+            self.style_x_marker.update({'marker' : style_Rx['marker']})
+            self.style_y_marker.update({'marker' : style_Rx['marker']})
+            self.style_z_marker.update({'marker' : style_Rx['marker']})
+        elif self.raypath == 'b':
+            self.style_x_marker.update({'marker' : style_Ry['marker']})
+            self.style_y_marker.update({'marker' : style_Ry['marker']})
+            self.style_z_marker.update({'marker' : style_Ry['marker']})
+        elif self.raypath == 'c':
+            self.style_x_marker.update({'marker' : style_Rz['marker']})        
+            self.style_y_marker.update({'marker' : style_Rz['marker']})
+            self.style_z_marker.update({'marker' : style_Rz['marker']})
+        return
 
     def set_len(self):
         """Set profile.len_microns from profile.direction and 
@@ -831,89 +913,219 @@ class Profile():
         
         return fspectra_list
 
-    def make_area_list(self, polyorder=1, show_plot=True, show_water=True, 
-                        set_class=None):
-        """Make list of areas (no errors!) and simple water 
-        concentration estimates for profile"""
+    def make_area_list(self, polyorder=1, show_plot=True, set_class=None,
+                       shiftline=None, printout_area=False, peak=None):
+        """Make list of areas (no error) under the curve for an FTIR profile.
+        Default is bulk area. Set peak=wavenumber for peak-specific profile"""
+        # You need the list of spectra for the profile
         if len(self.spectra_list) < 1:
             check = self.make_spectra_list(class_from_module=set_class)
             if check is False:
                 return False
-            
+                
         areas = []
-        waters = []
-        waterse = []
-        
-        for x in self.spectra_list:
-            a, w = x.water(polyorder, show_plot, show_water)
-            areas.append(a)
-            waters.append(w.n)
-            waterse.append(w.s)
-            
-        self.areas_list = areas
-        self.waters_list = waters
-        self.waters_errors = waterse
-        
-    def plot_area_profile(self, polyorder=1, show_bestfit=False, 
-                          show_initial=False, show_FTIR=False, 
-                          show_values=False, set_class=None):
-        """Plot area profile"""
-        if len(self.positions_microns) < 1:
-            print 'Need positions_microns'
-            return
-        if len(self.areas_list) < 1:
-            print 'making water list'
-            check = self.make_area_list(polyorder, show_FTIR, 
-                                        show_values, set_class)
-            if check is False:
-                return
-            
-        if np.shape(self.areas_list) != np.shape(self.positions_microns):
-            print 'Area and positions lists are not the same size!'
-            print 'area:', np.shape(self.areas_list)
-            print 'positions:', np.shape(self.positions_microns)
-            return
+        if peak is None:
+            if len(self.areas_list) < 1:
+                print 'generating bulk areas under curves...'
+                for x in self.spectra_list:
+                    a = x.area_under_curve(polyorder, show_plot, shiftline, 
+                                           printout_area)
+                    areas.append(a)            
+                self.areas_list = areas
+            else:
+                areas = self.areas_list
+        else:
+            peaklist = list(self.spectra_list[0].peakpos)
+            print 'peak at', peak
 
+            if peak in peaklist:
+                idx = peaklist.index(peak)
+                for x in self.spectra_list:
+                    a = x.fitpeakareas[idx]
+                    areas.append(a)
+            else:
+                print 'No peak at wavenumber', peak
+                print 'peak positions:', peaklist
+                return False
+        return areas
+        
+    def plot_area_profile_outline(self, centered=True):
+        """Set up area profile outline. Default is for 0 to be the middle of 
+        the profile (centered=True)."""
         f, ax = plt.subplots(1, 1)
         ax.set_xlabel('Position ($\mu$m)')
         ax.set_ylabel('Area (cm$^{-2}$)')
         if self.profile_name is not None:
             ax.set_title(self.profile_name)
         else:
-            print 'Consider adding profile_name'
+            pass
+#            print 'Consider adding profile_name'
 
-        ax.plot(self.positions_microns, self.areas_list, 's')
         ax.grid()
         if self.len_microns is None:
             leng = max(self.positions_microns)
         else:
             leng = self.len_microns
             
-        ax.set_xlim(0, leng)
-        ax.set_ylim(0, max(self.areas_list)+0.2*max(self.areas_list))
-        
-        if show_initial is True:
-            prof_init = self.initial_profile
-            if prof_init is None:
-                print 'Set initial_profile'
+        if centered is True:
+            ax.set_xlim(-leng/2.0, leng/2.0)
+        else:
+            ax.set_xlim(0, leng)
+        if len(self.areas_list) > 0:
+            ax.set_ylim(0, max(self.areas_list)+0.2*max(self.areas_list))
+        return f, ax, leng
+
+    def plot_area_profile(self, polyorder=1, centered=True, figaxis=None, 
+                          bestfitline=False, show_FTIR=False, 
+                          show_values=False, set_class=None,
+                          peakwn=None):
+        """Plot area profile. Centered=True puts 0 in the middle of the x-axis.
+        figaxis sets whether to create a new figure or plot on an existing axis.
+        bestfitline=True draws a best-fit line through the data.
+        Set peak=wavenumber for peak-specific profile"""
+        # Check for or create positions and areas
+        if len(self.positions_microns) < 1:
+            print 'Need positions_microns for profile'
+            return
+        areas = self.make_area_list(polyorder, show_FTIR, 
+                                        set_class, peak=peakwn)
+        if areas is False:
+            return            
+        if np.shape(areas) != np.shape(self.positions_microns):
+            print 'Area and positions lists are not the same size!'
+            print 'area:', np.shape(self.areas_list)
+            print 'positions:', np.shape(self.positions_microns)
+            return
+
+        # Use new or old figure axes
+        if figaxis is None:
+            f, ax, leng = self.plot_area_profile_outline(centered)
+        else:
+            ax = figaxis
+            if self.len_microns is None:
+                leng = max(self.positions_microns)
             else:
-                if len(prof_init.positions_microns) == 0:
-                    print 'Need positions_microns for initial profile'
-                if len(prof_init.areas_list) == 0:
-                    print 'Run make_water_list for initial profile'
-                else:
-                    p = np.polyfit(prof_init.positions_microns, 
-                                   prof_init.areas_list, 1)
-                    x = np.linspace(0, leng, 100)
-                    y = np.polyval(p, x)
-                    ax.plot(x, y, '--r')
-            
-        if show_bestfit is True:
-            p = np.polyfit(self.positions_microns, self.areas_list, 1)
+                leng = self.len_microns
+
+        # Set up plotting styles
+        if self.style_base is None:
+            print 'Using default styles. Set profile style_base to change'
+            style_bestfitline = {'linestyle' : '-'}
+            style = style_profile        
+        else:
+            self.make_style_subtypes()
+            if self.direction == 'a':
+                style_bestfitline = self.style_x_line
+                style = self.style_x_marker
+            elif self.direction == 'b':
+                style_bestfitline = self.style_y_line
+                style = self.style_y_marker
+            elif self.direction == 'c':
+                style_bestfitline = self.style_z_line
+                style = self.style_z_marker
+            else:
+                print ('profile direction not clear (a, b, or c).' + 
+                        'Using default styles')
+                print self.direction
+                style_bestfitline = {'linestyle' : '-'}
+                style = style_profile
+
+        # Plot best fit line beneath data points
+        if bestfitline is True:
+            p = np.polyfit(self.positions_microns, areas, 1)
+            self.areas_bestfitline_p = p
             x = np.linspace(0, leng, 100)
             y = np.polyval(p, x)
-            ax.plot(x, y, '--g')
-        return f, ax
+            if centered is True:
+                ax.plot(x-leng/2.0, y, **style_bestfitline)
+            else:
+                ax.plot(x, y, **style_bestfitline)
+
+        # Plot data            
+        if centered is True:
+            ax.plot(self.positions_microns - leng/2.0, areas, 
+                    **style)
+        else:
+            ax.plot(self.positions_microns, areas, **style)
+        ax.set_ylim(0, max(areas)+0.2*(max(areas)))
+
+#        if show_initial is True:
+#            prof_init = self.initial_profile
+#            if prof_init is None:
+#                print 'Set initial_profile'
+#            else:
+#                if len(prof_init.positions_microns) == 0:
+#                    print 'Need positions_microns for initial profile'
+#                if len(prof_init.areas_list) == 0:
+#                    print 'Run make_water_list for initial profile'
+#                else:
+#                    p = np.polyfit(prof_init.positions_microns, 
+#                                   prof_init.areas_list, 1)
+#                    x = np.linspace(0, leng, 100)
+#                    y = np.polyval(p, x)
+#                    ax.plot(x, y, '--r')
+                        
+        if figaxis is None:
+            return f, ax
+        else:
+            return
+
+    def make_3DWB_water_list(self, polyorder=1):
+        """Make list of 3D-WB water concentrations as area/initial area.
+        Also return list of ppm H2O if self.sample.initial_water available"""
+        # initial area list
+        if self.initial_profile is None:
+            print 'Need self.initial_profile'
+            return
+            
+        # get both initial and final area lists
+        init = self.initial_profile
+        fin = self
+        for prof in [init, fin]:
+            if len(prof.areas_list) < 1:
+                check = prof.make_area_list(polyorder, show_plot=False)
+                if check is False:
+                    return
+        
+        # get best fit line (p) through initial profile
+        if init.areas_bestfitline_p is None:
+            p = np.polyfit(init.positions_microns, init.areas_list, 1)
+            init.areas_bestfitline_p = p
+        else:
+            p = init.areas_bestfitline_p
+
+        # divide final by initial bestfit line to obtain area ratio
+        init_line = np.polyval(p, self.positions_microns)
+        area_ratio = self.areas_list / init_line
+        self.wb_area_ratio = area_ratio
+
+        # Multiply by initial water to get scale up from area ratio        
+        if (self.sample is None) or (self.sample.initial_water is None):
+            print ('Need self.sample.initia_water for for A/A0 to water' +
+                    'Returning only area ratios')
+            return area_ratio
+        water_profile = area_ratio * self.sample.initial_water
+        return area_ratio, water_profile
+
+    def plot_wb_water(self, polyorder=1, centered=True, style=style_profile):
+        """Plot area ratios and scale up with initial water"""
+        if self.sample.initial_water is None:
+            print 'Set sample initial water content please.'
+            return
+        a, w = self.make_3DWB_water_list(polyorder=1)
+        
+        fig, ax, leng = self.plot_area_profile_outline(centered)
+        top = max(a) + 0.2*max(a)
+        ax.set_ylim(0, top)
+        ax.set_ylabel('Final area / Initial area')
+        
+        if centered is True:
+            ax.plot([-leng/2.0, leng/2.0], [1, 1], **style_1)
+            ax.plot(self.positions_microns - leng/2.0, a, **style)           
+        else:
+            ax.plot([0, leng], [1, 1], **style_1)
+            ax.plot(self.positions_microns, a, **style)
+        return fig, ax, leng
 
     def start_at_arbitrary(self, wn_matchup=3000, offset=0.):
         """For each spectrum in profile, divide raw absorbance by thickness 
@@ -1017,6 +1229,7 @@ def plotsetup_3x3minus2(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
     ax6 = plt.subplot(gs[1, 2])
     ax8 = plt.subplot(gs[2, 1])
     ax9 = plt.subplot(gs[2, 2])
+
     axis_list = [ax1, ax2, ax3, ax5, ax6, ax8, ax9]
     gs.update(bottom=0.14, left=0.15, right=0.95, top=0.95)    
     xmajorLocator = MultipleLocator(xtickgrid)
