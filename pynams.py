@@ -88,7 +88,7 @@ def make_line_style(direction, style_marker):
     d.update({'color' : style_marker['markeredgecolor'],
               'linewidth' : 2})
     return d
-
+    
 
 # Define classes, attributes, and functions related to samples
 class StudySample():
@@ -798,7 +798,8 @@ class Profile():
     areas_list = []
     areas_bestfitline_p = None
     # Whole-block 3D-WB
-    wb_area_ratio = None
+    wb_areas = None
+    wb_water = None
     # for plotting
     style_base = style_profile
     style_x_marker = None
@@ -834,6 +835,38 @@ class Profile():
             self.style_y_marker.update({'marker' : style_Rz['marker']})
             self.style_z_marker.update({'marker' : style_Rz['marker']})
         return
+
+    def choose_line_style(self):
+        """Returns line style with direction information"""
+        if self.style_base is None:
+            print 'Using default styles. Set profile style_base to change'
+            self.style_base = style_profile            
+        if self.style_x_line is None:
+            self.make_style_subtypes()
+        if self.direction == 'a':
+            style_bestfitline = self.style_x_line
+        elif self.direction == 'b':
+            style_bestfitline = self.style_y_line
+        elif self.direction == 'c':
+            style_bestfitline = self.style_z_line
+        else:
+            style_bestfitline = {'linestyle' : '-'}
+        return style_bestfitline
+    
+    def choose_marker_style(self):
+        """Returns marker style with direction and ray path information"""
+        if self.style_base is None:
+            print 'Using default styles. Set profile style_base to change'
+            self.style_base = style_profile
+        if self.style_x_marker is None:
+            self.make_style_subtypes()
+        if self.direction == 'a':
+            style = self.style_x_marker
+        elif self.direction == 'b':
+            style = self.style_y_marker
+        elif self.direction == 'c':
+            style = self.style_z_marker
+        return style
 
     def set_len(self):
         """Set profile.len_microns from profile.direction and 
@@ -950,8 +983,17 @@ class Profile():
         return areas
         
     def plot_area_profile_outline(self, centered=True):
-        """Set up area profile outline. Default is for 0 to be the middle of 
-        the profile (centered=True)."""
+        """Set up area profile outline and style defaults. 
+        Default is for 0 to be the middle of the profile (centered=True)."""
+        if self.style_base is None:
+            self.style_base = style_profile
+        self.make_style_subtypes()
+        
+        if self.len_microns is None:
+            leng = self.set_len()
+        else:
+            leng = self.len_microns
+
         f, ax = plt.subplots(1, 1)
         ax.set_xlabel('Position ($\mu$m)')
         ax.set_ylabel('Area (cm$^{-2}$)')
@@ -962,10 +1004,6 @@ class Profile():
 #            print 'Consider adding profile_name'
 
         ax.grid()
-        if self.len_microns is None:
-            leng = max(self.positions_microns)
-        else:
-            leng = self.len_microns
             
         if centered is True:
             ax.set_xlim(-leng/2.0, leng/2.0)
@@ -973,7 +1011,7 @@ class Profile():
             ax.set_xlim(0, leng)
         if len(self.areas_list) > 0:
             ax.set_ylim(0, max(self.areas_list)+0.2*max(self.areas_list))
-        return f, ax, leng
+        return f, ax
 
     def plot_area_profile(self, polyorder=1, centered=True, figaxis=None, 
                           bestfitline=False, show_FTIR=False, 
@@ -999,36 +1037,19 @@ class Profile():
 
         # Use new or old figure axes
         if figaxis is None:
-            f, ax, leng = self.plot_area_profile_outline(centered)
+            f, ax = self.plot_area_profile_outline(centered)
         else:
             ax = figaxis
-            if self.len_microns is None:
-                leng = max(self.positions_microns)
-            else:
-                leng = self.len_microns
+
+        # Set length
+        if self.len_microns is None:
+            leng = self.set_len()
+        else:
+            leng = self.len_microns
 
         # Set up plotting styles
-        if self.style_base is None:
-            print 'Using default styles. Set profile style_base to change'
-            style_bestfitline = {'linestyle' : '-'}
-            style = style_profile        
-        else:
-            self.make_style_subtypes()
-            if self.direction == 'a':
-                style_bestfitline = self.style_x_line
-                style = self.style_x_marker
-            elif self.direction == 'b':
-                style_bestfitline = self.style_y_line
-                style = self.style_y_marker
-            elif self.direction == 'c':
-                style_bestfitline = self.style_z_line
-                style = self.style_z_marker
-            else:
-                print ('profile direction not clear (a, b, or c).' + 
-                        'Using default styles')
-                print self.direction
-                style_bestfitline = {'linestyle' : '-'}
-                style = style_profile
+        style_bestfitline = self.choose_line_style()
+        style = self.choose_marker_style()
 
         # Plot best fit line beneath data points
         if bestfitline is True:
