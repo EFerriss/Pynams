@@ -100,8 +100,8 @@ class StudySample():
 class ThinSlab(StudySample):
     sample_thick_microns = None
     thick_list = []
-    twoA_length = None
-    twoB_length = None
+    length_x = None
+    length_y = None
 
 
 class Block(StudySample):

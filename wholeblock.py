@@ -26,13 +26,6 @@ from mpl_toolkits.axes_grid1 import host_subplot
 import matplotlib.transforms as mtransforms
 
 #%% Generate 3D whole-block area and water profiles
-def plot_wbprofile_outline(profile):
-    """Makes outline of figure for whole-block profile"""
-    f, ax = profile.plot_area_profile_outline()
-    ax.set_ylim(0, 1.2)
-    ax.set_ylabel('Final area / Initial area')
-    return f, ax
-
 def profile_area_3DWB(initial_profile, final_profile, show_plot=True):
     """Take initial area profile and final area profile and returns
     a profile of the ratio of the two (A/Ao). Defaults to making a plot"""
@@ -55,6 +48,12 @@ def profile_area_3DWB(initial_profile, final_profile, show_plot=True):
         return False
     else:
         leng = init.len_microns
+        
+    if len(fin.areas_list) != len(fin.positions_microns):
+        print ('PROBLEM!',
+               'length areas_list:', len(fin.areas_list), 
+               'length positions list:', len(fin.positions_microns))
+        return
 
     # Use best-fit line through initial values to normalize final data
     p = np.polyfit(initial_profile.positions_microns, 
@@ -63,11 +62,16 @@ def profile_area_3DWB(initial_profile, final_profile, show_plot=True):
     wb_areas = fin.areas_list / normalizeto
     
     if show_plot is True:
-        f, ax = plot_wbprofile_outline(initial_profile)
+        f, ax = final_profile.plot_area_profile_outline()
+        ax.set_ylim(0, 1.2)
+        ax.set_ylabel('Final area / Initial area')
         style = fin.choose_marker_style()
         ax.plot([-leng/2.0, leng/2.0], [1, 1], **pynams.style_1)
+        print len(fin.positions_microns), len(wb_areas)
         ax.plot(fin.positions_microns - (leng/2.0), wb_areas, **style)        
-    return wb_areas
+        return wb_areas, f, ax
+    else:
+        return wb_areas
 
 def profile_water_3DWB(initial_profile, final_profile, 
                        water_ppmH2O_initial=None,
@@ -191,17 +195,83 @@ def diffusion_1D(length_microns, time_seconds, log10D_m2s,
     if show_plot is True:
         if fig_axis is None:
             fig, ax = plt.subplots()
+            ax.grid()
+            ax.set_ylim(0, 1.2)
+            xside_microns = length_microns/2.
+            ax.set_xlim(-xside_microns, xside_microns)
+            ax.set_ylabel('C/C0')
+            ax.set_xlabel('position ($\mu$m)')
         else:
             ax = fig_axis
-        ax.plot(x_microns, profile)
-        ax.grid()
-        ax.set_ylim(0, 1.2)
-        xside_microns = length_microns/2.
-        ax.set_xlim(-xside_microns, xside_microns)
-        ax.set_ylabel('C/C0')
-        ax.set_xlabel('position ($\mu$m)')
-        
-    return profile
+        ax.plot(x_microns, profile, color='lightgreen', linewidth=4)
+
+        if fig_axis is None:
+            return fig, ax
+    else:
+        return
+
+def diffusion_erf1D(length_microns, time_seconds, log10D_m2s,
+                    initial_value=None, in_or_out='out',
+                    equilibrium_value=None, show_plot=True, fig_axis=None,
+                    points=100, infinity=100):
+    """Takes length of profile (microns), time (s), and the
+    log base 10 of diffusivity (m2/s) and returns diffusion profile
+    *assuming stuff is diffusing into media outside of sample like thermal
+    diffusion out of a dike and into country rock*
+    Optional input:
+    - initial concentration (default 1),
+    - whether diffusion is in or out of sample (default out),
+    - whether to use error functions or infinite sums (default erf),
+    - equilibrium concentration (default 0 for diffusion out; 1 for in),
+    - whether to plot results (default False, so no plot)
+    - which figure axis to plot onto
+    - points sets how many points to calculate in profile. Default is 100.
+    """
+    if time_seconds < 0:
+        print 'no negative time'
+        return
+
+    # change all to meters for calculation
+    twoA = length_microns / 1e6 # length in meters
+    a = twoA / 2.
+    x = np.linspace(-a, a, points) # positions in meters
+    x_microns = x * 1e6
+    D = (10.0**log10D_m2s) # diffusivity in meters^2/second
+    t = time_seconds # time in seconds
+    xsum = np.zeros_like(x)
+    for n in range(infinity):
+        # positive number that converges to 1
+        xadd1 = ((-1.)**n) / ((2.*n)+1.)
+        # time conponent
+        xadd2 = np.exp(
+                        (-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) /
+                        (twoA**2.)
+                        )
+        # There the position values come in to create the profile
+        xadd3 = np.cos(
+                        ((2.*n)+1.) * np.pi * x / twoA
+                        )
+        xadd = xadd1 * xadd2 * xadd3
+        xsum = xsum + xadd
+    profile = xsum * 4. / np.pi
+
+    if show_plot is True:
+        if fig_axis is None:
+            fig, ax = plt.subplots()
+            ax.grid()
+            ax.set_ylim(0, 1.2)
+            xside_microns = length_microns/2.
+            ax.set_xlim(-xside_microns, xside_microns)
+            ax.set_ylabel('C/C0')
+            ax.set_xlabel('position ($\mu$m)')
+        else:
+            ax = fig_axis
+        ax.plot(x_microns, profile, '--b')
+
+        if fig_axis is None:
+            return fig, ax
+    else:
+        return
 
 def diffusion_3D(list_of_3_lengths, time_seconds, log10D_m2s,
                  initial_value=None, in_or_out='out', erf_or_infsum='erf',
