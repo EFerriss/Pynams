@@ -26,50 +26,112 @@ from mpl_toolkits.axes_grid1 import host_subplot
 import matplotlib.transforms as mtransforms
 
 #%% Generate 3D whole-block area and water profiles
-def profile_area_3DWB(initial_profile, final_profile, show_plot=True):
-    """Take initial area profile and final area profile and returns
-    a profile of the ratio of the two (A/Ao). Defaults to making a plot"""
-    init = initial_profile
+def profile_area_3DWB(final_profile, initial_profile=None, 
+                      initial_area_list=None, 
+                      initial_area_positions_microns=None,
+                      show_plot=True, top=1.2, fig_axis=None):
+    """Take final 3D-wholeblock FTIR profile and returns
+    a profile of the ratio of the two (A/Ao). Requires information about 
+    initial state, so either an initial profile (best) set up either here
+    or as the profile.wb_initial profile, or else an initial area list passed
+    in with its position. Defaults to making a plot with max y-value 'top'.
+    """
     fin = final_profile
 
-    # Check lengths and area lists exist
-    for x in [init, fin]:
-        if x.len_microns is None:
-            x.set_len()
-        if len(x.areas_list) == 0:
-            print 'making area list!'
-            x.make_area_list(show_plot=False)
-        if len(x.positions_microns) == 0:
-            print 'No position information!!'
-            return False
-    
-    if init.len_microns != fin.len_microns:
-        print 'initial and final lengths must be the same!'
+    # initial checks
+    if len(fin.positions_microns) == 0:
+        print 'Need position information'
         return False
-    else:
-        leng = init.len_microns
-        
-    if len(fin.areas_list) != len(fin.positions_microns):
-        print ('PROBLEM!',
-               'length areas_list:', len(fin.areas_list), 
-               'length positions list:', len(fin.positions_microns))
-        return
+    if fin.len_microns is None:
+        check = fin.set_len()
+        if check is False:
+            print 'Need more info to set profile length'
+            return False
+    if fin.len_microns is None:
+        fin.set_len()
+    if len(fin.areas_list) == 0:
+        print 'making area list for profile'
+        fin.make_area_list(show_plot=False)
 
+    # What to normalize to? Priority given to self.wb_initial_profile, then
+    # initial_profile passed in here, then initial area list passed in here.
+    if fin.wb_initial_profile is not None:
+        init = fin.wb_initial_profile
+        if init.len_microns != fin.len_microns:
+            print 'initial and final lengths must be the same!'
+            return False
+        # Make sure area lists are populated
+        for profile in [init, fin]:
+            if len(profile.areas_list) == 0:
+                print 'making area list for profile'
+                profile.make_area_list(show_plot=False)
+        A0 = init.areas_list
+        positions0 = init.positions_microns
+
+    elif initial_profile is not None:
+        init = initial_profile
+        if isinstance(init, pynams.Profile) is False:
+            print 'initial_profile argument must be a pynams Profile.'
+            print 'Consider using initial_area_list and positions instead'
+            return False
+        # Make sure area lists are populated
+        for profile in [init, fin]:
+            if len(profile.areas_list) == 0:
+                print 'making area list for profile'
+                profile.make_area_list(show_plot=False)
+        A0 = init.areas_list
+        positions0 = init.positions_microns
+
+    elif initial_area_list is not None:
+        if initial_area_positions_microns is None:
+            print 'Need initial_area_positions_microns for initial_area_list'
+            return False
+        A0 = initial_area_list
+        positions0 = initial_area_positions_microns
+        if len(fin.areas_list) == 0:
+            print 'making area list for final profile'
+            fin.make_area_list(show_plot=False)
+    else:
+        print 'Need some information about initial state'
+        return False
+
+    # More initial checks
+    if len(fin.areas_list) != len(fin.positions_microns):
+        print 'area and position lists do not match'
+        print 'length areas_list:', len(fin.areas_list)
+        print 'length positions list:', len(fin.positions_microns)
+        return False    
+    if len(A0) < 1:        
+        print 'Nothing in initial area list'
+        return False
+    if len(positions0) < 1:
+        print 'Nothing in initial positions list'
+        return False
+    if len(A0) == 1:
+        print 'Using single point to generate initial line'
+        A0.extend([A0[0], A0[0]])
+        positions0.extend([0, fin.len_microns])
+        
     # Use best-fit line through initial values to normalize final data
-    p = np.polyfit(initial_profile.positions_microns, 
-                   initial_profile.areas_list, 1)
+    p = np.polyfit(positions0, A0, 1)
     normalizeto = np.polyval(p, fin.areas_list)
     wb_areas = fin.areas_list / normalizeto
+    leng = fin.len_microns
     
     if show_plot is True:
-        f, ax = final_profile.plot_area_profile_outline()
-        ax.set_ylim(0, 1.2)
+        if fig_axis is None:
+            f, ax = final_profile.plot_area_profile_outline()
+        else:
+            ax = fig_axis
+        ax.set_ylim(0, top)
         ax.set_ylabel('Final area / Initial area')
         style = fin.choose_marker_style()
         ax.plot([-leng/2.0, leng/2.0], [1, 1], **pynams.style_1)
-        print len(fin.positions_microns), len(wb_areas)
-        ax.plot(fin.positions_microns - (leng/2.0), wb_areas, **style)        
-        return wb_areas, f, ax
+        ax.plot(fin.positions_microns - (leng/2.0), wb_areas, **style)
+        if fig_axis is None:
+            return wb_areas, f, ax
+        else:
+            return wb_areas
     else:
         return wb_areas
 
@@ -130,10 +192,11 @@ def profile_water_3DWB(initial_profile, final_profile,
 #%%  Generate diffusion profiles in 1D, 3D, and 3DWB
 def diffusion_1D(length_microns, time_seconds, log10D_m2s, 
                  initial_value=None, in_or_out='out', 
-                 equilibrium_value=None, show_plot=True, fig_axis=None,
-                 points=100, infinity=5000):
+                 equilibrium_value=None, show_plot=True,
+                 erf_or_sum = 'erf', points=100, infinity=5000, 
+                 style=None, fig_axis=None):
     """Takes length of profile (microns), time (s), and the 
-    log base 10 of diffusivity (m2/s) and returns diffusion profile.
+    log base 10 of diffusivity (m2/s) and returns 1D unit diffusion profile.
     Optional input: 
     - initial concentration (default 1), 
     - whether diffusion is in or out of sample (default out), 
@@ -142,30 +205,13 @@ def diffusion_1D(length_microns, time_seconds, log10D_m2s,
     - whether to plot results (default False, so no plot)
     - which figure axis to plot onto
     - points sets how many points to calculate in profile. Default is 100.
+    - what 'infinity' is if using infinite sum approximation
+    - curve plotting style dictionary
     """
     if time_seconds < 0:
         print 'no negative time'
         return
         
-#    if equilibrium_value is not None:
-#        # add test to ensure equilib is a number
-#        equilib = equilibrium_value
-#    elif in_or_out == 'in':
-#        equilib = 1.0
-#    elif in_or_out == 'out':
-#        equilib = 0.0
-#    else: 
-#        print 'Not sure what the equilibrium value is'
-#
-#    if initial_value is not None:
-#        pass
-#    elif in_or_out == 'in':
-#        initial_value = 0.
-#    elif in_or_out == 'out':
-#        initial_value = 1.0
-#    else:
-#        print 'Not sure what the initial value is'
-
     # change to meters for calculation or else numbers too large --> nan
     twoA = length_microns / 1e6       # length in meters
     a = twoA / 2.
@@ -173,24 +219,36 @@ def diffusion_1D(length_microns, time_seconds, log10D_m2s,
     x_microns = x * 1e6
     D = (10.0**log10D_m2s)            # diffusivity in meters^2/second
     t = time_seconds                  # time in seconds    
-       
-    xsum = np.zeros_like(x)    
-    for n in range(infinity):
-       # positive number that converges to 1
-        xadd1 = ((-1.)**n) / ((2.*n)+1.)        
-        # time conponent
-        xadd2 = np.exp(
-                        (-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) / 
-                        (twoA**2.) 
-                        )                        
-        # There the position values come in to create the profile
-        xadd3 = np.cos(
-                        ((2.*n)+1.) * np.pi * x / twoA
-                        )        
-        xadd = xadd1 * xadd2 * xadd3
-        xsum = xsum + xadd
+    sqrtDt = (D*t)**0.5
+
+    if erf_or_sum == 'sum':       
+        xsum = np.zeros_like(x)    
+        for n in range(infinity):
+           # positive number that converges to 1
+            xadd1 = ((-1.)**n) / ((2.*n)+1.)        
+            # time conponent
+            xadd2 = np.exp(
+                            (-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) / 
+                            (twoA**2.) 
+                            )                        
+            # There the position values come in to create the profile
+            xadd3 = np.cos(
+                            ((2.*n)+1.) * np.pi * x / twoA
+                            )        
+            xadd = xadd1 * xadd2 * xadd3
+            xsum = xsum + xadd        
+        unit_profile = xsum * 4. / np.pi
         
-    profile = xsum * 4. / np.pi
+    elif erf_or_sum == 'erf':
+        unit_profile = ((scipy.special.erf((a+x)/(2*sqrtDt))) + 
+                   (scipy.special.erf((a-x)/(2*sqrtDt)))
+                   - 1) 
+    else:
+        print ('erf_or_sum must be set to either "erf" for python built-in ' +
+               'error function approximation (defaul) or "sum" for infinite ' +
+               'sum approximation with infinity=whatever, defaulting to ' + 
+               str(infinity))
+        return
     
     if show_plot is True:
         if fig_axis is None:
@@ -203,106 +261,66 @@ def diffusion_1D(length_microns, time_seconds, log10D_m2s,
             ax.set_xlabel('position ($\mu$m)')
         else:
             ax = fig_axis
-        ax.plot(x_microns, profile, color='lightgreen', linewidth=4)
+            
+        if style is None:
+            style = {'color' : 'lightgreen', 'linewidth' : 4}
+
+        ax.plot(x_microns, unit_profile, **style)
 
         if fig_axis is None:
-            return fig, ax
+            return unit_profile, fig, ax
     else:
-        return
+        return unit_profile
 
-def diffusion_erf1D(length_microns, time_seconds, log10D_m2s,
-                    initial_value=None, in_or_out='out',
-                    equilibrium_value=None, show_plot=True, fig_axis=None,
-                    points=100, infinity=100):
-    """Takes length of profile (microns), time (s), and the
-    log base 10 of diffusivity (m2/s) and returns diffusion profile
-    *assuming stuff is diffusing into media outside of sample like thermal
-    diffusion out of a dike and into country rock*
-    Optional input:
-    - initial concentration (default 1),
-    - whether diffusion is in or out of sample (default out),
-    - whether to use error functions or infinite sums (default erf),
-    - equilibrium concentration (default 0 for diffusion out; 1 for in),
-    - whether to plot results (default False, so no plot)
-    - which figure axis to plot onto
-    - points sets how many points to calculate in profile. Default is 100.
-    """
-    if time_seconds < 0:
-        print 'no negative time'
-        return
-
-    # change all to meters for calculation
-    twoA = length_microns / 1e6 # length in meters
-    a = twoA / 2.
-    x = np.linspace(-a, a, points) # positions in meters
-    x_microns = x * 1e6
-    D = (10.0**log10D_m2s) # diffusivity in meters^2/second
-    t = time_seconds # time in seconds
-    xsum = np.zeros_like(x)
-    for n in range(infinity):
-        # positive number that converges to 1
-        xadd1 = ((-1.)**n) / ((2.*n)+1.)
-        # time conponent
-        xadd2 = np.exp(
-                        (-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) /
-                        (twoA**2.)
-                        )
-        # There the position values come in to create the profile
-        xadd3 = np.cos(
-                        ((2.*n)+1.) * np.pi * x / twoA
-                        )
-        xadd = xadd1 * xadd2 * xadd3
-        xsum = xsum + xadd
-    profile = xsum * 4. / np.pi
-
-    if show_plot is True:
-        if fig_axis is None:
-            fig, ax = plt.subplots()
-            ax.grid()
-            ax.set_ylim(0, 1.2)
-            xside_microns = length_microns/2.
-            ax.set_xlim(-xside_microns, xside_microns)
-            ax.set_ylabel('C/C0')
-            ax.set_xlabel('position ($\mu$m)')
-        else:
-            ax = fig_axis
-        ax.plot(x_microns, profile, '--b')
-
-        if fig_axis is None:
-            return fig, ax
-    else:
-        return
-
-def diffusion_3D(list_of_3_lengths, time_seconds, log10D_m2s,
-                 initial_value=None, in_or_out='out', erf_or_infsum='erf',
-                 equilibrium_value=None, make_plot=True, points=100):
+def diffusion_3D(list_of_3_lengths, time_seconds, list_of_log10D_m2s, 
+                 initial_value=None, in_or_out='out', 
+                 equilibrium_value=None, show_plot=True,
+                 erf_or_sum = 'erf', points=100, infinity=5000, style=None,
+                 show_1Dplots=False):
     """ Takes list of three lengths (all in microns), time (s), and 
     diffusivity (m2/s) and returns 3D matrix of internal concentrations.
-    This is the 3D-slice approach described in Ferriss et al. 2015
-    Optional input: 
-    - initial concentration (default 1), 
-    - whether diffusion is in or out of sample (default out), 
-    - whether to use error functions or infinite sums (default erf), 
-    - equilibrium concentration (default 0 for diffusion out; 1 for in), 
-    - whether to plot results as three profiles through center (default True)
+    Similar options as diffusion_1D.
     """
+    # First create 3 1D profiles, 1 in each direction
     profiles = []
-    for length in list_of_3_lengths:
-        prof = diffusion_1D(length, time_seconds, log10D_m2s, initial_value, 
-                     in_or_out, erf_or_infsum, equilibrium_value, 
-                     False, None, points)
+    for k in range(3):
+        prof = diffusion_1D(list_of_3_lengths[k], time_seconds, 
+                            list_of_log10D_m2s[k], initial_value, 
+                            in_or_out, equilibrium_value, show_1Dplots,
+                            erf_or_sum, points, infinity, style)
         profiles.append(prof)
-    
-    v = np.ones_like(profiles[0])
+    # Then multiply them together to get a 3D matrix
+    v = np.ones((points, points, points))
     for d in range(0, points):
-        v[d] = profiles[0][d]
-#            for f=1:points+1
-#                v(d,e,f)=xerf(d)*yerf(e)*zerf(f);
+        for e in range(0, points):
+            for f in range(0, points):
+                v[d][e][f] = profiles[0][d]*profiles[1][e]*profiles[2][f]
+                
+    if show_plot is True:
+        if style is None:
+            style = {'color' : 'lightgreen', 'linewidth' : 4}
+        fig, axis = plt.subplots(nrows=1, ncols=3)
 
-    fig, ax = plt.subsubplots()
-    x = np.linspace(-length, length, points)
-    ax.plot(x, v)
+        mid = points/2        
+        aslice = v[:, mid][:, mid]
+        bslice = v[mid][:, mid]
+        cslice = v[mid][mid]
+        sliceprofiles = [aslice, bslice, cslice]
 
+        for k in range(3):
+            a = list_of_3_lengths[k]
+            x = np.linspace(-a, a, points)            
+            axis[k].plot(x, sliceprofiles[k], **style)
+            axis[k].set_xlim(-a, a)
+            axis[k].grid()
+            axis[k].set_ylim(0, 1.2)
+
+        axis[0].set_ylabel('C/C$_0$')
+        axis[1].set_xlabel('position along slice ($\mu$m)')
+        plt.setp(axis[1].get_yticklabels(), visible=False)
+        plt.setp(axis[2].get_yticklabels(), visible=False)
+        plt.tight_layout
+        fig.autofmt_xdate()
     return v
 
 def diffusion_3DWB(list_of_3_lengths, time_seconds, log10D_m2s, 
