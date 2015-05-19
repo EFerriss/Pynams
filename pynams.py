@@ -64,7 +64,7 @@ style_spectrum = {'color' : 'b', 'linewidth' : 3}
 style_fitpeak = {'color' : 'g', 'linewidth' : 1}
 style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
-                 'markersize' : 10, 'markerfacecolor' : 'gold', 'alpha' : 0.5}
+                 'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
 style_initial = {'color' : 'green', 'linewidth' : 1}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None}
 style_unoriented = {'fillstyle' : 'none'}
@@ -192,16 +192,25 @@ class Spectrum():
     def set_thick(self):
         """Set spectrum thick_microns from raypath and sample.thick_microns.
         Similar utility exists for Profiles"""
+        if self.sample is None:
+            print 'Need to specify sample or thickness'
+            return False
+        else:
+            s = self.sample
+        
+        if s.sample_thick_microns is None:
+            s.sample_thick_microns = get_3thick(s)
+
         if isinstance(self.sample.sample_thick_microns, float) is True:
-            th = self.sample.sample_thick_microns
+            th = s.sample_thick_microns
         elif isinstance(self.sample.sample_thick_microns, list) is True:
-            if len(self.sample.sample_thick_microns) == 3:
+            if len(s.sample_thick_microns) == 3:
                 if self.raypath == 'a':
-                    th = self.sample.sample_thick_microns[0]
+                    th = s.sample_thick_microns[0]
                 elif self.raypath == 'b':
-                    th = self.sample.sample_thick_microns[1]
+                    th = s.sample_thick_microns[1]
                 elif self.raypath == 'c':
-                    th = self.sample.sample_thick_microns[2]
+                    th = s.sample_thick_microns[2]
                 else:
                     print 'Need spectrum raypath a, b, or c'
                     return False
@@ -235,12 +244,14 @@ class Spectrum():
             check = self.set_thick()
             if check is False:
                 return False
+                
         if self.fname is None:
             print 'Need .fname to know what to call saved file'
             return False
         if self.filename is None:
             make_filenames()
         signal = np.loadtxt(default_folder + self.filename, delimiter=delim)
+        
         # Make sure wavenumber is ascending
         if signal[0, 0] > signal[-1, 0]:
             print 'WARNING: need to reverse wavenumber progression'
@@ -469,7 +480,7 @@ class Spectrum():
     def get_baseline(self, folder=default_folder, delim=',', 
                 bline_file_ending='-baseline.CSV'):
         """Get baseline and -subtracted spectrum saved using save_baseline().
-        Same data that goes into MATLAB FTIR_peakfit_afterpython.m"""
+        Same data that goes into MATLAB FTIR_peakfit_loop.m"""
         filename = folder + self.fname + bline_file_ending
         if os.path.isfile(filename) is False:
             print ' '
@@ -554,19 +565,22 @@ class Spectrum():
                          box.width*(1.0-shrinker), 
                          box.height*(1.0-shrinker)])
 
+        plt.setp(ax.get_xticklabels(), rotation=45)
         return f, ax
 
     def plot_spectrum(self, style=style_spectrum, figaxis=None, wn=None):
         """Plot the raw spectrum divided by thickness"""
+        if self.wn is None:
+            check = self.start_at_zero()
+            if check is False:
+                return
+
         if figaxis is None:
             fig, ax = self.plot_spectrum_outline()
         else:
             fig = None
             ax = figaxis
             
-        if self.wn is None:
-            self.start_at_zero()
-
         ax.plot(self.wn, self.abs_cm, **style)
         if wn is not None:
             ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], color='r')
@@ -852,7 +866,7 @@ class Profile():
 
         if self.sample is None:
             print '\n', self.profile_name
-            print 'Need to specify profile sample\n'
+            print 'Need to specify thickness or profile sample\n'
             return False
         else:
             s = self.sample
@@ -875,7 +889,7 @@ class Profile():
         """Set profile.thick_microns from profile.raypath and
         profile.sample.thick_microns"""
         if self.sample is None:
-            print 'Need to specify profile sample'
+            print 'Need to specify profile sample or thickness'
             return False
         else:
             s = self.sample
@@ -899,10 +913,8 @@ class Profile():
                           my_module='my_spectra'):
         """Set profile length and generate spectra_list 
         with key attributes"""
-        if self.sample is None:
-            print ''
-            print self.profile_name
-            print 'Need sample'
+        if self.thick_microns is None and self.sample is None:
+            print 'Need with thick_microns or sample attribute'
             return False
         if (self.raypath is not None) and (self.raypath == self.direction):
             print "raypath cannot be the same as profile direction"
@@ -962,7 +974,7 @@ class Profile():
                      initial_and_final_together=False, style=style_spectrum, 
                      stylei=style_initial, wn=None):
         """Plot averaged spectrum across profile. Returns figure and axis."""
-        if self.spectra_list is None:
+        if self.spectra_list is None or len(self.spectra_list) < 1:
             self.make_spectra_list()
 
         if show_initial_ave is True or initial_and_final_together is True:
@@ -1030,8 +1042,8 @@ class Profile():
 
     def make_baselines(self, lineorder=1, shiftline=None, 
                        show_fit_values=False, show_plot=False):
-        """Make baselines for all final and initial spectra""" 
-        for spectrum in self.spectra_list + self.initial_profile.spectra_list:
+        """Make baselines for all final and initial spectra in profile"""      
+        for spectrum in self.spectra_list:
             spectrum.make_baseline(line_order=lineorder, shiftline=shiftline,
                                     show_fit_values=show_fit_values,
                                     show_plot=False)
@@ -1085,7 +1097,7 @@ class Profile():
                                            printout_area, 
                                            require_saved_baseline=False)
                     areas.append(a)            
-                self.areas_list = areas
+                self.areas_list = np.array(areas)
             else:
                 areas = self.areas_list
         else:
@@ -1139,10 +1151,13 @@ class Profile():
             self.peak_diffusivities = np.zeros_like(peakpos)
             self.peak_diff_error = np.zeros_like(peakpos)
 
-    def plot_peakfits(self, initial_too=False, legloc=1):
+    def plot_peakfits(self, initial_too=False, legloc=1, top=1.2):
         """Show fit peaks for all spectra in profile"""
+        if len(self.spectra_list) < 1:
+            self.make_spectra_list()
+            
         for spectrum in self.spectra_list:
-            spectrum.plot_peakfit(legloc=legloc)
+            spectrum.plot_peakfit(legloc=legloc, top=top)
         
         if initial_too is True and self.initial_profile is not None:
             for spectrum in self.initial_profile.spectra_list:
@@ -1315,18 +1330,24 @@ class Profile():
         if self.style_base is None:
             print 'Using default styles. Set profile style_base to change'
             self.style_base = style_profile
+
         if self.style_x_marker is None:
             self.make_style_subtypes()
+
         if self.direction == 'a':
             style = self.style_x_marker
         elif self.direction == 'b':
             style = self.style_y_marker
         elif self.direction == 'c':
             style = self.style_z_marker
+        else:
+            style = self.style_base
+
         return style
         
     def plot_area_profile_outline(self, centered=True, peakwn=None,
-                                  figsize=(6.5, 2.5), top=1.2):
+                                  figsize=(6.5, 2.5), top=1.2, 
+                                    wholeblock=False, heights_instead=False):
         """Set up area profile outline and style defaults. 
         Default is for 0 to be the middle of the profile (centered=True)."""
         if self.style_base is None:
@@ -1341,7 +1362,18 @@ class Profile():
         f, ax = plt.subplots(1, 1)
         f.set_size_inches(figsize)
         ax.set_xlabel('Position ($\mu$m)')
-        ax.set_ylabel('Area (cm$^{-2}$)')
+        
+        # Set y-label
+        if wholeblock is True:
+            if heights_instead is False:
+                ax.set_ylabel('Area/Area$_0$')
+            else:
+                ax.set_ylabel('Height/Height$_0$')            
+        else:
+            if heights_instead is False:
+                ax.set_ylabel('Area (cm$^{-2}$)')
+            else:
+                ax.set_ylabel('Height (cm$^{-1}$)')
 
         if top is None:
             if len(self.areas_list) > 1:
@@ -1365,38 +1397,59 @@ class Profile():
                           show_values=False, set_class=None,
                           peakwn=None, peak_idx=None,
                           style=None, show_initial_areas=False,
-                          error_percent=2.):
+                          error_percent=2., wholeblock=False):
         """Plot area profile. Centered=True puts 0 in the middle of the x-axis.
         figaxis sets whether to create a new figure or plot on an existing axis.
         bestfitline=True draws a best-fit line through the data.
         Set peak=wavenumber for peak-specific profile"""
+        if len(self.spectra_list) < 1:
+            self.make_spectra_list()
+        
         # Check for or create positions and areas
         if len(self.positions_microns) < 1:
             print 'Need positions_microns for profile'
             return
 
-        # Get list of areas            
-        if peakwn is None and peak_idx is None:
-            # bulk hydrogen
-            self.get_baselines()
-            areas = self.make_area_list(polyorder, show_FTIR, 
-                                    set_class, peak=peakwn)
-        else:
-            # peak-specific
-            if self.peak_areas is None:
-                self.get_peakfit()
-
-            if peak_idx is None:
-                peak_idx = np.where(self.peakpos==peakwn)[0][0]
-                print 'peak at', peakwn, 'is index', peak_idx
+        # Get list of areas
+        if wholeblock is False:
+            if peakwn is None and peak_idx is None:
+                # bulk hydrogen
+                self.get_baselines()
+                areas = self.make_area_list(polyorder, show_FTIR, 
+                                        set_class, peak=peakwn)
             else:
-                peakwn = self.peakpos[peak_idx]
+                # peak-specific
+                if self.peak_areas is None:
+                    self.get_peakfit()
+    
+                if peak_idx is None:
+                    peak_idx = np.where(self.peakpos==peakwn)[0][0]
+                    print 'peak at', peakwn, 'is index', peak_idx
+                else:
+                    peakwn = self.peakpos[peak_idx]
 
-        if heights_instead is True and peak_idx is not None:
-            areas = self.peak_heights[peak_idx]
-        elif peak_idx is not None:
-            areas = self.peak_areas[peak_idx]
+            if heights_instead is True and peak_idx is not None:
+                areas = self.peak_heights[peak_idx]
+            elif peak_idx is not None:
+                areas = self.peak_areas[peak_idx]
 
+        # whole-block
+        else:
+            # bulk hydrogen
+            if peak_idx is None:
+                if self.wb_areas is None:
+                    self.make_wholeblock(peakfit=False, bulk=True)
+                areas = self.wb_areas
+            # peak-specific
+            else:
+                if self.peak_wb_areas is None:
+                    self.make_wholeblock(peakfit=True, bulk=False)
+    
+                if heights_instead is False:
+                    areas = self.peak_wb_areas[peak_idx]
+                else:
+                    areas = self.peak_wb_heights[peak_idx]
+                    
         if areas is False:
             return            
 
@@ -1408,13 +1461,17 @@ class Profile():
 
         # Use new or old figure axes
         if figaxis is None:
-            f, ax = self.plot_area_profile_outline(centered, peakwn)
+            f, ax = self.plot_area_profile_outline(centered, peakwn,
+                       heights_instead=heights_instead, wholeblock=wholeblock)
         else:
             ax = figaxis
 
         # Set length
         if self.len_microns is None:
             leng = self.set_len()
+            if self.len_microns is None:
+                print 'Need some information about profile length'
+                return
         else:
             leng = self.len_microns
 
@@ -1443,7 +1500,7 @@ class Profile():
 
         # Plot data
         if centered is True:
-            x = self.positions_microns - leng/2.0
+            x = np.array(self.positions_microns) - leng/2.0
         else:
             x = self.positions_microns            
         
@@ -1457,13 +1514,11 @@ class Profile():
                                                    figaxis=ax)            
         ax.set_ylim(0, max(areas)+0.2*(max(areas)))
 
-        if heights_instead is True and peak_idx is not None:
-            ax.set_ylabel('Peak height (/cm)')
-
         # Title
         if peak_idx is None:
             tit = 'Bulk hydrogen'
         else:
+            peakwn = self.peakpos[peak_idx]
             tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
         ax.set_title(tit)
 #        top = ax.get_ylim()[1]
@@ -1474,75 +1529,6 @@ class Profile():
         else:
             return
 
-    def plot_wholeblock_profile(self, polyorder=1, centered=True, figaxis=None, 
-                                bestfitline=False, show_FTIR=False, 
-                                show_values=False, set_class=None,
-                                peakwn=None, peak_idx=None,
-                                style=None, error_percent=3., xerror=50.,
-                                show_initial_areas=False, top=1.2, 
-                                heights_instead=False):
-        """Plot whole-block profile"""
-        # Bulk hydrogen
-        if peak_idx is None:           
-            if self.wb_areas is None:
-                self.make_wholeblock(peakfit=False, bulk=True)
-            a = self.wb_areas
-        # peak-specific selected by peak index
-        else:
-            if self.peak_wb_areas is None:
-                self.make_wholeblock(peakfit=True, bulk=False)
-
-            if heights_instead is False:
-                a = self.peak_wb_areas[peak_idx]
-            else:
-                a = self.peak_wb_heights[peak_idx]
-                
-            peakwn = self.peakpos[peak_idx]            
-        
-        # Use new or old figure axes
-        if figaxis is None:
-            f, ax = self.plot_area_profile_outline(centered=centered,
-                                                   peakwn=peakwn)
-            if heights_instead is False:
-                ax.set_ylabel('Area/Area$_0$')
-            else:
-                ax.set_ylabel('Height/Height$_0$')
-        else:
-            ax = figaxis
-
-        
-        ax.set_ylim(0, top)
-
-        if self.len_microns is None:
-            leng = self.set_len()
-        else:
-            leng = self.len_microns
-
-        if style is None:
-            style = self.choose_marker_style()
-
-        # Plot data            
-        if centered is True:
-            x = self.positions_microns - (leng/2.0)
-        else:
-            x = self.positions_microns
-        
-        yerror = np.array(a)*error_percent/100.
-        ax.errorbar(x, a, xerr=xerror, yerr=yerror, **style)
-
-        # Title
-        if peak_idx is None:
-            tit = 'Bulk hydrogen'
-        else:
-            tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
-        ax.set_title(tit)
-#        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')            
-        
-        if figaxis is None:
-            return f, ax
-        else:
-            return
-        
 #        ax2 = ax.twinx()
 #        ax2.set_ylim(0, top*max_concentration)
 #        ax2.set_ylabel('Absolute concentration')
@@ -1569,12 +1555,21 @@ class Profile():
 #        return fig, ax, leng
 
     def plot_diffusion(self, log10D_m2s=None, time_seconds=None, 
-                       peak_idx=None, top=1.2, wholeblock=True,
-                       maximum_value=None, style=None):
+                       peak_idx=None, top=1.2, wholeblock=False,
+                       maximum_value=None, style=None,
+                       heights_instead=False):
         """Plot diffusion curve with profile data."""
-        fig, axis = self.plot_area_profile_outline()
-               
-        microns = self.set_len()
+        fig, ax = self.plot_area_profile(wholeblock=wholeblock, 
+                                         peak_idx=peak_idx, 
+                                         heights_instead=heights_instead)
+                                                       
+        if self.len_microns is not None:
+            microns = self.len_microns
+        elif self.sample.sample_thick_microns is not None:
+            microns = self.set_len()
+        else:
+            print '\nNeed to set profile length directly or with a sample'
+            return False, False
 
         # Get time
         if time_seconds is not None:
@@ -1582,45 +1577,43 @@ class Profile():
         elif self.time_seconds is not None:
             time_seconds = self.time_seconds
         else:
-            print 'Need to set profile time_seconds attribute'
-            return
+            print '\nNeed to set profile time_seconds attribute'
+            return False, False
 
         # Get diffusivity
         if log10D_m2s is not None:
            pass
-        elif self.diffusivity_log10m2s is not None:
+        elif self.diffusivity_log10m2s != 0.0:
             log10D_m2s = self.diffusivity_log10m2s
         else:
-            print 'Need to set profile diffusivity_log10m2s attribute'
-            return
+            print '\nNeed to set profile diffusivity_log10m2s attribute'
+            return False, False
 
+        # Get scaling factor for diffusion curve
+        if wholeblock is True:
+            scaling_factor = 1.
+        elif maximum_value is not None:
+            scaling_factor = maximum_value
+        else: 
+            if len(self.areas_list) < 1:
+                self.make_area_list()
+            scaling_factor = np.max(self.areas_list)
+            
+        print '\nScaling up to {:.2f} cm^-2'.format(scaling_factor)
+        print 'Set maximum_value to normalize to a different value'
+       
         # Plot diffusion curves
         params = diffusion.params_setup1D(microns, log10D_m2s, time_seconds)
         x_diffusion, y_diffusion = diffusion.diffusion1D_params(params)
-        diffusion.plot_diffusion1D(x_diffusion, y_diffusion, 
-                                   fighandle=fig, axishandle=axis)
-
-        if wholeblock is True:
-            self.plot_wholeblock_profile(figaxis=axis, peak_idx=peak_idx, 
-                                         top=top, style=style)
-        else:
-            if maximum_value is None:
-                if len(self.areas_list) < 1:
-                    self.make_area_list()
-                maximum_value = max(self.areas_list)
-                print '\nNormalizing areas to', maximum_value, 'cm^2'
-            x = self.positions_microns - microns/2.
-            y = self.areas_list / maximum_value
-            if style is None:
-                style = self.choose_marker_style()
-            plt.plot(x, y, **style)
-#            self.plot_area_profile(figaxis=axis, peak_idx=peak_idx)
-
-        
-        strD = str(log10D_m2s) # FORMAT THIS
+        axis.plot(x_diffusion, y_diffusion*scaling_factor)
+            
+        # label diffusivity on plot        
+        strD = "{:.2f}".format(log10D_m2s) 
+        top = axis.get_ylim()[1]
         axis.text(-microns/2., top-0.1*top, 
                   ''.join(('  D=10$^{', strD, '}$ m$^2$/s')),
-                  ha='left', fontsize=12)
+                  ha='left', fontsize=12)                  
+                  
         return fig, axis
 
     def fitDiffusivity(self, initial_unit_value=1., vary_initial=False,
@@ -1954,7 +1947,8 @@ def plotsetup_3stacked(yhi=2, ylo=0, xlo = 3200, xhi = 3800,
 
 #%% 3D Plot setup
 def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
-                         shrinker=0.1, heights_instead=False):
+                         shrinker=0.1, heights_instead=False,
+                         wholeblock=True):
     """Outline setup for 3 subplots for 3D profiles"""
     if style is None:
         style = style_lightgreen
@@ -1969,10 +1963,19 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                                box.y0 + box.height*shrinker, 
                                box.width*(1.0-shrinker), 
                                box.height*(1.0-shrinker)])
-    if heights_instead is False:
-        axis3[0].set_ylabel('Area/Area$_0$')
+                               
+    if wholeblock is True:
+        if heights_instead is False:
+            axis3[0].set_ylabel('Area/Area$_0$')
+        else:
+            axis3[0].set_ylabel('Height/Height$_0$')
+            
     else:
-        axis3[0].set_ylabel('Height/Height$_0$')
+        if heights_instead is False:
+            axis3[0].set_ylabel('Area (cm$^{-2}$)')
+        else:
+            axis3[0].set_ylabel('Height (cm$^{-1}$)')
+        
     axis3[0].set_xlabel('|| a*')
     axis3[1].set_xlabel('position ($\mu$m) || b')
     axis3[2].set_xlabel('|| c')
@@ -1986,14 +1989,14 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], top=1.2, figaxis3=None, 
                  show_line_at_1=True,
                  centered=True, percent_error=3., xerror=50.,
-                 heights_instead=False,
+                 heights_instead=False, wholeblock=True,
                  use_errorbar=False):
     """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
     Positions are assumed to start at 0 and then are centered.
     """
     if figaxis3 is None:
-        fig, axis3 = plot_3panels_outline(top=top, 
+        fig, axis3 = plot_3panels_outline(top=top, wholeblock=wholeblock,
                                           heights_instead=heights_instead)
     else:
         axis3 = figaxis3
@@ -2020,7 +2023,6 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
             axis3[k].plot([-a, a], [1., 1.], '-k')
             
         if styles3[k] is None:
-#                styles3[k] = style_profile
             styles3[k] = style_lightgreen
             
         if np.isnan(y).any():
@@ -2430,71 +2432,97 @@ class WholeBlock():
         plt.subplots_adjust(top=0.85, bottom=0.25)
         return f, ax3
 
-    def plot_wholeblock(self, peak_idx=None, peakwn=None, fig_ax3=None, 
-                        top=1.2, f=None, wn=None, figsize=(6.5, 3.5), 
-                        sshow_spectra=True, percent_error=3., 
+    def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, 
+                     top=1.2, f=None, wn=None, figsize=(6.5, 3.5), 
+                     show_spectra=True, percent_error=3., 
                         styles3=[None, None, None],
                         use_area_profile_styles=True,
-                        heights_instead=False):
-        """Plot whole-block ratio of Area/Initial Area on three panels"""
-        if ((self.directions is None) or (self.raypaths is None) or
-            (self.initial_profiles is None) or (self.lengths is None)):
-                check = self.setupWB(make_wb_areas=False, peakfit=False)
-                if check is False:
-                    print 'Problem setting up whole block in setupWB'                    
-                    return False
+                        heights_instead=False, wholeblock=True):
+        """Plot whole-block ratio of Area/Initial Area (default) 
+        OR just areas (set wholeblock=False) on three panels"""
         self.get_baselines()
+
+        if wholeblock is True:
+            show_line_at_1 = True
+            if ((self.directions is None) or (self.raypaths is None) or
+                (self.initial_profiles is None) or (self.lengths is None)):
+                    check = self.setupWB(make_wb_areas=False, peakfit=False)
+                    if check is False:
+                        print 'Problem setting up whole block in setupWB'                    
+                        return False
+        else:
+            show_line_at_1 = False
+
+        if heights_instead is True:
+            top = 0.1
+
         # concatenate positions and areas across three profiles to 
         # send in to the plotting function
         positions = []
-        areas = []        
+        y = []
+            
         for prof in self.profiles:
             positions.append(prof.positions_microns)
 
             # Bulk hydrogen            
-            if peak_idx is None and peakwn is None:
+            if peak_idx is None:
                 
-                if prof.wb_areas is None:
-                    print '\nMaking whole block area ratios'
-                    check = prof.make_wholeblock(peakfit=False, bulk=True,
-                                                 show_plot=False)
-                    if check is False:
-                        return False
-    
-                areas.append(prof.wb_areas)
+                # whole-block
+                if wholeblock is True:
+                    if prof.wb_areas is None:
+                        print '\nMaking whole block area ratios'
+                        check = prof.make_wholeblock(peakfit=False, bulk=True,
+                                                     show_plot=False)
+                        if check is False:
+                            return False        
+                    y_to_add = prof.wb_areas
                 
-                if max(prof.wb_areas) > top:
-                    top = max(prof.wb_areas) + 0.1*max(prof.wb_areas)
+                # absolute areas
+                else:
+                    if len(prof.areas_list) < 1:
+                        prof.make_area_list()
+                    y_to_add = prof.areas_list
 
             # Peak-specific                
             else:
-                peak_wb_areas, peakwn = prof.get_peak_wb_areas(peak_idx, 
-                                           peakwn, 
+                if prof.peak_areas is None:
+                    prof.get_peakfit()
+                peakpos = self.profiles[0].peakpos                
+                    
+                if wholeblock is True:
+                    peak_wb, peakwn = prof.get_peak_wb_areas(peak_idx, 
                                            heights_instead=heights_instead)
-                    
-                peakpos = self.profiles[0].peakpos
-                
-                areas.append(peak_wb_areas)
-                    
-                if np.isinf(peak_wb_areas).any():
-                    pass
-                elif max(peak_wb_areas > top):
-                    top = max(peak_wb_areas) + 0.1*max(peak_wb_areas)
+                    y_to_add = peak_wb
+
+                else:
+                    if heights_instead is False:
+                        y_to_add = prof.peak_areas[peak_idx]
+                    else:
+                        y_to_add = prof.peak_heights[peak_idx]
+
+
+            y.append(y_to_add)
+
+            if max(y_to_add) > top:
+                top = max(y_to_add) + 0.1*max(y_to_add)
 
         if use_area_profile_styles is True:
             for k in range(3):
                 styles3[k] = self.profiles[k].choose_marker_style()
                 styles3[k]['markersize'] = 10
 
-        # Sent positions and areas to plotting command above
+        # Sent positions and areas to plotting command
         if fig_ax3 is not None:
-            plot_3panels(positions, areas, self.lengths, figaxis3=fig_ax3,
-                         styles3=styles3, top=top, 
+            plot_3panels(positions, y, self.lengths, figaxis3=fig_ax3,
+                         styles3=styles3, top=top, wholeblock=wholeblock,
+                         show_line_at_1=show_line_at_1,
                          heights_instead=heights_instead)
         else:
-            f, fig_ax3 = plot_3panels(positions, areas, self.lengths,
-                         styles3=styles3, top=top, 
+            f, fig_ax3 = plot_3panels(positions, y, self.lengths,
+                         styles3=styles3, top=top, wholeblock=wholeblock,
+                         show_line_at_1=show_line_at_1,
                          heights_instead=heights_instead)
+                         
             f.set_size_inches(figsize)
             f.autofmt_xdate()
 
@@ -2503,7 +2531,7 @@ class WholeBlock():
             tit = ' '.join(('Peak at', str(peakpos[peak_idx]), '/cm'))
         else:
             tit = 'Bulk hydrogen'
-        fig_ax3[1].text(0, top+0.07*top, tit, horizontalalignment='center')
+        fig_ax3[1].set_title(tit)
         
 #        plt.subplots_adjust(top=0.9, bottom=0.35)
         if fig_ax3 is not None:
@@ -2556,7 +2584,7 @@ class WholeBlock():
     def make_baselines(self, initial_too=False, line_order=1, shiftline=None, 
                        show_fit_values=False, show_plot=False): 
         """Make spectra baselines for all spectra in all profiles in 
-        whole-block"""
+        whole-block"""        
         profile_list = self.make_profile_list(initial_too)        
         for prof in profile_list:
             for spectrum in prof.spectra_list:
@@ -2596,7 +2624,7 @@ class WholeBlock():
     def plot_areas(self, profile_index=None, peak_idx=None, peakwn=None, 
                    show_initials=False, show_finals=True, show_legend=True,
                    legloc=1, frame=False, top=None, bestfitlines=False,
-                   heights_instead=False):
+                   heights_instead=False, together=False):
         """Plots profiles on one figure.
         Set initial_instead_of_final to True to see initial areas.
         Need to add legend and checks is wavenumber not in list."""
@@ -2689,6 +2717,7 @@ class WholeBlock():
                       loc='upper center', bbox_to_anchor=(0.5, -0.3),
                       fancybox=True, ncol=3)
 
+        # move y-axis upper limit to accomodate all data
         all_areas = np.array([])
         if top is not None:
             ax.set_ylim(0, top)
@@ -2711,12 +2740,12 @@ class WholeBlock():
                 top = maxtop + 0.15*maxtop
         ax.set_ylim(0, top)
                     
-        if peak_idx is None:
-            tit = 'Bulk hydrogen'
-        else:
-            tit = ' '.join(('Peak at',
-                            str(self.profiles[idx].peakpos[peak_idx]),'/cm'))
-        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')
+#        if peak_idx is None:
+#            tit = 'Bulk hydrogen'
+#        else:
+#            tit = ' '.join(('Peak at',
+#                            str(self.profiles[idx].peakpos[peak_idx]),'/cm'))
+#        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')
                    
         f.set_size_inches((6.5, 3.5))
         plt.subplots_adjust(top=0.9, bottom=0.35)
