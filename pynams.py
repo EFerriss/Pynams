@@ -41,14 +41,16 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from uncertainties import ufloat
 import os.path
+from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
 import lmfit
-import scipy
 import uncertainties
-from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import xlsxwriter
+import diffusion
+import json
+#import matplotlib.transforms as mtransforms
 
 # Optional: Set default folder where to find and/or save files for use with 
 # functions like save_spectrum and save_baseline. Eventually I will get 
@@ -66,6 +68,7 @@ style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o',
 style_initial = {'color' : 'green', 'linewidth' : 1}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None}
 style_unoriented = {'fillstyle' : 'none'}
+style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 # different profile directions
 style_Dx = {'fillstyle' : 'left', 'color' : 'red', 'markerfacecolor' : 'red'}
 style_Dy = {'fillstyle' : 'bottom', 'color' : 'green', 
@@ -515,7 +518,7 @@ class Spectrum():
             print ' '            
             print self.fname
             print 'Remember to savefit.m after FTIR_peakfit_afterpython.m'
-            return False
+            return False, False
 
         if self.base_wn is None:
             self.get_baseline()
@@ -575,6 +578,9 @@ class Spectrum():
         # Take baseline-subtracted spectrum from saved file every time 
         # to avoid any possible funny business from playing with baselines
         gaussian, summed_spectrum = self.get_peakfit()
+        if gaussian is False:
+            return
+        
         wn, observed = self.get_baseline()
 
         fig, ax = self.plot_subtractbaseline(style=style) # just plot setup
@@ -790,34 +796,34 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    # Required
-    fname_list = []
-    sample = None
-    raypath = None
-    spectrumclass_string = None
-    # Optional
-    direction = None
-    profile_name = None
-    initial_profile = None
-    spectrum_class_name = None
-    # averaged spectra made by self.make_average()
-    avespec = None
-    iavespec = None
-    # Made by make_spectra_list
-    positions_microns = np.array([])
-    spectra_list = []
-    len_microns = None
-    thick_microns = None
-    # Made by make_water_list etc. below
+    fname_list = [] # list of spectra filenames without the .CSV extension
+    positions_microns = np.array([]) # location of each spectrum along profile
+    sample = None # e.g., K3 (Kunlun diopside)
+    raypath = None # 'a', 'b', or 'c'
+    direction = None # 'a', 'b', or 'c'
+    profile_name = None # string
+    short_name = None # short string for saving diffusivities, etc.
+    initial_profile = None # for constructing whole-block profiles
+    # The actual list of spectra is made automatically by make_spectra_list.
+    # Set spectrum_class_name to use non-default spectra classes
+    # e.g., to set different baseline limits consistently
+    spectra_list = [] # 
+    spectrum_class_name = None 
+    avespec = None # averaged spectra made by self.make_average()
+    iavespec = None # initial averaged spectra
+    len_microns = None # length, but I usually use set_len() result directly
+    thick_microns = None # thickness
     waters_list = []
     waters_errors = []
     areas_list = []
     bestfitline_areas = None
-    # Whole-block 3D-WB information if applicable
-    wb_areas = None # bulk hydrogen
+    # Bulk whole-block 3D-WB information and diffusivities if applicable
+    wb_areas = None 
     wb_water = None
-    wb_initial_profile = None
-    # for plotting
+    diffusivity_log10m2s = 0.
+    diff_error = 0.
+    time_seconds = None
+    # for plotting 
     style_base = style_profile
     style_x_marker = None
     style_y_marker = None
@@ -825,11 +831,6 @@ class Profile():
     style_x_line = None
     style_y_line = None
     style_z_line = None
-    # Experimental information
-    temperature_celcius = None
-    time_seconds = None
-    diffusivity_log10m2s = None
-    diff_error = None
     # peak fitting. i = initial
     peakpos = None
     peak_heights = None
@@ -899,6 +900,8 @@ class Profile():
         """Set profile length and generate spectra_list 
         with key attributes"""
         if self.sample is None:
+            print ''
+            print self.profile_name
             print 'Need sample'
             return False
         if (self.raypath is not None) and (self.raypath == self.direction):
@@ -1323,7 +1326,7 @@ class Profile():
         return style
         
     def plot_area_profile_outline(self, centered=True, peakwn=None,
-                                  figsize=(6.5, 2.5), top=None):
+                                  figsize=(6.5, 2.5), top=1.2):
         """Set up area profile outline and style defaults. 
         Default is for 0 to be the middle of the profile (centered=True)."""
         if self.style_base is None:
@@ -1378,7 +1381,6 @@ class Profile():
             self.get_baselines()
             areas = self.make_area_list(polyorder, show_FTIR, 
                                     set_class, peak=peakwn)
-
         else:
             # peak-specific
             if self.peak_areas is None:
@@ -1392,11 +1394,12 @@ class Profile():
 
         if heights_instead is True and peak_idx is not None:
             areas = self.peak_heights[peak_idx]
-        else:            
+        elif peak_idx is not None:
             areas = self.peak_areas[peak_idx]
-                   
+
         if areas is False:
             return            
+
         if np.shape(areas) != np.shape(self.positions_microns):
             print 'Area and positions lists are not the same size!'
             print 'area:', np.shape(self.areas_list)
@@ -1445,7 +1448,7 @@ class Profile():
             x = self.positions_microns            
         
         yerror = np.array(areas)*error_percent/100.
-        ax.errorbar(x, areas, yerr=yerror, ** style)
+        ax.errorbar(x, areas, yerr=yerror, **style)
             
         # Plot initial profile areas
         if show_initial_areas is True:
@@ -1457,19 +1460,27 @@ class Profile():
         if heights_instead is True and peak_idx is not None:
             ax.set_ylabel('Peak height (/cm)')
 
+        # Title
+        if peak_idx is None:
+            tit = 'Bulk hydrogen'
+        else:
+            tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
+        ax.set_title(tit)
+#        top = ax.get_ylim()[1]
+#        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')
+
         if figaxis is None:
             return f, ax
         else:
             return
-
 
     def plot_wholeblock_profile(self, polyorder=1, centered=True, figaxis=None, 
                                 bestfitline=False, show_FTIR=False, 
                                 show_values=False, set_class=None,
                                 peakwn=None, peak_idx=None,
                                 style=None, error_percent=3., xerror=50.,
-                                show_initial_areas=False, top=1.0, 
-                                heights_instead=True):
+                                show_initial_areas=False, top=1.2, 
+                                heights_instead=False):
         """Plot whole-block profile"""
         # Bulk hydrogen
         if peak_idx is None:           
@@ -1492,12 +1503,13 @@ class Profile():
         if figaxis is None:
             f, ax = self.plot_area_profile_outline(centered=centered,
                                                    peakwn=peakwn)
-        else:
-            ax = figaxis
             if heights_instead is False:
                 ax.set_ylabel('Area/Area$_0$')
             else:
                 ax.set_ylabel('Height/Height$_0$')
+        else:
+            ax = figaxis
+
         
         ax.set_ylim(0, top)
 
@@ -1517,19 +1529,24 @@ class Profile():
         
         yerror = np.array(a)*error_percent/100.
         ax.errorbar(x, a, xerr=xerror, yerr=yerror, **style)
+
+        # Title
+        if peak_idx is None:
+            tit = 'Bulk hydrogen'
+        else:
+            tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
+        ax.set_title(tit)
+#        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')            
         
         if figaxis is None:
             return f, ax
         else:
             return
         
-#        # Multiply by initial water to get scale up from area ratio        
-#        if (self.sample is None) or (self.sample.initial_water is None):
-#            print ('Need self.sample.initia_water for for A/A0 to water' +
-#                    'Returning only area ratios')
-#            return area_ratio
-#        water_profile = area_ratio * self.sample.initial_water
-#        return area_ratio, water_profile
+#        ax2 = ax.twinx()
+#        ax2.set_ylim(0, top*max_concentration)
+#        ax2.set_ylabel('Absolute concentration')
+#
 
 #    def plot_wb_water(self, polyorder=1, centered=True, style=style_profile):
 #        """Plot area ratios and scale up with initial water"""
@@ -1551,9 +1568,67 @@ class Profile():
 #            ax.plot(self.positions_microns, a, **style)
 #        return fig, ax, leng
 
+    def plot_diffusion(self, log10D_m2s=None, time_seconds=None, 
+                       peak_idx=None, top=1.2, wholeblock=True,
+                       maximum_value=None, style=None):
+        """Plot diffusion curve with profile data."""
+        fig, axis = self.plot_area_profile_outline()
+               
+        microns = self.set_len()
+
+        # Get time
+        if time_seconds is not None:
+           pass
+        elif self.time_seconds is not None:
+            time_seconds = self.time_seconds
+        else:
+            print 'Need to set profile time_seconds attribute'
+            return
+
+        # Get diffusivity
+        if log10D_m2s is not None:
+           pass
+        elif self.diffusivity_log10m2s is not None:
+            log10D_m2s = self.diffusivity_log10m2s
+        else:
+            print 'Need to set profile diffusivity_log10m2s attribute'
+            return
+
+        # Plot diffusion curves
+        params = diffusion.params_setup1D(microns, log10D_m2s, time_seconds)
+        x_diffusion, y_diffusion = diffusion.diffusion1D_params(params)
+        diffusion.plot_diffusion1D(x_diffusion, y_diffusion, 
+                                   fighandle=fig, axishandle=axis)
+
+        if wholeblock is True:
+            self.plot_wholeblock_profile(figaxis=axis, peak_idx=peak_idx, 
+                                         top=top, style=style)
+        else:
+            if maximum_value is None:
+                if len(self.areas_list) < 1:
+                    self.make_area_list()
+                maximum_value = max(self.areas_list)
+                print '\nNormalizing areas to', maximum_value, 'cm^2'
+            x = self.positions_microns - microns/2.
+            y = self.areas_list / maximum_value
+            if style is None:
+                style = self.choose_marker_style()
+            plt.plot(x, y, **style)
+#            self.plot_area_profile(figaxis=axis, peak_idx=peak_idx)
+
+        
+        strD = str(log10D_m2s) # FORMAT THIS
+        axis.text(-microns/2., top-0.1*top, 
+                  ''.join(('  D=10$^{', strD, '}$ m$^2$/s')),
+                  ha='left', fontsize=12)
+        return fig, axis
+
     def fitDiffusivity(self, initial_unit_value=1., vary_initial=False,
-                       guess=-13., peak_idx=None, top=1.2, peakwn=None,
-                       show_plot=True, polyorder=1, heights_instead=False):
+                       varyD=True, guess=-13., peak_idx=None, top=1.2, 
+                       peakwn=None,
+                       show_plot=True, polyorder=1, heights_instead=False,
+                       final_unit_value=0., vary_final=False, 
+                       max_water=1., min_water=0.):
         """Fits 1D diffusion curve to profile data.
         I still need to add almost all of the diffusion_1D keywords."""
         if self.time_seconds is None:        
@@ -1581,30 +1656,27 @@ class Profile():
         t = self.time_seconds
         D0 = guess
         init = initial_unit_value
-       
-        params = lmfit.Parameters()
-        #               (Name,           Value,      Vary,   Min,  Max,  Expr)
-        params.add_many(('length_microns',  L,  False,  0.0,    None,   None),
-                        ('time_seconds',    t,  False,  0.0,    None,   None),
-                        ('log10D_m2s',   D0, True,   None,    None,   None),
-                ('initial_unit_value', init, vary_initial, 0.0, None, None))
-        kwdict = {'show_plot' : 'False'}
-                    
+        fin = final_unit_value
+        params = diffusion.params_setup1D(L, D0, t, init, fin, vD=varyD, 
+                                          vinit=vary_initial, vfin=vary_final)
+
         if show_plot is True:
             fig, ax = self.plot_area_profile_outline(peakwn=peakwn)
             self.plot_wholeblock_profile(figaxis=ax, peak_idx=peak_idx,
                                          top=top, 
                                          heights_instead=heights_instead)
-        
-        lmfit.minimize(diffusion_1D, params, args=(x, y), kws=kwdict)        
+ 
+        lmfit.minimize(diffusion.diffusion1D_params, params, args=(x, y))  
         best_D = ufloat(params['log10D_m2s'].value, 
                          params['log10D_m2s'].stderr)
         best_init = ufloat(params['initial_unit_value'].value, 
-                         params['initial_unit_value'].stderr)
-
+                         params['initial_unit_value'].stderr)   
 
         if show_plot is True:
-            diffusion_1D(params, fig_axis=ax, style={'color' : 'green'})
+            xdiff, ydiff = diffusion.diffusion1D_params(params)
+            diffusion.plot_diffusion1D(xdiff, ydiff, 
+                                       fighandle=fig, axishandle=ax, 
+                                       style={'color' : 'green'})
         
         print '\ntime in hours:', params['time_seconds'].value / 3600.
         print 'initial unit value:', best_init
@@ -1621,6 +1693,59 @@ class Profile():
         
         return best_D, best_init
 
+    def save_diffusivities(self, folder=default_folder, 
+                           file_ending='-diffusivities.txt'):
+        """Save diffusivities for profile to a file"""
+        if self.short_name is None:
+            print 'Need profile short_name attribute to label file'
+            return
+            
+        if self.peakpos is None:
+            self.get_peakfit()
+
+        # Saving diffusivities in first column, errors in 2nd
+        # Bulk H in first row, then each peak-specific value            
+        a = []
+        a.append([self.diffusivity_log10m2s, self.diff_error])
+        for k in range(len(self.peakpos)):
+            a.append([self.peak_diffusivities[k], self.peak_diff_error[k]])
+        
+        workfile = ''.join((folder, self.short_name, file_ending))
+        with open(workfile, 'w') as diff_file:
+            diff_file.write(json.dumps(a))
+
+    def get_diffusivities(self, folder=default_folder, 
+                           file_ending='-diffusivities.txt'):
+        """Get saved diffusivities for profile from a file"""
+        # Look into json format        
+        if self.short_name is None:
+            print 'Need profile short_name attribute to label file'
+            return
+            
+        if self.peakpos is None:
+            self.get_peakfit()
+
+        workfile = ''.join((folder, self.short_name, file_ending))
+        if os.path.isfile(workfile) is False:
+            print ' '
+            print self.fname      
+            print 'use save_diffusivities() to make -diffusivities.txt'
+            return
+
+        with open(workfile, 'r') as diff_file:
+            diffusivities_string = diff_file.read()
+
+        diffusivities = json.loads(diffusivities_string)
+
+        self.diffusivity_log10m2s = diffusivities[0][0]
+        self.diff_error = diffusivities[0][1]
+
+        for k in range(len(self.peakpos)):
+            self.peak_diffusivities[k] = diffusivities[1+k][0]
+            self.peak_diff_error[k] = diffusivities[1+k][1]
+        
+        return diffusivities
+        
     def start_at_arbitrary(self, wn_matchup=3000, offset=0.):
         """For each spectrum in profile, divide raw absorbance by thickness 
         and set spectra abs_full_cm such that they overlap at the specified 
@@ -1832,13 +1957,14 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False):
     """Outline setup for 3 subplots for 3D profiles"""
     if style is None:
-        style = {'color' : 'lightgreen', 'linewidth' : 4}
+        style = style_lightgreen
         fig, axis3 = plt.subplots(nrows=1, ncols=3)
     fig.set_size_inches(figsize)
     for k in range(3):
         axis3[k].set_ylim(0, top)
         axis3[k].grid()
         box = axis3[k].get_position()
+        plt.setp(axis3[k].xaxis.get_majorticklabels(), rotation=45)
         axis3[k].set_position([box.x0 + box.width*shrinker, 
                                box.y0 + box.height*shrinker, 
                                box.width*(1.0-shrinker), 
@@ -1847,15 +1973,21 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
         axis3[0].set_ylabel('Area/Area$_0$')
     else:
         axis3[0].set_ylabel('Height/Height$_0$')
-    axis3[1].set_xlabel('position ($\mu$m)')
+    axis3[0].set_xlabel('|| a*')
+    axis3[1].set_xlabel('position ($\mu$m) || b')
+    axis3[2].set_xlabel('|| c')
     plt.setp(axis3[1].get_yticklabels(), visible=False)
     plt.setp(axis3[2].get_yticklabels(), visible=False)
+    
+    
     return fig, axis3
     
-def plot_3panels(positions_microns, area_profiles, lengths,
-                 styles3=[None, None, None], top=1.2, figaxis3=None, show_line_at_1=True,
+def plot_3panels(positions_microns, area_profiles, lengths=None,
+                 styles3=[None, None, None], top=1.2, figaxis3=None, 
+                 show_line_at_1=True,
                  centered=True, percent_error=3., xerror=50.,
-                 heights_instead=False):
+                 heights_instead=False,
+                 use_errorbar=False):
     """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
     Positions are assumed to start at 0 and then are centered.
@@ -1865,6 +1997,12 @@ def plot_3panels(positions_microns, area_profiles, lengths,
                                           heights_instead=heights_instead)
     else:
         axis3 = figaxis3
+
+    if lengths is None:
+        lengths = np.ones(3)
+        for k in range(3):
+            lengths[k] = max(positions_microns[k] - 
+                            min(positions_microns[k]))
 
     for k in range(3):      
         x = positions_microns[k]
@@ -1880,27 +2018,34 @@ def plot_3panels(positions_microns, area_profiles, lengths,
 
         if show_line_at_1 is True:
             axis3[k].plot([-a, a], [1., 1.], '-k')
-    
+            
         if styles3[k] is None:
-            styles3[k] = style_profile
+#                styles3[k] = style_profile
+            styles3[k] = style_lightgreen
             
         if np.isnan(y).any():
             axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
                          'nan values!\n\nProbably the\ninitial area was 0',
                          horizontalalignment='center', backgroundcolor='w',
                          verticalalignment='center')
+                         
         elif np.isinf(y).any():
             infstring = ''.join(('inf values!\n\nProbably the',
                                 '\ninitial area was 0\nand a peak grew'))
             axis3[k].text(0, axis3[k].get_ylim()[1]/2., infstring,
                          horizontalalignment='center', backgroundcolor='w',
                          verticalalignment='center')
+
         else:
-           yerror = np.array(y) * percent_error/100.
-           axis3[k].errorbar(x-a, y, xerr=xerror, yerr=yerror, **styles3[k])
+            if use_errorbar is True:
+                yerror = np.array(y) * percent_error/100.
+                axis3[k].errorbar(x-a, y, xerr=xerror, yerr=yerror, 
+                                **styles3[k])
+            else:
+                axis3[k].plot(x-a, y, **styles3[k])
 
     if figaxis3 is None:
-        return fig, axis3
+        return fig, axis3   
 
 #%% Generate 3D whole-block area and water profiles
 def make_3DWB_area_profile(final_profile, 
@@ -2107,374 +2252,6 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
     else:
         return water
 
-#%% 
-#
-#
-# Writing diffusion equations as suitable ojective functions that can be 
-# called by lmfit.minimize.
-#
-#
-def diffusion_1D(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', show_plot=True, fig_axis=None,
-                 style=None, need_to_center_x_data=True,
-                 infinity=100, points=50):
-    """Function set up to follow lmfit fitting requirements.
-    Requires input as lmfit parameters value dictionary 
-    passing in key information as 'length_microns',
-    'time_seconds', 'log10D_m2s', and 'initial_unit_value'. 
-    
-    Here is an example of the setup:
-    params = lmfit.Parameters()
-    #           (Name,                 Value,   Vary,   Min,  Max,  Expr)
-    params.add_many(('length_microns',  1000,   False,  0.0, None,  None),
-                ('time_seconds',      3600*10., False,  0.0,  None,  None),
-                ('log10D_m2s',         -12.,    True,   None, None,  None),
-                ('initial_unit_value',  1.,     False,  0.0,   1.0, None))
-
-    Fitting is a profile function fitDiffusivity().
-    For fitting, include data_x_microns and data_y_unit_areas. 
-    If need_to_center_x_data is True (default), x data starts at 0 and
-    will get moved. Also, lmfit screws up if you try setting a minimum
-    on log10D_m2s.
-
-    Return values
-    If data are None (default), returns 1D unit diffusion profile 
-    x_microns and y as vectors of length points (default 50). 
-
-    Optional keywords:    
-     - erf_or_sum: whether to use python's error functions (default) 
-       or infinite sums
-     - show_plot: whether to plot results (default True, so plot)
-     - fig_ax: which figure axis to plot onto (default None makes new fig)
-     - style: curve plotting style dictionary
-#    - whether diffusion is in or out of sample (default out), 
-#    - equilibrium concentration (default 0 for diffusion out; 1 for in), 
-     - points sets how many points to calculate in profile. Default is 50.
-     - what 'infinity' is if using infinite sum approximation
-    """
-    # extract important values from parameter dictionary passed in
-    p = params.valuesdict()
-    L_meters = p['length_microns'] / 1e6
-    t = p['time_seconds']
-    D = 10.**p['log10D_m2s']
-    initial_value = p['initial_unit_value']
-    a_meters = L_meters / 2.
-
-    if t < 0:
-        print 'no negative time'
-        return           
-
-    # Fitting to data or not? Default is not
-    fitting = False
-    if (data_x_microns is not None) and (data_y_unit_areas is not None):
-        if len(data_x_microns) == len(data_y_unit_areas):
-            fitting = True
-        else:
-            print 'x and y data must be the same length'
-            print 'x', len(data_x_microns)
-            print 'y', len(data_y_unit_areas)
-        
-    # x is in meters and assumed centered around 0
-    if fitting is True:
-        # Change x to meters and center it
-        x = np.array(data_x_microns) / 1e6
-        if need_to_center_x_data is True:
-            x = x - a_meters
-    else:
-        x = np.linspace(-a_meters, a_meters, points)
-    
-    if erf_or_sum == 'infsum':
-        xsum = np.zeros_like(x)
-        for n in range(infinity):
-            xadd =  ((((-1.)**n) / ((2.*n)+1.))    + 
-                    (np.exp((-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) / 
-                        (L_meters**2.)))    + 
-                    (np.cos(((2.*n)+1.) * np.pi * x / L_meters)))
-            xsum = xsum + xadd        
-        model = xsum * 4. / np.pi        
-
-    elif erf_or_sum == 'erf':
-        sqrtDt = (D*t)**0.5
-        model = ((scipy.special.erf((a_meters+x)/(2*sqrtDt))) + 
-                   (scipy.special.erf((a_meters-x)/(2*sqrtDt))) - 1) 
-
-    else:
-        print ('erf_or_sum must be set to either "erf" for python built-in ' +
-               'error function approximation (defaul) or "sum" for infinite ' +
-               'sum approximation with infinity=whatever, defaulting to ' + 
-               str(infinity))
-        return False
-
-    # Revisit for in_or_out
-    model = model * initial_value
-
-    x_microns = x * 1e6
-
-    if show_plot is True:
-        a_microns = a_meters * 1e6
-        if fig_axis is None:
-            fig, fig_axis = plt.subplots()
-            fig_axis.grid()
-            fig_axis.set_ylim(0, 1.2)
-            fig_axis.set_xlim(-a_microns, a_microns)
-            fig_axis.set_ylabel('Area/Area$_0$')
-            fig_axis.set_xlabel('position ($\mu$m)')
-
-        if style is None:
-            if fitting is True:
-                style = {'linestyle' : 'none', 'marker' : 'o'}
-            else:
-                style = {'color' : 'lightgreen', 'linewidth' : 4}
-            
-        fig_axis.plot([-a_microns, a_microns], [initial_value, initial_value], 
-                      '-k')
-        fig_axis.plot(x_microns, model, **style)
-
-    # If not including data, just return the model values
-    # With data, return the residual for use in fitting.
-    if fitting is False:
-        return x_microns, model
-    return model-data_y_unit_areas
-
-
-def diffusion_3D(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', show_plot=True, fig_ax=None,
-                 style=None, need_to_center_x_data=True,
-                 infinity=100, points=50, show_1Dplots=False):
-    """ Diffusion in 3 dimensions without path integration.
-    lmfit parameter list input must include:
-    length_microns_a, length_microns_b, length_microns_c, 
-    time_seconds, initial unit value, and 
-    diffusivities in log10 m2/s logDx, logDy, logDz
-    
-    Example parameter setup for input here:
-    params = lmfit.Parameters()
-    #  (Name,           Value,      Vary,   Min,  Max,  Expr)
-    params.add('microns_twoa', L3[0], False, 0.0, None, None)
-    params.add('microns_twob', L3[1], False, 0.0, None, None)
-    params.add('microns_twoc', L3[2], False, 0.0, None, None)
-    params.add('initial_unit_value_a', 1., False, 0.0, None, None)
-    params.add('initial_unit_value_b', 1., True, 0.0, None, None)
-    params.add('initial_unit_value_c', 1., False, 0.0, None, None)
-    params.add('log10Dx', D3[0], True, 0.0, None, None)
-    params.add('log10Dy', D3[1], True, 0.0, None, None)
-    params.add('log10Dz', D3[2], False, 0.0, None, None)
-    params.add('time_seconds', t, False, 0.0, None, None)    
-    """
-    # Fitting to data or not? Default is not
-    # Add appropriate x and y data to fit
-    fitting = False
-    if (data_x_microns is not None) and (data_y_unit_areas is not None):
-        x_data = np.array(data_x_microns)
-        y_data = np.array(data_y_unit_areas)
-        if np.shape(x_data) == np.shape(y_data):
-            fitting = True
-            print 'fitting to data'
-        else:
-            print 'x and y data must be the same shape'
-            print 'x', np.shape(x_data)
-            print 'y', np.shape(y_data)
-
-    p = params.valuesdict()
-    L3_microns = np.array([p['microns_twoa'], p['microns_twob'], 
-                          p['microns_twoc']])
-    t = p['time_seconds']
-    init = [p['initial_unit_value_a'], 
-            p['initial_unit_value_b'],
-            p['initial_unit_value_c']]
-    vary_init = [params['initial_unit_value_a'].vary, 
-                 params['initial_unit_value_b'].vary,
-                 params['initial_unit_value_c'].vary]
-    log10D3 = [p['log10Dx'], p['log10Dy'], p['log10Dz']]
-    vary_D = [params['log10Dx'].vary, 
-              params['log10Dy'].vary, 
-              params['log10Dz'].vary]
-
-    # First create 3 1D profiles, 1 in each direction
-    xprofiles = []    
-    yprofiles = []
-    kwdict = {'show_plot' : show_1Dplots, 'points' : points}
-    
-    for k in range(3):
-        p1D = lmfit.Parameters()
-        p1D.add('length_microns', L3_microns[k], False)
-        p1D.add('time_seconds', t, params['time_seconds'].vary)
-        p1D.add('log10D_m2s', log10D3[k], vary_D[k])
-        p1D.add('initial_unit_value', init[k], vary_init[k])
-        
-        x, y = diffusion_1D(p1D, **kwdict)
-        xprofiles.append(x)
-        yprofiles.append(y)
-                                      
-    # Then multiply them together to get a 3D matrix
-    v = np.ones((points, points, points))
-    for d in range(0, points):
-        for e in range(0, points):
-            for f in range(0, points):
-                v[d][e][f] = yprofiles[0][d]*yprofiles[1][e]*yprofiles[2][f]
-
-    mid = points/2        
-    aslice = v[:, mid][:, mid]
-    bslice = v[mid][:, mid]
-    cslice = v[mid][mid]
-    sliceprofiles = [aslice, bslice, cslice]
-                
-    if show_plot is True:
-        if fig_ax is None:
-            f, fig_ax = plot_3panels_outline()
-        if style is None:
-            style = {'color' : 'lightgreen', 'linewidth' : 4}
-        positions = []
-        for k in range(3):
-            a = L3_microns[k] / 2.
-            x = np.linspace(0, a*2., points)
-            positions.append(x)
-        plot_3panels(positions, sliceprofiles, L3_microns, style=style,
-                     figaxis3=fig_ax)
-            
-    # Returning full matrix and 
-    # slice profiles in one long list for use in fitting
-    sliceprofiles = [aslice, bslice, cslice]
-    
-    if fitting is False:
-        return v, sliceprofiles
-    else:
-        ### Still need to set up residuals! ###
-        residuals = np.zeros_like(sliceprofiles)
-        return residuals
-
-
-def diffusion_3DWB(params, data_x_microns=None, data_y_unit_areas=None, 
-                 raypaths=None, erf_or_sum='erf', show_plot=True, 
-                 fig_ax=None,
-                 style=None, need_to_center_x_data=True,
-                 infinity=100, points=200, show_1Dplots=False):
-    """ Diffusion in 3 dimensions with path integration.
-    lmfit parameter list input must include:
-    length_microns_a, length_microns_b, length_microns_c, 
-    time_seconds, initial unit value, 
-    diffusivities in log10 m2/s logDx, logDy, logDz, 
-    
-    Also must pass in a keyword list of raypaths in an order consistent
-    with the length directions as, e.g., ['c', 'c', 'b']
-    
-    Example parameter setup for input here:
-    params = lmfit.Parameters()
-    #  (Name,           Value,      Vary,   Min,  Max,  Expr)
-    params.add('microns_twoa', L3[0], False, 0.0, None, None)
-    params.add('microns_twob', L3[1], False, 0.0, None, None)
-    params.add('microns_twoc', L3[2], False, 0.0, None, None)
-    params.add('initial_unit_value_a', 1., False, 0.0, None, None)
-    params.add('initial_unit_value_b', 1., True, 0.0, None, None)
-    params.add('initial_unit_value_c', 1., False, 0.0, None, None)
-    params.add('log10Dx', D3[0], True, 0.0, None, None)
-    params.add('log10Dy', D3[1], True, 0.0, None, None)
-    params.add('log10Dz', D3[2], False, 0.0, None, None)
-    params.add('time_seconds', t, False, 0.0, None, None)
-    """
-    if raypaths is None:
-        print 'raypaths must be in the form of a list of three abc directions'
-        return
-
-    # v is the model 3D array of internal concentrations
-    ### Need to add in all the keywords ###
-    v, sliceprofiles = diffusion_3D(params, show_plot=False, points=points)
-
-    # Fitting to data or not? Default is not
-    # Add appropriate x and y data to fit
-    fitting = False
-    if (data_x_microns is not None) and (data_y_unit_areas is not None):
-        x_array = np.array(data_x_microns)
-        y_array = np.array(data_y_unit_areas)
-        if np.shape(x_array) == np.shape(y_array):
-            print 'fitting to data'
-            fitting = True
-        else:
-            print 'x and y data must be the same shape'
-            print 'x', np.shape(x_array)
-            print 'y', np.shape(y_array)
-            
-    # Whole-block measurements can be obtained through any of the three 
-    # planes of the whole-block, so profiles can come from one of two ray path
-    # directions. These are the planes.
-    raypathA = v.mean(axis=0)
-    raypathB = v.mean(axis=1)
-    raypathC = v.mean(axis=2)
-
-    # Specify whole-block profiles in model
-    mid = points/2
-    if raypaths[0] == 'b':
-        wbA = raypathB[:, mid]
-    elif raypaths[0] == 'c':
-        wbA = raypathC[:, mid]       
-    else:
-        print 'raypaths[0] for profile || a must be "b" or "c"'
-        return
-        
-    if raypaths[1] == 'a':
-        wbB = raypathA[:, mid]
-    elif raypaths[1] == 'c':
-        wbB = raypathC[mid]       
-    else:
-        print 'raypaths[1] for profile || b must be "a" or "c"'
-        return
-
-    if raypaths[2] == 'a':
-        wbC = raypathA[mid]
-    elif raypaths[2] == 'b':
-        wbC = raypathB[mid]       
-    else:
-        print 'raypaths[2] for profile || c must be "a" or "b"'
-        return
-
-    p = params.valuesdict()
-    L3 = [p['microns_twoa'], p['microns_twob'], p['microns_twoc']]
-#    if fitting is True:
-#        wb_profiles = data_y_unit_areas
-#        wb_positions = np.array(data_x_microns)
-#    else:
-    wb_profiles = [wbA, wbB, wbC]
-    wb_positions = []
-    for k in range(3):
-        a = L3[k] / 2.
-        x_microns = np.linspace(0., 2.*a, points)
-        wb_positions.append(x_microns)
-        
-    if show_plot is True:
-        if style is None:
-            style = {'color' : 'lightgreen', 'linewidth' : 4}
-
-        if fig_ax is None:
-            f, fig_ax = plot_3panels(wb_positions, wb_profiles, L3, style)
-        else:
-            plot_3panels(wb_positions, wb_profiles, L3, style, 
-                         figaxis3=fig_ax)                         
-    if fitting is False:        
-        return wb_positions, wb_profiles
-    
-    if fitting is True:
-        # Return residuals 
-        y_model = []
-        y_data = []
-        residuals = []
-        for k in range(3):
-            for pos in range(len(x_array[k])):
-                # wb_positions are centered, data are not
-                microns = x_array[k][pos]
-                # Find the index of the full model whole-block value 
-                # closest to the data positions
-                idx = (np.abs(wb_positions[k]-microns).argmin())
-                
-                model = wb_profiles[k][idx]
-                data = y_array[k][pos]
-                res = model - data
-                
-                y_model.append(model)
-                y_data.append(data)
-                residuals.append(res)                
-        return residuals
-
-
                 
 #%% Group profiles together as whole-block unit
 class WholeBlock():
@@ -2488,9 +2265,9 @@ class WholeBlock():
     # optional for diffusion work and plotting
     style_base = None
     time_seconds = None
-    diffusivities_log10_m2s = None
-    diffusivity_errors = None
-    peakfit_filename = None
+    temperature_celcius = None
+    diffusivities_log10_m2s = None # to be phased out
+    diffusivity_errors = None # to be phased out
     worksheetname = None
                 
     def setupWB(self, peakfit=False, make_wb_areas=False):
@@ -2686,7 +2463,7 @@ class WholeBlock():
     
                 areas.append(prof.wb_areas)
                 
-                if max(prof.wb_areas > top):
+                if max(prof.wb_areas) > top:
                     top = max(prof.wb_areas) + 0.1*max(prof.wb_areas)
 
             # Peak-specific                
@@ -2718,6 +2495,8 @@ class WholeBlock():
             f, fig_ax3 = plot_3panels(positions, areas, self.lengths,
                          styles3=styles3, top=top, 
                          heights_instead=heights_instead)
+            f.set_size_inches(figsize)
+            f.autofmt_xdate()
 
         # Change title if peak-specific rather than bulk
         if peak_idx is not None:
@@ -2726,10 +2505,9 @@ class WholeBlock():
             tit = 'Bulk hydrogen'
         fig_ax3[1].text(0, top+0.07*top, tit, horizontalalignment='center')
         
-        f.set_size_inches(figsize)
-        f.autofmt_xdate()
 #        plt.subplots_adjust(top=0.9, bottom=0.35)
-        return f, fig_ax3
+        if fig_ax3 is not None:
+            return f, fig_ax3
 
     def print_spectra_names(self, show_initials=True):
         """Print out fnames of all spectra associated with the whole-block 
@@ -2976,8 +2754,8 @@ class WholeBlock():
         col2 = 4
         col2pt5 = 8
         col3 = 12
-        col4 = 20
-        col_heights = 28
+        col4 = 28
+        col_heights = 20
         col_wb_heights = 36
         col5 = 44
 
@@ -3024,7 +2802,7 @@ class WholeBlock():
         pic_counter = 0
         for prof in self.profiles:
             row = row + 1
-            worksheet.write(row, col1, prof.profile_name)
+            worksheet.write(row, col1, prof.profile_name, boldtext)
             row = row + 1
 
             pos_idx = 0
@@ -3083,12 +2861,12 @@ class WholeBlock():
         worksheet.insert_image(0, col3, 'panel3.png', {'x_scale' : 0.5, 
                                'y_scale' : 0.5})
             
-        # area profiles in 3rd column and whole-block profiles in 4th column
-        # Then same thing for heights
+        # area profiles, height profiles, whole-block profiles for both
+        # heights are for peak-specific only
         worksheet.write(11, col3, 'Peak areas profiles', boldtext)
         worksheet.write(11, col4, 'Whole-block area profiles', boldtext)
-        worksheet.write(11, col_heights, 'Peak height profiles', boldtext)
-        worksheet.write(11, col_wb_heights, 'Whole-block height profiles', 
+        worksheet.write(25, col_heights, 'Peak height profiles', boldtext)
+        worksheet.write(25, col_wb_heights, 'Whole-block height profiles', 
                         boldtext)
         
         errorstring1 = ', '.join(('+/- 2% errors in area', 
@@ -3101,14 +2879,14 @@ class WholeBlock():
                                   '+/- 50 microns errors in position'))
         worksheet.write(12, col3, errorstring1)
         worksheet.write(12, col4, errorstring2)
-        worksheet.write(12, col_heights, errorstring3)
-        worksheet.write(12, col_wb_heights, errorstring4)
+        worksheet.write(26, col_heights, errorstring3)
+        worksheet.write(26, col_wb_heights, errorstring4)
 
         worksheet.write(13, col3, 'Errors typically plot in or near symbols')
         worksheet.write(13, col4, 'Errors typically plot in or near symbols')
-        worksheet.write(13, col_heights, 
+        worksheet.write(27, col_heights, 
                                 'Errors typically plot in or near symbols')
-        worksheet.write(13, col_wb_heights, 
+        worksheet.write(27, col_wb_heights, 
                                 'Errors typically plot in or near symbols')
         
         f, ax = self.plot_areas(bestfitlines=bestfitlines_on_areas)
@@ -3144,9 +2922,9 @@ class WholeBlock():
 
             f, ax = self.plot_wholeblock(peak_idx=peak_idx, 
                                          heights_instead=True)
-            newfig = 'wbareas{:d}.png'.format(peak_idx)
+            newfig = 'wbheights{:d}.png'.format(peak_idx)
             f.savefig(newfig, dpi=exceldpi)
-            worksheet.insert_image(29+(14*peak_idx), col4, newfig, 
+            worksheet.insert_image(29+(14*peak_idx), col_wb_heights, newfig, 
                                    {'x_scale' : 0.5, 'y_scale' : 0.5})
 
         # Initial profiles and baseline information in 4rd column
@@ -3198,8 +2976,15 @@ class WholeBlock():
             label2 = ''.join((str(peak), ' whole-block area ratio'))
             worksheet.write(1, col, label2, wraptext)
             col = col + 1
+        for peak in peakpos:
+            label1 = ''.join((str(peak), ' height (/cm)'))
+            worksheet.write(1, col, label1, wraptext)
+            col = col + 1
+        for peak in peakpos:
+            label2 = ''.join((str(peak), ' whole-block height ratio'))
+            worksheet.write(1, col, label2, wraptext)
+            col = col + 1
         worksheet.write(1, col, 'file label', wraptext)
-        col = col + 1
 
         # values filling in the rows
         row = 2
@@ -3246,6 +3031,24 @@ class WholeBlock():
                                     two_digits_after_decimal)
                     col = col + 1
 
+                # peak heights
+                for k in range(len(peakpos)):
+                    height = prof.peak_heights[k][pos_idx]
+                    worksheet.write(row, col, height, 
+                                    two_digits_after_decimal)
+                    col = col + 1
+                # peak whole-block heights
+                for k in range(len(peakpos)):
+                    wbh = prof.peak_wb_heights[k][pos_idx]
+                    if np.isnan(wbh):  
+                        worksheet.write(row, col, 'nan')
+                    elif np.isinf(wbh): 
+                        worksheet.write(row, col, 'inf')
+                    else:
+                        worksheet.write(row, col, wbh, 
+                                    two_digits_after_decimal)
+                    col = col + 1
+
                 # filenames at the end of summary
                 worksheet.write(row, col, spec.fname)
 
@@ -3283,7 +3086,7 @@ class WholeBlock():
                               spectrum.peak_widths[k], spectrum.peak_areas[k]        
 
     def print_diffusivities(self, peak_idx=None, profile_idx=None,
-                            show_plot=True, top=1.0):
+                            show_plot=False, top=1.5):
         """Print diffusivities for each profile"""
         if show_plot is True:
             self.plot_3panels_ave_spectra(peak_idx=peak_idx, top=top)
@@ -3292,12 +3095,19 @@ class WholeBlock():
             for prof in self.profiles:
                 if prof.peakpos is None:
                     prof.get_peakfit()
+                string1 = '{:10.2f}'.format(prof.diffusivity_log10m2s)
+                string2 = '{:10.2f}'.format(prof.diff_error)
+                bulkstring = ' '.join(('bulk H :', string1, '+/-', string2))
                 print '\n', prof.profile_name, 'log10(D in m2/s)'
-                print 'bulk H :  ', prof.diffusivity_log10m2s, '+/-', \
-                        prof.diff_error
+                print bulkstring
                 for k in range(len(prof.peakpos)):
-                    print prof.peakpos[k], ':  ', prof.peak_diffusivities[k],\
-                            '+/-', prof.peak_diff_error[k]
+                    string0 = str(prof.peakpos[k])
+                    string1 = '{:10.2f}'.format(prof.peak_diffusivities[k])
+                    string2 = '{:10.2f}'.format(prof.peak_diff_error[k])
+                    string = ' '.join((string0, ':', string1, '+/-', string2))
+                    print string
+#                    print prof.peakpos[k], ':  ', prof.peak_diffusivities[k],\
+#                            '+/-', prof.peak_diff_error[k]
             return
         
         if profile_idx is None:
@@ -3320,48 +3130,44 @@ class WholeBlock():
         print prof.peak_diffusivities
         print prof.peak_diff_error
 
-    def plot_diffusion(self, peak_idx=None, peakwn=None, 
-                       time_seconds=None, 
-                       list_of_log10D_m2s=None, 
+    def save_diffusivities(self, folder=default_folder, 
+                           file_ending='-diffusivities.txt'):
+        """Save diffusivities for all profiles in whole-block instance
+        to files"""
+        for prof in self.profiles:
+            prof.save_diffusivities(folder, file_ending)
+            
+    def get_diffusivities(self, folder=default_folder, 
+                           file_ending='-diffusivities.txt'):
+        """Gets diffusivities for all profiles in whole-block instance
+        from previously saved files"""
+        for prof in self.profiles:
+            prof.get_diffusivities(folder, file_ending)
+
+    def plot_diffusion(self, peak_idx=None, time_seconds=None, 
+                       diffusivities_log10D_m2s=None, 
                        initial_value=None, in_or_out='out', erf_or_sum='erf', 
                        equilibrium_value=None, show_plot=True, 
                        show_slice=False, style=None, wb_or_3Dnpi='wb', 
                        fig_ax=None, points=50, top_spectra=1.0,
-                        top=1.2, numformat='{:.1f}', show_spectra=True,
-                        heights_instead=False):
+                       top=1.2, numformat='{:.1f}', 
+                       heights_instead=False, init3 = [1., 1., 1.],
+                       fin3=[0., 0., 0.], approximation1D=False):
         """Applies 3-dimensionsal diffusion equations to instance shape.
         Requires lengths, time in seconds, and three diffusivities either
         explicitly passed here or as attributes of the WholeBlock object.
         Assuming whole-block diffusion (wb_or_3Dnpi='wb') but could also 
         do 3D non-path-integrated ('npi')
-        """
-        if time_seconds is None:
-            if self.time_seconds is not None:
-                time_seconds = self.time_seconds
-            else:
-                print 'Need time information'
-                return        
-        
-        ## Which diffusivities to use
-        if list_of_log10D_m2s is not None:
-            D3 = list_of_log10D_m2s
-        elif peak_idx is not None:
-            if self.profiles[0].peak_diffusivities is not None:
-                D3 = []
-                for k in range(3):
-                    D3.append(self.profiles[k].peak_diffusivities[peak_idx])
-            else:
-                D3 = [-13., -13., -13.]
-        elif self.profiles[0].diffusivity_log10m2s is not None:
-            D3 = []
-            for k in range(3):
-                D3.append(self.profiles[k].diffusivity_log10m2s)
-        else:
-            D3 = [-13., -13., -13.]
-        
+        """        
+        if self.lengths is None:
+            self.setupWB(peakfit=False, make_wb_areas=False)
+        if self.lengths is None:
+            print 'Need to setup self.lengths, which is in microns'
+            return False
+
         if (wb_or_3Dnpi != 'npi') and (wb_or_3Dnpi != 'wb'):
             print 'wb_or_3Dnpi only takes "wb" or "npi"'
-            return
+            return False
 
         if self.directions is None:           
             self.setupWB(peakfit=False, make_wb_areas=False)
@@ -3369,155 +3175,199 @@ class WholeBlock():
         if self.initial_profiles is None:
             self.setupWB(peakfit=False, make_wb_areas=False)
 
-        if self.lengths is None:
-            self.setupWB(peakfit=False, make_wb_areas=False)            
-
         if self.raypaths is None:
             self.setupWB(peakfit=False, make_wb_areas=False)
-        # end initial checks and setup
 
-        if peak_idx is not None:
-            init3 = []
-            for k in range(3):
-                initwb = self.profiles[k].peak_initial_wb_ratio
-                init3.append(initwb)
-                print 'initial ratio', initwb
-        else:
-            init3 = [1., 1., 1.]
-
-        # Set up parameters to pass into equations
-        L3 = self.lengths
-        params = lmfit.Parameters()
-        # (Name, Value, Vary, Min, Max, Expr)
-        params.add('microns_twoa', L3[0], False, None, None, None)
-        params.add('microns_twob', L3[1], False, None, None, None)
-        params.add('microns_twoc', L3[2], False, None, None, None)
-        params.add('initial_unit_value_a', init3[0], False, None, None, None)
-        params.add('initial_unit_value_b', init3[1], False, None, None, None)
-        params.add('initial_unit_value_c', init3[2], False, None, None, None)
-        params.add('log10Dx', D3[0], True, None, None, None)
-        params.add('log10Dy', D3[1], True, None, None, None)
-        params.add('log10Dz', D3[2], True, None, None, None)
-        params.add('time_seconds', time_seconds, False, None, None, None)
-
-        if show_spectra is True:
-            if peak_idx is not None:
-                self.plot_3panels_ave_spectra(peak_idx=peak_idx)
-
-        if show_plot is True:
-            if fig_ax is None:
-                fig, fig_ax = plot_3panels_outline(top=top)
-            
-            kws = {'show_plot' : show_plot, 'fig_ax' : fig_ax,
-                   'style' : style, 'points' : points}
-    
-            # send to diffusion equation
-            # diffusion line plots get made here
-            if init3 == [1., 1., 1.]:
-                if wb_or_3Dnpi == 'npi':
-                    diffusion_3D(params, **kws)
-                else:
-                    R3 = self.raypaths
-                    kws['raypaths'] = R3
-                    diffusion_3DWB(params, **kws)
+        if time_seconds is None:
+            if self.time_seconds is not None:
+                time_seconds = self.time_seconds
             else:
-                for prof in self.profiles:
-                    prof.plot_wholeblock_profile(
-                    heights_instead=heights_instead)
-    
-            # Add data on top of diffusion line in plot
-            self.plot_wholeblock(fig_ax3=fig_ax, peak_idx=peak_idx, 
-                              peakwn=peakwn)
+                print 'Need time information'
+                return False
+
+        # Pick which diffusivities to use
+        D3 = None
+        if diffusivities_log10D_m2s is not None:
+            D3 = diffusivities_log10D_m2s
+        elif self.diffusivities_log10_m2s is not None and peak_idx is None:
+            D3 = self.diffusivities_log10_m2s
+        elif peak_idx is not None:
+             if self.profiles[0].peak_diffusivities is None:
+                 self.get_peakfit()
+             D3 = []
+             for prof in self.profiles:
+                 D3.append(prof.peak_diffusivities[peak_idx])
+
+        if D3 is None or 0.0 in D3:
+            print '\nNeed diffusivities.'
+            print 'Input directly as diffusivities_log10D_m2s'
+            print 'or input bulk in profile.diffusivity_log10m2s'
+            print 'or peak_diffusivities at specified peak_idx\n'
+            return False
+                
+        L3 = self.lengths
+        
+        if show_plot is True:
+            fig, fig_ax = self.plot_wholeblock(peak_idx=peak_idx, top=top)
+
+            if len([i for i in init3 if i != 1.]) > 0:
+                print 'Using 1D approximations because initial unit value != 1'
+                approximation1D = True
+
+            # Make this either way because it gets returned for possible
+            # use in other functions
+            params = diffusion.params_setup3D(L3, D3, time_seconds, 
+                                              init3, fin3)
+            if approximation1D is False:
+                kws = {'show_plot' : show_plot, 'fig_ax' : fig_ax,
+                       'style' : style, 'points' : points}
+
+                ### WHAT AM I DOING WITH THE HEIGHTS STUFF HERE. TO DO.
+                if heights_instead is False:
+                    if wb_or_3Dnpi == 'npi':
+                        diffusion.diffusion3Dnpi_params(params, **kws)
+                    else:
+                        R3 = self.raypaths
+                        kws['raypaths'] = R3
+                        diffusion.diffusion3Dwb_params(params, **kws)
+                else:
+                    for prof in self.profiles:
+                        prof.plot_wholeblock_profile(
+                        heights_instead=heights_instead)
+
+            else:
+                for k in range(3):
+                    params1D = diffusion.params_setup1D(L3[k], D3[k],
+                               time_seconds, init3[k], fin3[k])
+                    x, y = diffusion.diffusion_1D(params1D, show_plot=False)
+                    fig_ax[k].plot(x, y, **style_lightgreen)
+                    fig_ax[k].plot(x, np.ones_like(x)*init3[k], '--k')
+
+            self.plot_wholeblock(peak_idx=peak_idx, top=top, fig_ax3=fig_ax)
+
+            # label diffusivities
             for k in range(3):
                 dlabel = str(numformat.format(D3[k])) + ' m$^2$s$^{-1}$'
                 fig_ax[k].text(0, top-top*0.12, dlabel, 
                                 horizontalalignment='center',
                                 backgroundcolor='w')                              
+                               
         return params
        
     def fitD(self, peak_idx=None, peakwn=None,
              initial_unit_values=[1., 1., 1.], 
-             vary_initials=['False', 'False', 'False'], 
-             guesses=[-13., -13., -13.], show_plot=True,
-             vary_D=['True', 'True', 'True'],
-             approx_with_1D=False, wb_or_3Dnpi='wb', polyorder=1,
+             final_unit_values=[0., 0., 0.],
+             log10D_guesses_m2s=[-13., -13., -13.], 
+             vary_initials=[False, False, False], 
+             vary_finals=[False, False, False], 
+             vary_diffusivities=[True, True, True],
+             show_plot=True, wb_or_3Dnpi='wb', 
              show_initial_guess=True, style_initial=None,
-             style_final={'color' : 'red'}, points=100):
+             style_final={'color' : 'red'}, points=100, top=1.2,
+             approximation1D=False):
         """Forward modeling to determine diffusivities in three dimensions 
         from whole-block data. 
-        """
+        """        
         if wb_or_3Dnpi != 'wb' and wb_or_3Dnpi != 'npi':
             print 'wb_or_3Dnpi can only be wb or npi'
-            return
-            
+            return            
         if wb_or_3Dnpi == 'npi':
             print 'NPI not supported yet'
             return
-            
-        # Plot setup and initial guess lines
-        if show_plot is True:
-            fig, ax3 = plot_3panels_outline()
-        else: 
-            ax3 = None
+                        
+        if self.raypaths is None:
+            self.setupWB()
 
-        # Set up parameters and keywords to go into diffusion equations
-        # This will plot the initial guess diffusivities if show_initial_guess
-        # is True
-        dict_plotting = {'show_plot' : show_initial_guess, 'fig_ax' : ax3,
-                 'wb_or_3Dnpi' : wb_or_3Dnpi, 'style' : style_initial,
-                 'points' : points, 'peakwn' : peakwn, 'peak_idx' : peak_idx}
-        dict_fitting = {'show_plot' : False, 'points' : points}
+        if len([i for i in initial_unit_values if i != 1.]) > 0:
+            print 'Using 1D approximations because initial unit value != 1'
+            approximation1D = True
 
-        params = self.plot_diffusion(list_of_log10D_m2s=guesses,
-                                     **dict_plotting)
+        if approximation1D is True:
+            vary_initials = [True, True, True]
+            print 'WARNING: varying all initial values automatically'
 
+        dict_fitting = {'points' : points, 
+                        'raypaths' : self.raypaths,
+                        'show_plot' : False}
 
-        # x and y are the data that will be fit to
+        # x and y are the data that will be fit to if not using 1D approx.
         x = []
         y = []
-        for prof in self.profiles:
-            # Get positions
-            if prof.positions_microns is None:
-                print ''
-                print prof.profile_name
-                print 'Need to set profile positions'
-                return
-            x.append(prof.positions_microns)
-
-            # Get whole-block areas
-            if peakwn is None and peak_idx is None:
-                # bulk hydrogen is the default
-                if prof.wb_areas is None:
-                    prof.make_3DWB_water_list(polyorder)
-                y.append(prof.wb_areas)
-            else:
-                # peak-specific
-                wb_areas, peakwn = prof.get_peak_wb_areas(peak_idx, peakwn)
-                y.append(wb_areas)
-
-        # Fitting takes place here        
-        if wb_or_3Dnpi == 'wb':
-            dict_fitting['raypaths'] = self.raypaths            
-            lmfit.minimize(diffusion_3DWB, params, args=(x, y), 
-                           kws=dict_fitting)
-        elif wb_or_3Dnpi == 'npi':
-            diffusion_3D(params, x, y, **dict_fitting)        
-            lmfit.minimize(diffusion_3D, params, args=(x, y), kws=dict_fitting)
-
         # results  
         bestD = []
         bestinit = []
+        init3_final = []
         D3 = []
-        bestD.append(ufloat(params['log10Dx'].value, params['log10Dx'].stderr))
-        bestD.append(ufloat(params['log10Dy'].value, params['log10Dy'].stderr))
-        bestD.append(ufloat(params['log10Dz'].value, params['log10Dz'].stderr))
-        bestinit.append(ufloat(params['initial_unit_value_a'].value, 
-                             params['initial_unit_value_a'].stderr))
-        bestinit.append(ufloat(params['initial_unit_value_b'].value, 
-                             params['initial_unit_value_b'].stderr))
-        bestinit.append(ufloat(params['initial_unit_value_c'].value, 
-                             params['initial_unit_value_c'].stderr))     
-        
+
+        k = 0        
+        for prof in self.profiles:
+
+            if approximation1D is True:
+                prof.time_seconds = self.time_seconds
+                bestD_1D, best_init_1D = prof.fitDiffusivity(peak_idx=peak_idx, 
+                                     initial_unit_value=initial_unit_values[k],
+                                     vary_initial=vary_initials[k],
+                                     show_plot=False)
+                bestD.append(bestD_1D)
+                bestinit.append(best_init_1D)
+                D3.append(bestD_1D.n)
+                init3_final.append(best_init_1D.n)
+
+                k = k + 1
+                
+            else:
+                # Prep data for full 3D-wholeblock evaluation and fitting
+                if prof.positions_microns is None:
+                    print ''
+                    print prof.profile_name
+                    print 'Need to set profile positions'
+                    return
+                x.append(prof.positions_microns)
+    
+                # Set which data to fit to
+                if peakwn is None and peak_idx is None:
+                    # bulk hydrogen
+                    if prof.wb_areas is None:
+                        wb_areas = prof.make_area_list()
+                    else:
+                        wb_areas = prof.wb_areas
+                else:
+                    # peak-specific
+                    wb_areas, peakwn = prof.get_peak_wb_areas(peak_idx, peakwn)
+                y.append(wb_areas)
+
+        # 3D-WB Fitting
+        if approximation1D is False:
+            params = diffusion.params_setup3D(microns3=self.lengths, 
+                     log10D3=log10D_guesses_m2s, 
+                     time_seconds=self.time_seconds, init3=initial_unit_values,
+                     vinit=vary_initials, vfin=vary_finals)
+
+            if wb_or_3Dnpi == 'wb':
+                dict_fitting['raypaths'] = self.raypaths            
+                lmfit.minimize(diffusion.diffusion3Dwb_params, params, args=(x, y), 
+                               kws=dict_fitting)
+            elif wb_or_3Dnpi == 'npi':
+                lmfit.minimize(diffusion.diffusion3Dnpi_params, params, args=(x, y), 
+                               kws=dict_fitting)
+
+            bestD.append(ufloat(params['log10Dx'].value, 
+                                params['log10Dx'].stderr))
+            bestD.append(ufloat(params['log10Dy'].value, 
+                                params['log10Dy'].stderr))
+            bestD.append(ufloat(params['log10Dz'].value, 
+                                params['log10Dz'].stderr))
+            bestinit.append(ufloat(params['initial_unit_value_a'].value, 
+                                 params['initial_unit_value_a'].stderr))
+            bestinit.append(ufloat(params['initial_unit_value_b'].value, 
+                                 params['initial_unit_value_b'].stderr))
+            bestinit.append(ufloat(params['initial_unit_value_c'].value, 
+                                 params['initial_unit_value_c'].stderr))     
+            init3_final.append(params['initial_unit_value_a'].value)
+            init3_final.append(params['initial_unit_value_b'].value)
+            init3_final.append(params['initial_unit_value_c'].value)
+
+        # Store values in profile attributes        
         for k in range(3):
             D3.append(bestD[k].n)
             if peak_idx is not None:
@@ -3532,13 +3382,11 @@ class WholeBlock():
                 self.profiles[k].diffusivity_log10m2s = bestD[k].n
                 self.profiles[k].diff_error = bestD[k].s
 
-        # and then plot after
+        # Plot and print results
         if show_plot is True:
-            dict_plotting['show_plot'] = True
-            dict_plotting['style'] = style_final
-            self.plot_diffusion(list_of_log10D_m2s=D3, show_spectra=False,
-                                **dict_plotting)
-
+            params = self.plot_diffusion(peak_idx=peak_idx,
+                                         diffusivities_log10D_m2s=D3,
+                                         init3=init3_final, top=top)
         print '\ntime in hours:', params['time_seconds'].value / 3600.
         print '\ninitial unit values:'
         for initval in bestinit:
