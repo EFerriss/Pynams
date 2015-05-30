@@ -15,14 +15,14 @@ Simplest function call is diffusion1D(length, diffusivity, time)
             (Here is where you set what to vary when fitting)
     Step 2. Pass these parameters into diffusion1D_params(params)
     Step 3. Plot with plot_diffusion1D
-With profiles in pynams, use profile.plot_diffusion() and fitDiffusivity()
+With profiles in styles, use profile.plot_diffusion() and fitDiffusivity()
 
 ### 3-dimensional diffusion without path integration: 3Dnpi ###
 Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
     Step 1. Create parameters with params = params_setup3D
     Step 2. Pass parameters into diffusion3Dnpi_params(params) to get profiles
             Returns full 3D matrix v, sliceprofiles, then slice positions
-    Step 3. Plot with pynams.plot_3panels(slice positions, slice profiles)
+    Step 3. Plot with styles.plot_3panels(slice positions, slice profiles)
 
 ### Whole-Block: 3-dimensional diffusion with path integration: 3Dwb ###
 
@@ -46,7 +46,7 @@ import scipy
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-import pynams
+import styles
 
 #%% 1D diffusion
 def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
@@ -176,7 +176,8 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
 
 def plot_diffusion1D(x_microns, model, initial_value=None,
                      fighandle=None, axishandle=None, top=1.2,
-                     style=None, fitting=False, show_km_scale=False):
+                     style=None, fitting=False, show_km_scale=False,
+                     show_initial=True):
     """Takes x and y diffusion data and plots 1D diffusion profile input"""
     a_microns = (max(x_microns) - min(x_microns)) / 2.
     a_meters = a_microns / 1e3
@@ -196,7 +197,7 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
         if fitting is True:
             style = {'linestyle' : 'none', 'marker' : 'o'}
         else:
-            style = pynams.style_lightgreen
+            style = styles.style_lightgreen
 
     if show_km_scale is True:
         ax.set_xlabel('Distance (km)')
@@ -208,7 +209,7 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
         ax.set_xlim(-a_microns, a_microns)
         ax.plot(x_microns, model, **style)
 
-    if initial_value is not None:
+    if initial_value is not None and show_initial is True:
         ax.plot(ax.get_xlim(), [initial_value, initial_value], '--k')
 
     ax.set_ylabel('Unit concentration or final/initial')
@@ -261,12 +262,8 @@ def params_setup3D(microns3, log10D3, time_seconds,
     params.add('log10Dy', log10D3[1], vD[1], None, None, None)
     params.add('log10Dz', log10D3[2], vD[2], None, None, None)
     params.add('time_seconds', time_seconds, False, None, None, None)
-    params.add('initial_unit_value_a', initial, vinit, None, None, None)
-    params.add('initial_unit_value_b', initial, vinit, None, None, None)
-    params.add('initial_unit_value_c', initial, vinit, None, None, None)
-    params.add('final_unit_value_a', final, vfin, None, None, None)
-    params.add('final_unit_value_b', final, vfin, None, None, None)
-    params.add('final_unit_value_c', final, vfin, None, None, None)
+    params.add('initial_unit_value', initial, vinit, None, None, None)
+    params.add('final_unit_value', final, vfin, None, None, None)
     return params
 
 def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None, 
@@ -297,14 +294,10 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
     p = params.valuesdict()
     L3_microns = np.array(p['microns3'])
     t = p['time_seconds']
-    init = p['initial_unit_value_a']
-    vary_init = [params['initial_unit_value_a'].vary, 
-                 params['initial_unit_value_b'].vary,
-                 params['initial_unit_value_c'].vary]
-    fin = p['final_unit_value_a']
-    vary_fin = [params['final_unit_value_a'].vary, 
-                 params['final_unit_value_b'].vary,
-                 params['final_unit_value_c'].vary]
+    init = p['initial_unit_value']
+    vary_init = [params['initial_unit_value'].vary]
+    fin = p['final_unit_value']
+    vary_fin = [params['final_unit_value'].vary]
     log10D3 = [p['log10Dx'], p['log10Dy'], p['log10Dz']]
     vary_D = [params['log10Dx'].vary, 
               params['log10Dy'].vary, 
@@ -313,12 +306,11 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
     # If initial values > 1, scale down to 1 to avoid blow-ups later
     going_out = True
     scale = 1.
-    for k in range(3):
-        if init > 1.0:
-            scale = init
-            init = 1.
-        if init < fin:
-            going_out = False
+    if init > 1.0:
+        scale = init
+        init = 1.
+    if init < fin:
+        going_out = False
     
     if init > fin:
         minimum_value = fin
@@ -341,8 +333,8 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         p1D.add('microns', L3_microns[k], False)
         p1D.add('time_seconds', t, params['time_seconds'].vary)
         p1D.add('log10D_m2s', log10D3[k], vary_D[k])
-        p1D.add('initial_unit_value', init, vary_init[k])
-        p1D.add('final_unit_value', fin, vary_fin[k])
+        p1D.add('initial_unit_value', init, vary_init)
+        p1D.add('final_unit_value', fin, vary_fin)
         
         x, y = diffusion1D_params(p1D, **kwdict)
 
@@ -396,7 +388,7 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
         v, y, x = diffusion3Dnpi_params(params)
         
-        f, ax = pynams.plot_3panels(x, y, top=top)
+        f, ax = styles.plot_3panels(x, y, top=top)
         return f, ax, v, x, y
 
 #%% 3D whole-block: 3-dimensional diffusion with path integration
@@ -479,12 +471,12 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
         if style is None:
             style = [None, None, None]
             for k in range(3):
-                style[k] = pynams.style_lightgreen
+                style[k] = styles.style_lightgreen
 
         if fig_ax is None:
-            f, fig_ax = pynams.plot_3panels(wb_positions, wb_profiles, L3, style)
+            f, fig_ax = styles.plot_3panels(wb_positions, wb_profiles, L3, style)
         else:
-            pynams.plot_3panels(wb_positions, wb_profiles, L3, style, 
+            styles.plot_3panels(wb_positions, wb_profiles, L3, style, 
                          figaxis3=fig_ax)                         
 
     if fitting is False:        
@@ -513,14 +505,21 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
         return residuals
 
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
-                   initial=1., final=0., top=1.2):
+                   initial=1., final=0., top=1.2, points=50., show_plot=True,
+                   figax=None):
         """Takes list of 3 lengths, list of 3 diffusivities, and time.
         Returns plot of 3D path-averaged (whole-block) diffusion profiles"""
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
-        x, y = diffusion3Dwb_params(params, raypaths=raypaths, show_plot=False)
-        f, ax = pynams.plot_3panels(x, y, top=top)
-        return f, ax, x, y
+        x, y = diffusion3Dwb_params(params, raypaths=raypaths, show_plot=False,
+                                    points=points)
+        if show_plot is True:
+            if figax is None:
+                f, ax = styles.plot_3panels(x, y, top=top)
+                return f, ax, x, y
+            else: 
+                styles.plot_3panels(x, y, top=top, figaxis3=figax)
+        return x, y
 
         
 #%% Arrhenius diagram
@@ -541,7 +540,7 @@ def make_Arrhenius_line(celcius_list, logD_list, lowD=6.0, highD=10.0):
 def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
                       Celcius_labels = np.arange(0, 2000, 100),
                       figsize_inches = (6, 4), shrinker_for_legend = 0.3,
-                      generic_legend=True, sunk=-2.):
+                      generic_legend=True, sunk=-2., ncol=2):
     """Make Arrhenius diagram outline"""
     fig = plt.figure(figsize=figsize_inches)
     ax = SubplotHost(fig, 1,1,1)
@@ -550,7 +549,7 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
     ax_Celcius.set_xticks(parasite_tick_locations)
     ax_Celcius.set_xticklabels(Celcius_labels)
     fig.add_subplot(ax)
-    ax.axis["bottom"].set_label("10$^{-4}$/Temperature (K$^{-1}$)")
+    ax.axis["bottom"].set_label("10$^4$/Temperature (K$^{-1}$)")
     ax.axis["left"].set_label("log$_{10}$D (m$^{2}$/s)")
     ax_Celcius.axis["top"].set_label("Temperature ($\degree$C)")
     ax_Celcius.axis["top"].label.set_visible(True)
@@ -564,7 +563,8 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
     box = ax.get_position()
     ax.set_position([box.x0, box.y0 + box.height*shrinker_for_legend, 
                      box.width, box.height*(1.0-shrinker_for_legend)])
-    main_legend = plt.legend(handles=legend_handles_main, numpoints=1, ncol=3, 
+    main_legend = plt.legend(handles=legend_handles_main, numpoints=1, 
+                             ncol=ncol, 
                              bbox_to_anchor=(low, bottom, high-low, sunk),
                              bbox_transform=ax.transData, mode='expand')
     plt.gca().add_artist(main_legend)
@@ -601,16 +601,13 @@ class Diffusivities():
     basestyle = []
     wholeblocks = []
 
-    def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False):
+    def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False,
+                            wholeblock=True, heights_instead=False):
         """Grab diffusivities from whole-block"""
         self.celcius_all = []
-        self.logDx = []
-        self.logDy = []
-        self.logDz = []
-        self.logDx_error = []
-        self.logDy_error = []
-        self.logDz_error = []
-        
+        D = [[], [], []]
+        error = [[], [], []]
+
         for wb in self.wholeblocks:
             if wb.temperature_celcius is None:
                 print wb.name, 'needs temperature_celcius attribute'
@@ -623,20 +620,30 @@ class Diffusivities():
             
             self.celcius_all.append(wb.temperature_celcius)
 
-            if peak_idx is None:
-                self.logDx.append(wb.profiles[0].diffusivity_log10m2s)
-                self.logDy.append(wb.profiles[1].diffusivity_log10m2s)
-                self.logDz.append(wb.profiles[2].diffusivity_log10m2s)
-                self.logDx_error.append(wb.profiles[0].diff_error)
-                self.logDy_error.append(wb.profiles[1].diff_error)
-                self.logDz_error.append(wb.profiles[2].diff_error)
+            if wholeblock is True:
+                if peak_idx is None:
+                    for k in range(3):
+                        D[k].append(wb.profiles[k].D_area_wb)
+                        error[k].append(wb.profiles[k].D_area_wb_error)
+                else:
+                    if heights_instead is False:
+                        for k in range(3):
+                            D[k].append(wb.profiles[k].D_peakarea_wb[peak_idx])
+                            error[k].append(wb.profiles[k].D_peakarea_wb_error[peak_idx])
+                    else:
+                        for k in range(3):
+                            D[k].append(wb.profiles[k].D_height_wb[peak_idx])
+                            error[k].append(wb.profiles[k].D_height_wb_error[peak_idx])
             else:
-                self.logDx.append(wb.profiles[0].peak_diffusivities[peak_idx])
-                self.logDy.append(wb.profiles[1].peak_diffusivities[peak_idx])
-                self.logDz.append(wb.profiles[2].peak_diffusivities[peak_idx])
-                self.logDx_error.append(wb.profiles[0].peak_diff_error[peak_idx])
-                self.logDy_error.append(wb.profiles[1].peak_diff_error[peak_idx])
-                self.logDz_error.append(wb.profiles[2].peak_diff_error[peak_idx])
+                print 'Sorry, only working with wholeblock data so far'
+                return
+                
+        self.logDx = D[0]
+        self.logDy = D[1]
+        self.logDz = D[2]
+        self.logDx_error = error[0]
+        self.logDy_error = error[1]
+        self.logDz_error = error[2]
             
     def plotloop(self, fig_axis, celcius, logD, style, legendlabel=None, 
                   offset_celcius=0, show_error=True, Derror = None):
@@ -647,12 +654,15 @@ class Diffusivities():
                 celcius = self.celcius_all
             else:
                 return
+
         if logD is None:
             return            
+
         if len(celcius) != len(logD):
+            print '\n', self.description
             print 'temp and logD not the same length'
-            print 'Celcius:', celcius
-            print 'logD:', logD            
+#            print 'Celcius:', celcius
+#            print 'logD:', logD            
             return
 
         # change temperature scale
@@ -661,39 +671,39 @@ class Diffusivities():
             x.append(1.0e4 / (celcius[k] + offset_celcius + 273.15))
 
         if show_error is True:
-            if Derror is not None:
-                fig_axis.errorbar(x, logD, yerr=Derror, ecolor=style['color'],
+            if len(Derror) > 0:
+                fig_axis.errorbar(x, logD, yerr=Derror, ecolor='k',
                                   fmt=None)
                
         fig_axis.plot(x, logD, label=legendlabel, **style)
 
 
     def plotDx(self, fig_axis, llabel='// [100]', offset_celsius=0, er=True):
-#        style_x = dict(self.basestyle.items() + pynams.style_Dx.items())
+#        style_x = dict(self.basestyle.items() + styles.style_Dx.items())
         style_x = self.basestyle
-        style_x['fillstyle'] = pynams.style_Dx['fillstyle']
+        style_x['fillstyle'] = styles.style_Dx['fillstyle']
         self.plotloop(fig_axis, self.celcius_x, self.logDx, style_x, llabel, 
                        offset_celsius, Derror=self.logDx_error,
                        show_error=er)
         
     def plotDy(self, fig_axis, llabel='// [010]', offset_celsius=0, er=True):
-#        style_y = dict(self.basestyle.items() + pynams.style_Dy.items())
+#        style_y = dict(self.basestyle.items() + styles.style_Dy.items())
         style_y = self.basestyle
-        style_y['fillstyle'] = pynams.style_Dy['fillstyle']
+        style_y['fillstyle'] = styles.style_Dy['fillstyle']
         self.plotloop(fig_axis, self.celcius_y, self.logDy, style_y, llabel, 
                        offset_celsius, Derror=self.logDy_error,
                        show_error=er)
         
     def plotDz(self, fig_axis, llabel='// [001]', offset_celsius=0, er=True):
-#        style_z = dict(self.basestyle.items() + pynams.style_Dz.items())
+#        style_z = dict(self.basestyle.items() + styles.style_Dz.items())
         style_z = self.basestyle
-        style_z['fillstyle'] = pynams.style_Dz['fillstyle']
+        style_z['fillstyle'] = styles.style_Dz['fillstyle']
         self.plotloop(fig_axis, self.celcius_z, self.logDz, style_z, llabel,
                        offset_celsius, Derror=self.logDz_error,
                        show_error=er)
         
     def plotDu(self, fig_axis, llabel='unoriented', offset_celsius=0, er=True):
-#        style_u = dict(self.basestyle.items() +pynams.style_unoriented.items())
+#        style_u = dict(self.basestyle.items() +styles.style_unoriented.items())
         style_u = self.basestyle
 #        style_u['fillstyle']
         self.plotloop(fig_axis, self.celcius_unoriented, self.logD_unoriented, 
@@ -711,10 +721,17 @@ class Diffusivities():
         if legend_add is True:
             self.add_to_legend(fig_axis, legend_handle_list)
 
-        self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er)
-        self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er)
-        self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er)
-        self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er)
+        if len(self.logDx) > 0:
+            self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            
+        if len(self.logDy) > 0:
+            self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            
+        if len(self.logDz) > 0:
+            self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er)
+        
+        if len(self.logD_unoriented) > 0:
+            self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er)
         
 
     def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,
@@ -731,14 +748,14 @@ class Diffusivities():
         
         # set marker style
 #        if orientation == 'x':
-#            bstyle = dict(self.basestyle.items() + pynams.style_Dx.items())
+#            bstyle = dict(self.basestyle.items() + styles.style_Dx.items())
 #        elif orientation == 'y':
-#            bstyle = dict(self.basestyle.items() + pynams.style_Dy.items())
+#            bstyle = dict(self.basestyle.items() + styles.style_Dy.items())
 #        elif orientation == 'z':
-#            bstyle = dict(self.basestyle.items() + pynams.style_Dz.items())
+#            bstyle = dict(self.basestyle.items() + styles.style_Dz.items())
 #        elif orientation == 'u':
 #            bstyle = dict(self.basestyle.items() + 
-#                          pynams.style_unoriented.items())
+#                          styles.style_unoriented.items())
 #        else:
         bstyle = self.basestyle
         bstyle['fillstyle'] = 'full'
@@ -748,14 +765,14 @@ class Diffusivities():
             bstyleline = bstyle
         elif addline is True:
             if orientation == 'x':
-                bstyleline = dict(bstyle.items() +pynams.style_Dx_line.items())
+                bstyleline = dict(bstyle.items() +styles.style_Dx_line.items())
             elif orientation == 'y':
-                bstyleline = dict(bstyle.items() +pynams.style_Dy_line.items())
+                bstyleline = dict(bstyle.items() +styles.style_Dy_line.items())
             elif orientation == 'z':
-                bstyleline = dict(bstyle.items() +pynams.style_Dz_line.items())
+                bstyleline = dict(bstyle.items() +styles.style_Dz_line.items())
             elif orientation == 'u':
                 bstyleline = dict(bstyle.items() + 
-                            pynams.style_unoriented_line.items())
+                            styles.style_unoriented_line.items())
             
         add_marker = mlines.Line2D([], [], label=descript, **bstyleline)
         
