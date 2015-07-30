@@ -7,8 +7,8 @@ Created on Fri May 29 10:43:49 2015
 import matplotlib.pyplot as plt
 import numpy as np
 
-style_points = {'color' : 'k', 'marker' : 'o', 'markersize' : 10,
-                'fillstyle' : 'none'}
+style_points = {'color' : 'k', 'marker' : 'o', 'markersize' : 6,
+                'fillstyle' : 'none', 'linestyle' : 'none'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
 style_spectrum = {'color' : 'b', 'linewidth' : 3}
 style_spectrum_red = {'color' : 'r'}
@@ -47,8 +47,10 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
     """Outline setup for 3 subplots for 3D profiles"""
     if style is None:
         style = style_lightgreen
-        fig, axis3 = plt.subplots(nrows=1, ncols=3)
+
+    fig, axis3 = plt.subplots(nrows=1, ncols=3)
     fig.set_size_inches(figsize)
+
     for k in range(3):
         axis3[k].set_ylim(0, top)
 #        axis3[k].grid()

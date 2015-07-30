@@ -47,8 +47,37 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import styles
+from uncertainties import ufloat
 
-#%% 1D diffusion
+GAS_CONSTANT = 0.00831 # kJ/mol K
+
+#%% 1D Diffusion in a thin slab; Eq 4.18 in Crank, 1975
+def diffusionThinSlab(log10D_m2s, thickness_microns, max_time_hours=2000, 
+                      infinity=200, timesteps=300):
+    """ Takes log10 of the diffusivity D in m2/s, thickness in microns,
+    and maximum time in hours, and returns time array in hours and corresponding 
+    curve of C/C0, the concentration divided by the initial concentration
+    """
+    t_hours = np.linspace(0., max_time_hours, timesteps)
+    t_seconds = t_hours * 3600.
+    L_meters = thickness_microns / 2.E6
+    cc = np.zeros_like(t_seconds)
+    D_m2s = 10.**log10D_m2s
+
+    for idx in range(len(t_seconds)):
+        infsum = 0.
+        for n in range(infinity):
+            exponent_top = D_m2s * (((2.*n)+1.)**2.) * (np.pi**2.) * t_seconds[idx] 
+            exponent_bot = 4. * (L_meters**2)
+            exponent = np.exp(-1. * exponent_top / exponent_bot)
+            addme = 8. * (1. / ((((2.*n)+1)**2.) * (np.pi**2.))) * exponent
+            infsum = infsum + addme
+        cc[idx] = infsum
+    
+    return t_hours, cc
+    
+
+#%% 1D diffusion profiles
 def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
                    vD=True, vinit=False, vfin=False):
     """Takes required info for diffusion in 1D - length, diffusivity, time,
@@ -64,7 +93,7 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
 
 def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None, 
                  erf_or_sum='erf', need_to_center_x_data=True,
-                 infinity=100, points=100):
+                 infinity=100, points=50):
     """Function set up to follow lmfit fitting requirements.
     Requires input as lmfit parameters value dictionary 
     passing in key information as 'length_microns',
@@ -221,7 +250,7 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
                 erf_or_sum='erf', show_plot=True, 
                 fighandle=None, axishandle=None,
                 style=None, need_to_center_x_data=True,
-                infinity=100, points=100, top=1.2, show_km_scale=False):
+                infinity=100, points=50, top=1.2, show_km_scale=False):
     """Simplest implementation.
     Takes required inputs length, diffusivity, and time 
     and plots diffusion curve on new or specified figure. 
@@ -247,7 +276,7 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
 
 #%% 3-dimensional diffusion parameter setup
 def params_setup3D(microns3, log10D3, time_seconds, 
-                   initial=1., final=0.,
+                   initial=1., final=0., isotropic=False, slowb=False,
                    vD=[True, True, True], vinit=False, vfin=False):
     """Takes required info for diffusion in 3D without path averaging and 
     return appropriate lmfit params.
@@ -259,16 +288,25 @@ def params_setup3D(microns3, log10D3, time_seconds,
     params = lmfit.Parameters()
     params.add('microns3', microns3, False, None, None, None)
     params.add('log10Dx', log10D3[0], vD[0], None, None, None)
-    params.add('log10Dy', log10D3[1], vD[1], None, None, None)
-    params.add('log10Dz', log10D3[2], vD[2], None, None, None)
     params.add('time_seconds', time_seconds, False, None, None, None)
     params.add('initial_unit_value', initial, vinit, None, None, None)
     params.add('final_unit_value', final, vfin, None, None, None)
+
+    if isotropic is True:
+        params.add('log10Dy', log10D3[1], vD[1], None, None, 'log10Dx')
+        params.add('log10Dz', log10D3[2], vD[2], None, None, 'log10Dx')
+    elif slowb is True:
+        params.add('log10Dy', log10D3[1], vD[1], None, None, 'log10Dx - 1.')
+        params.add('log10Dz', log10D3[2], vD[2], None, None, 'log10Dx')
+    else:            
+        params.add('log10Dy', log10D3[1], vD[1], None, None, None)
+        params.add('log10Dz', log10D3[2], vD[2], None, None, None)
+
     return params
 
 def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None, 
                  erf_or_sum='erf', need_to_center_x_data=True,
-                 infinity=100, points=100):
+                 infinity=100, points=50):
     """ Diffusion in 3 dimensions in a rectangular parallelipiped.
     Takes params - Setup parameters with params_setup3D.
     General setup and options similar to diffusion1D_params.
@@ -395,7 +433,7 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds,
 def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None, 
                           raypaths=None, erf_or_sum='erf', show_plot=True, 
                           fig_ax=None, style=None, need_to_center_x_data=True,
-                          infinity=100, points=100, show_1Dplots=False):
+                          infinity=100, points=50, show_1Dplots=False):
     """ Diffusion in 3 dimensions with path integration.
     Requires setup with params_setup3Dwb
     """
@@ -506,7 +544,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
 
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
                    initial=1., final=0., top=1.2, points=50., show_plot=True,
-                   figax=None):
+                   figax=None, isotropic=False):
         """Takes list of 3 lengths, list of 3 diffusivities, and time.
         Returns plot of 3D path-averaged (whole-block) diffusion profiles"""
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
@@ -523,37 +561,23 @@ def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
 
         
 #%% Arrhenius diagram
-def make_Arrhenius_line(celcius_list, logD_list, lowD=6.0, highD=10.0):
-    """Takes lists of log10D and temperatures in Celcius
-    Returns 100-point vectors of log10D and 1e4/T in K for plotting as lines"""
-    if len(celcius_list) != len(logD_list):
-        print 'List of temperatures not equal to list of diffusivities'
-        return
-    Tx = []
-    for k in celcius_list:
-        Tx.append(1.0e4 / (k+273.15))  
-    p = np.polyfit(Tx, logD_list, 1)
-    x = np.linspace(lowD, highD, 100) 
-    y = np.polyval(p, x)
-    return x, y
-
 def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
-                      Celcius_labels = np.arange(0, 2000, 100),
+                      celsius_labels = np.arange(0, 2000, 100),
                       figsize_inches = (6, 4), shrinker_for_legend = 0.3,
                       generic_legend=True, sunk=-2., ncol=2):
-    """Make Arrhenius diagram outline"""
+    """Make Arrhenius diagram outline. Returns figure, axis, legend handle"""
     fig = plt.figure(figsize=figsize_inches)
     ax = SubplotHost(fig, 1,1,1)
-    ax_Celcius = ax.twin()
-    parasite_tick_locations = 1e4/(Celcius_labels + 273.15)
-    ax_Celcius.set_xticks(parasite_tick_locations)
-    ax_Celcius.set_xticklabels(Celcius_labels)
+    ax_celsius = ax.twin()
+    parasite_tick_locations = 1e4/(celsius_labels + 273.15)
+    ax_celsius.set_xticks(parasite_tick_locations)
+    ax_celsius.set_xticklabels(celsius_labels)
     fig.add_subplot(ax)
     ax.axis["bottom"].set_label("10$^4$/Temperature (K$^{-1}$)")
-    ax.axis["left"].set_label("log$_{10}$D (m$^{2}$/s)")
-    ax_Celcius.axis["top"].set_label("Temperature ($\degree$C)")
-    ax_Celcius.axis["top"].label.set_visible(True)
-    ax_Celcius.axis["right"].major_ticklabels.set_visible(False)
+    ax.axis["left"].set_label("log$_{10}$diffusivity (m$^{2}$/s)")
+    ax_celsius.axis["top"].set_label("Temperature ($\degree$C)")
+    ax_celsius.axis["top"].label.set_visible(True)
+    ax_celsius.axis["right"].major_ticklabels.set_visible(False)
     ax.set_xlim(low, high)
     ax.set_ylim(bottom, top)
     ax.grid()
@@ -583,13 +607,57 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
 
     return fig, ax, legend_handles_main
 
+def Arrhenius_add_line(fig_ax, Ea, D0, low=6.0, high=10.0, 
+                       style={'color' : 'k', 'linestyle' : '-'}):
+    """Takes figure axis from above, Ea activation energy in kJ/mol, D0 in m2/s
+    Plots Arrhenius line from 1E4/T = low to high"""
+    T = 1E4 / np.linspace(low, high) 
+    log10D = np.log10(D0) - (Ea/(2.303 * GAS_CONSTANT * T))
+    fig_ax.plot(1E4 / T, log10D, **style)
+
+def solve_Ea_D0(log10D_list, celsius_list):
+    """Takes list of diffusivities as log10 in m2/s and associated 
+    temperatures in celsius.
+    Returns activation energy Ea in kJ/mol K and
+    D0 in m2/s"""
+    T = np.array(celsius_list) + 273.15
+    x = 1.E4 / T
+    y = np.array(log10D_list)
+    
+#    print x
+#    print y
+   
+    p = np.polyfit(x, y, 1)
+#    p, cov = np.polyfit(x, y, 1, cov=True)
+    Ea = -p[0] * 2.303 * GAS_CONSTANT * 1.E4
+#    Ea_error = cov[0, 0] * 2.303 * GAS_CONSTANT * 1.E4
+#    
+    D0 = 10.**p[1]
+#    D0_error = 10.**cov[1, 1]
+#
+#    print ''.join(('activation energy: ', '{:.0f}'.format(Ea), ' +/- ', 
+#                   '{:.0f}'.format(Ea_error), ' kJ/mol K'))
+#    print ''.join(('D0: 10^(', '{:.1f}'.format(np.log10(D0)), ' +/- ',
+#                            '{:.1f}'.format(np.log10(D0_error)),') m2/s'))
+    return Ea, D0
+
+def whatIsD(Ea, D0, celsius, printout=False):
+    """ Takes activation energy in kJ/mol, D0 in m2/s and 
+    temperature in celsius. Returns log10 diffusivity in m2/s"""
+    T = celsius + 273.15
+    D = D0 * np.exp(-Ea / (GAS_CONSTANT * T))
+    if printout is True:
+        print 'log10 D at ', celsius, 'C: ', '{:.1f}'.format(np.log10(D)), ' in m2/s'
+    return np.log10(D)
+
+#%%
 class Diffusivities():
     description = None
-    celcius_all = []
-    celcius_unoriented = []
-    celcius_x = []
-    celcius_y = []
-    celcius_z = []
+    celsius_all = []
+    celsius_unoriented = []
+    celsius_x = []
+    celsius_y = []
+    celsius_z = []
     logD_unoriented = []
     logDx = []
     logDy = []
@@ -598,19 +666,52 @@ class Diffusivities():
     logDy_error = []
     logDz_error = []
     logDu_error = []
-    basestyle = []
+    basestyle = styles.style_points
     wholeblocks = []
+    # generic for isotropic or no directional information
+    activation_energy_kJmol = None
+    logD0_m2s = None
+    # and for different directions
+    activation_energy_kJmol_xyz = [None, None, None]
+    logD0_m2s_xyz = [None, None, None]
 
+    def whatIsD(self, celsius, orient=None, celsius_list=None,
+                printout=False):
+        """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
+        """
+        if orient == 'x':
+            log10D_list = self.logDx
+            celsius_list = self.celsius_x
+        elif orient == 'y':
+            log10D_list = self.logDy
+            celsius_list = self.celsius_y
+        elif orient == 'z':
+            log10D_list = self.logDz
+            celsius_list = self.celsius_z
+        elif orient == 'u':
+            log10D_list = self.logD_unoriented
+            celsius_list = self.celsius_unoriented
+        else:
+            print "orient = 'x', 'y', 'z', or 'u' for unoriented"
+            return False
+            
+        if len(celsius_list) < 1: 
+            celsius_list = self.celsius_all
+            
+        Ea, D0 = solve_Ea_D0(log10D_list, celsius_list)
+        D = whatIsD(Ea, D0, celsius)
+        return D
+        
     def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False,
                             wholeblock=True, heights_instead=False):
         """Grab diffusivities from whole-block"""
-        self.celcius_all = []
+        self.celsius_all = []
         D = [[], [], []]
         error = [[], [], []]
 
         for wb in self.wholeblocks:
-            if wb.temperature_celcius is None:
-                print wb.name, 'needs temperature_celcius attribute'
+            if wb.temperature_celsius is None:
+                print wb.name, 'needs temperature_celsius attribute'
                 return
 
             wb.get_diffusivities()
@@ -618,7 +719,7 @@ class Diffusivities():
             if print_diffusivities is True:
                 wb.print_diffusivities()
             
-            self.celcius_all.append(wb.temperature_celcius)
+            self.celsius_all.append(wb.temperature_celsius)
 
             if wholeblock is True:
                 if peak_idx is None:
@@ -644,74 +745,81 @@ class Diffusivities():
         self.logDx_error = error[0]
         self.logDy_error = error[1]
         self.logDz_error = error[2]
-            
-    def plotloop(self, fig_axis, celcius, logD, style, legendlabel=None, 
-                  offset_celcius=0, show_error=True, Derror = None):
+
+    def plotloop(self, fig_axis, celsius, logD, style, legendlabel=None, 
+                  offset_celsius=0, show_error=True, Derror = None):
         """Where the checks and actual plotting gets done"""
         # checks
-        if len(celcius) == 0:
-            if self.celcius_all is not None:
-                celcius = self.celcius_all
+        if len(celsius) == 0:
+            if self.celsius_all is not None:
+                celsius = self.celsius_all
             else:
                 return
 
         if logD is None:
             return            
 
-        if len(celcius) != len(logD):
+        if len(celsius) != len(logD):
             print '\n', self.description
             print 'temp and logD not the same length'
-#            print 'Celcius:', celcius
+#            print 'celsius:', celsius
 #            print 'logD:', logD            
             return
 
         # change temperature scale
         x = []
-        for k in range(len(celcius)):
-            x.append(1.0e4 / (celcius[k] + offset_celcius + 273.15))
+        for k in range(len(celsius)):
+            x.append(1.0e4 / (celsius[k] + offset_celsius + 273.15))
 
         if show_error is True:
             if len(Derror) > 0:
-                fig_axis.errorbar(x, logD, yerr=Derror, ecolor='k',
+                fig_axis.errorbar(x, logD, yerr=Derror, ecolor=style['color'],
                                   fmt=None)
                
         fig_axis.plot(x, logD, label=legendlabel, **style)
 
 
-    def plotDx(self, fig_axis, llabel='// [100]', offset_celsius=0, er=True):
+    def plotDx(self, fig_axis, llabel='// [100]', offset_celsius=0, er=True,
+               style_x=None, bestfitline=True):
 #        style_x = dict(self.basestyle.items() + styles.style_Dx.items())
-        style_x = self.basestyle
-        style_x['fillstyle'] = styles.style_Dx['fillstyle']
-        self.plotloop(fig_axis, self.celcius_x, self.logDx, style_x, llabel, 
+        if style_x is None:
+            style_x = self.basestyle
+            style_x['fillstyle'] = styles.style_Dx['fillstyle']
+        self.plotloop(fig_axis, self.celsius_x, self.logDx, style_x, llabel, 
                        offset_celsius, Derror=self.logDx_error,
                        show_error=er)
         
-    def plotDy(self, fig_axis, llabel='// [010]', offset_celsius=0, er=True):
+    def plotDy(self, fig_axis, llabel='// [010]', offset_celsius=0, er=True,
+               style_y=None):
 #        style_y = dict(self.basestyle.items() + styles.style_Dy.items())
-        style_y = self.basestyle
-        style_y['fillstyle'] = styles.style_Dy['fillstyle']
-        self.plotloop(fig_axis, self.celcius_y, self.logDy, style_y, llabel, 
+        if style_y is None:
+            style_y = self.basestyle
+            style_y['fillstyle'] = styles.style_Dy['fillstyle']
+        self.plotloop(fig_axis, self.celsius_y, self.logDy, style_y, llabel, 
                        offset_celsius, Derror=self.logDy_error,
                        show_error=er)
         
-    def plotDz(self, fig_axis, llabel='// [001]', offset_celsius=0, er=True):
+    def plotDz(self, fig_axis, llabel='// [001]', offset_celsius=0, er=True,
+               style_z=None):
 #        style_z = dict(self.basestyle.items() + styles.style_Dz.items())
-        style_z = self.basestyle
-        style_z['fillstyle'] = styles.style_Dz['fillstyle']
-        self.plotloop(fig_axis, self.celcius_z, self.logDz, style_z, llabel,
+        if style_z is None:
+             style_z = self.basestyle
+             style_z['fillstyle'] = styles.style_Dz['fillstyle']
+        self.plotloop(fig_axis, self.celsius_z, self.logDz, style_z, llabel,
                        offset_celsius, Derror=self.logDz_error,
                        show_error=er)
         
-    def plotDu(self, fig_axis, llabel='unoriented', offset_celsius=0, er=True):
-#        style_u = dict(self.basestyle.items() +styles.style_unoriented.items())
-        style_u = self.basestyle
+    def plotDu(self, fig_axis, llabel='unoriented', offset_celsius=0, er=True,
+               style_u=None):
+        if style_u is None:
+            style_u = self.basestyle
 #        style_u['fillstyle']
-        self.plotloop(fig_axis, self.celcius_unoriented, self.logD_unoriented, 
+        self.plotloop(fig_axis, self.celsius_unoriented, self.logD_unoriented, 
                       style_u, llabel, offset_celsius, Derror=self.logDu_error,
                       show_error=er)
             
     def plotD(self, fig_axis, xoffset_celsius=0, er=True, legend_add=False,
-              legend_handle_list=None):
+              legend_handle_list=None, style=None):
                   
         if legend_add is True and legend_handle_list is None:
             print self.description
@@ -722,16 +830,20 @@ class Diffusivities():
             self.add_to_legend(fig_axis, legend_handle_list)
 
         if len(self.logDx) > 0:
-            self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er,
+                        style_x=style)
             
         if len(self.logDy) > 0:
-            self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er,
+                        style_y=style)
             
         if len(self.logDz) > 0:
-            self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er,
+                        style_z=style)
         
         if len(self.logD_unoriented) > 0:
-            self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er)
+            self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er,
+                        style_u=style)
         
 
     def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,
@@ -758,7 +870,9 @@ class Diffusivities():
 #                          styles.style_unoriented.items())
 #        else:
         bstyle = self.basestyle
-        bstyle['fillstyle'] = 'full'
+        if 'fillstyle' in bstyle:
+            if bstyle['fillstyle'] == 'right':
+                bstyle['fillstyle'] = 'full'
 
         # set line style
         if addline is False:
