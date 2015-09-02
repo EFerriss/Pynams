@@ -1,6 +1,6 @@
 # pynams
 Process and interpret FTIR spectra with emphasis on water in nominally anhydrous minerals (NAMs)
 
-pynams.py includes tools for plotting FTIR spectra, drawing linear and quadratic baselines, determining the resulting area under the curves, syncing with Matlab code for peak fitting, estimating water concentrations, and handling diffusion profile data, including that from uncut ("whole-block") samples. 
+pynams includes tools for plotting FTIR spectra, drawing linear and quadratic baselines, determining the resulting area under the curves, syncing with Matlab code for peak fitting, estimating water concentrations, and handling diffusion profile data, including that from uncut ("whole-block") samples. 
 
-For help using this code (instructions and examples are coming!) or a desciption of the whole-block method see Ferriss et al. 2015 in American Mineralogist, contact Elizabeth Ferriss at ferriss@ldeo.columbia.edu, or come see a demonstration at Goldschmidt in Prague in August.
+For help using this code (instructions and examples are coming!) contact Elizabeth Ferriss at ferriss at ldeo.columbia.edu. For a desciption of the whole-block method see Ferriss et al. 2015 in American Mineralogist.
