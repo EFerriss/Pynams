@@ -60,7 +60,7 @@ H_CrDiopside_Ingrin95.logDx = [np.log10(3E-14), np.log10(9E-14),
                                np.log10(5.5E-13), np.log10(1.9E-12)]
 H_CrDiopside_Ingrin95.logDz = [np.log10(5E-14), np.log10(13E-14), 
                               np.log10(4.5E-13), np.log10(12E-13)]
-H_CrDiopside_Ingrin95.basestyle = {'color' : 'green', 'marker' : 'o', 
+H_CrDiopside_Ingrin95.basestyle = {'color' : 'green', 'marker' : '^', 
                                    'markersize' :  12, 
                                    'linestyle' : 'none', 'alpha' : 1.}
 
@@ -94,7 +94,7 @@ H_cpxBasanite_Xia00 = Diffusivities()
 H_cpxBasanite_Xia00.description = 'H in basanite cpx\n3630 + 3500 cm$^{-1}$\nf$_{02}=10^{-14}$ Xia et al. 2000'
 H_cpxBasanite_Xia00.logDz = [np.log10(1.8E-12), np.log10(6.5E-12)]
 H_cpxBasanite_Xia00.celsius_z = [850, 950]
-H_cpxBasanite_Xia00.basestyle = {'color' : 'k', 'marker' : 'o', 
+H_cpxBasanite_Xia00.basestyle = {'color' : 'k', 'marker' : '>', 
                                  'markerfacecolor' : 'k',
                                  'markersize' :  8, 
                                  'linestyle' : 'none', 'alpha' : 1.,
@@ -115,8 +115,8 @@ H_diopside_Sundvall = Diffusivities()
 H_diopside_Sundvall.description = 'synth. Fe-bearing diopside\nin air; Sundvall et al. 2009'
 H_diopside_Sundvall.logDy = [-13.7, -15.3, -15.9]
 H_diopside_Sundvall.celsius_y = np.array([1000., 900., 800.]);
-H_diopside_Sundvall.basestyle = {'color' : 'y', 'marker' : '<', 
-                             'markerfacecolor' : 'y', 'markersize' :  10, 
+H_diopside_Sundvall.basestyle = {'color' : 'y', 'marker' : 'v', 
+                             'markerfacecolor' : 'y', 'markersize' :  13, 
                              'linestyle' : 'none', 'alpha' : 1.,
                              'markeredgewidth' : 1}
 
@@ -389,7 +389,7 @@ DM03.logDx = [-12.2829, -12.6956, -12.6956, -12.9896]
 DM03.logDy = [-11.7728, -11.9740, -11.9688, -12.2108, -12.5100]
 DM03.logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, 
                       -12.5924, -12.6800]
-DM03.basestyle = {'color' : 'green', 'marker' : '^', 'alpha' : 0.5,
+DM03.basestyle = {'color' : 'green', 'marker' : 'v', 'alpha' : 0.5,
                   'linestyle' : 'none', 'markersize' : markersizefloat}
 
 # Padron-Navarta et al. 2014
@@ -441,8 +441,14 @@ KM98_fast.celsius_all = [1000, 1000, 900, 900, 800]
 KM98_fast.logDx = [-9.5634, -9.3928, -9.9876, -10.3970, -10.8071]
 KM98_fast.logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306]
 KM98_fast.logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140]
-KM98_fast.basestyle = {'marker' : 'o', 'color' : 'navy', 'alpha' : 0.5,
+KM98_fast.basestyle = {'marker' : 'd', 'color' : 'navy', 'alpha' : 0.5,
                        'markersize' :  markersizefloat, 'linestyle' : 'none'}
+
+#### Not sure why solution through the above points comes up with different
+#### answers, but here are the numbers that seem to work
+KM98_fast.activation_energy_kJmol_xyz = [145., 180., 110.]
+KM98_fast.logD0_m2s_xyz = [-4., -3.9, -6.8]
+
 #% Demouchy&Mackwell 2006 - 1 hr for all "fast"
 DM06_fast = Diffusivities()
 DM06_fast.description = 'fast mech., DM06'
@@ -461,7 +467,7 @@ KM98_slow.celsius_all = [900, 1000]
 KM98_slow.logDx = [-13.994, -12.783]
 KM98_slow.logDy = [-14.17, -13.171]
 KM98_slow.logDz = [-12.885, -11.776]
-KM98_slow.basestyle = {'marker' : 'o', 'color' : 'lightseagreen', 'alpha' : 0.5,
+KM98_slow.basestyle = {'marker' : 'D', 'color' : 'green', 'alpha' : 0.5,
                        'markersize' :  markersizefloat+3, 'linestyle' : 'none'}
 
 

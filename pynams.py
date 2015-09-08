@@ -2132,7 +2132,55 @@ class Profile():
 
 class TimeSeries(Profile):
     times_hours = []
+    style_base = styles.style_points
     
+    def plot_timeseries(self, y=None, peak_idx=None, tit=None, D_list=[], 
+                        thickness_microns=None, max_hours=None,
+                        style=None, idx_C0=0): 
+        """Plot and return figure and axis of time-series data and
+        all diffusivities in D_list in m2/s
+        """
+        if max_hours is None:
+            max_hours = max(self.times_hours)
+            
+        if thickness_microns is None:
+            thickness_microns = self.thick_microns
+            
+        if style is None:
+            style = self.style_base
+    
+        fig = plt.figure()
+        fig.set_size_inches(3, 3)
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('Time (hours)', fontsize=12)
+        ax.set_ylabel('Concentration/\nMaximum Concentration', fontsize=12)
+        fig.autofmt_xdate()
+        ax.set_xlim(0, max_hours)
+
+        # curves for diffusivities in D_list    
+        for D in D_list:
+             t, cc = diffusion.diffusionThinSlab(log10D_m2s=D, 
+                                        thickness_microns=thickness_microns, 
+                                        max_time_hours=max_hours)
+             ax.plot(t, cc, '-k', linewidth=1)
+    
+        # plot area data
+        x = self.times_hours
+        if y is None:
+            if peak_idx is None:
+                if len(self.areas_list) < 1:
+                    self.make_area_list()
+                C = self.areas_list    
+            else:
+                print 'not ready for peak-specific yet'
+            C0 = C[idx_C0]
+            y = np.array(C) / C0
+    
+        
+        ax.plot(x, y, **style)
+        return fig, ax
+
+
 
 def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
     """Subtract spectrum 1 from spectrum 0 input as list between given
