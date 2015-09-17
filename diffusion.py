@@ -728,49 +728,28 @@ class Diffusivities():
     def whatIsD(self, celsius, orient, printout=True):
         """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
         """
-        log10D_list, celsius_list = self.picker_DCelsius(orient=orient)
-
-        # Get saved Ea and log10 D0
-        if orient is None:
-            logD0 = self.logD0_m2s
-            Ea = self.activation_energy_kJmol
-        elif orient == 'x':
-            logD0 = self.logD0_m2s_xyz[0]
-            Ea = self.activation_energy_kJmol_xyz[0]
+        if orient == 'x':
+            log10D_list = self.logDx
+            celsius_list = self.celsius_x
         elif orient == 'y':
-            logD0 = self.logD0_m2s_xyz[1]
-            Ea = self.activation_energy_kJmol_xyz[1]
+            log10D_list = self.logDy
+            celsius_list = self.celsius_y
         elif orient == 'z':
-            logD0 = self.logD0_m2s_xyz[2]
-            Ea = self.activation_energy_kJmol_xyz[2]
+            log10D_list = self.logDz
+            celsius_list = self.celsius_z
+        elif orient == 'u':
+            log10D_list = self.logD_unoriented
+            celsius_list = self.celsius_unoriented
         else:
-            print 'need orientation orient=None, "x", "y", or "z"'
-            return
-
-        print logD0, Ea
-        return 'banana'
+            print "orient = 'x', 'y', 'z', or 'u' for unoriented"
+            return False
+            
+        if len(celsius_list) < 1: 
+            celsius_list = self.celsius_all
         
-        if (logD0 is None) or (Ea is None):
-            Ea, D0 = self.solve_Ea_D0(orient=orient)
-            D0 = D0.n
-            print 'Solved D0', D0
-            if orient is None:
-                self.logD0_m2s = np.log10(D0)
-                self.activation_energy_kJmol = Ea
-            elif orient == 'x':
-                self.logD0_m2s_xyz[0] = np.log10(D0)
-                self.activation_energy_kJmol_xyz[0] = Ea
-            elif orient == 'y':
-                self.logD0_m2s_xyz[1] = np.log10(D0)
-                self.activation_energy_kJmol_xyz[1] = Ea
-            elif orient == 'z':
-                self.logD0_m2s_xyz[2] = np.log10(D0)
-                self.activation_energy_kJmol_xyz[2] = Ea
-            print 'Stored D0, Ea'
-        else:
-            D0 = 10.**logD0
 
-        D = whatIsD(Ea, D0, celsius, printout=printout)
+        Ea, D0 = solve_Ea_D0(log10D_list, celsius_list)
+        D = whatIsD(Ea.n, D0.n, celsius)
         return D
         
     def solve_Ea_D0(self, orient=None):
