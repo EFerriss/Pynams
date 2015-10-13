@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/18718/EFerriss/pynams.svg)](https://zenodo.org/badge/latestdoi/18718/EFerriss/pynams)
 # pynams
 Process and interpret FTIR spectra with emphasis on water in nominally anhydrous minerals (NAMs)
 
@@ -5,4 +6,4 @@ pynams includes tools for plotting FTIR spectra, drawing linear and quadratic ba
 
 For a desciption of the whole-block method see Ferriss et al. 2015 in American Mineralogist.
 
-Please cite this code if you use it. DOI coming.
+Please cite this code if you use it. 
