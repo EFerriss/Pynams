@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 style_points = {'color' : 'k', 'marker' : 'o', 'markersize' : 6,
-                'fillstyle' : 'none', 'linestyle' : 'none'}
+                'fillstyle' : 'none', 'linestyle' : 'none',}
+#                'markerfacecolor' : 'w'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
 style_spectrum = {'color' : 'b', 'linewidth' : 3}
 style_spectrum_red = {'color' : 'r'}
@@ -35,11 +36,36 @@ style_Dz = {'fillstyle' : 'right', 'color' : 'blue',
 style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
 style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
 style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
-style_unoriented_line = {'linestyle' : '-', 'color' : 'black'}
+style_Du_line = {'linestyle' : '-', 'color' : 'black'}
 # different ray paths
 style_Rx = {'marker' : 'd'}
 style_Ry = {'marker' : 'o'}
 style_Rz = {'marker' : 's'}
+
+style_bulk = {'marker' : 'o', 'fillstyle' : 'none', 'linestyle' : 'none',
+              'color' : 'k', 'markersize' : 7}
+
+style_peak0 = {'marker' : 'x', 'fillstyle' : 'none', 'linestyle' : 'none',
+              'color' : 'r', 'markersize' : 6, 'label' : '3645 cm$^{-1}$'}
+
+style_peak1 = {'marker' : '+', 'fillstyle' : 'none', 'linestyle' : 'none',
+              'color' : 'orange', 'markersize' : 6, 'label' : '3617 cm$^{-1}$'}
+
+style_peak2 = {'marker' : 's', 'fillstyle' : 'full', 'linestyle' : 'none',
+              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'teal',
+              'alpha' : 0.5, 'label' : '3540 cm$^{-1}$'}
+
+style_peak3 = {'marker' : '_', 'fillstyle' : 'none', 'linestyle' : 'none',
+              'color' : 'g', 'markersize' : 6, 'mew' : 2,
+              'label' : '3460 cm$^{-1}$'}
+
+style_peak4 = {'marker' : '|', 'fillstyle' : 'none', 'linestyle' : 'none',
+              'color' : 'b', 'markersize' : 6, 'mew' : 2,
+              'label' : '3443 cm$^{-1}$'}
+
+style_peak5 = {'marker' : 'd', 'fillstyle' : 'full', 'linestyle' : 'none',
+              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'violet',
+              'alpha' : 0.5, 'label' : '3350 cm$^{-1}$'}
 
 def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,

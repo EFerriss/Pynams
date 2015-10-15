@@ -83,12 +83,12 @@ H_diopside_Woods00.logDz = np.log10(np.array([2e-12, 7e-12, 1.5e-11, 1.5e-11,
 H_diopside_Woods00.celsius_x = [700, 750, 800, 800, 800, 850, 700, 850]
 H_diopside_Woods00.celsius_y = [750, 800, 800, 800, 850]
 H_diopside_Woods00.celsius_z = [700, 750, 800, 800, 800, 850]
-
 H_diopside_Woods00.basestyle = {'color' : 'k', 'marker' : 's', 
                             'markerfacecolor' : 'turquoise',
                             'markersize' :  10, 
                             'linestyle' : 'none', 'alpha' : 1.,
                             'markeredgewidth' : 0.5}
+H_diopside_Woods00.activation_energy_kJmol_xyz = []
                             
 H_cpxBasanite_Xia00 = Diffusivities()
 H_cpxBasanite_Xia00.description = 'H in basanite cpx\n3630 + 3500 cm$^{-1}$\nf$_{02}=10^{-14}$ Xia et al. 2000'

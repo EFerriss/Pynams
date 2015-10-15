@@ -40,7 +40,7 @@ for use in plotting directly onto Arrhenius diagrams
 
 
 """
-import lmfit
+#import lmfit
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
@@ -804,7 +804,8 @@ class Diffusivities():
         self.logDz_error = error[2]
 
     def plotloop(self, fig_axis, celsius, logD, style, legendlabel=None, 
-                  offset_celsius=0, show_error=True, Derror=None, ecolor=None):
+                  offset_celsius=0, show_error=True, Derror=None, ecolor=None,
+                  plotline=True, style_line={'linestyle':'-', 'marker':None}):
         """Where the checks and actual plotting gets done"""
         # checks
         if len(celsius) == 0:
@@ -835,50 +836,85 @@ class Diffusivities():
                 fig_axis.errorbar(x, logD, yerr=Derror, ecolor=ecolor,
                                   fmt=None)
                
+        if plotline is True:
+            if 'markerfacecolor' in self.basestyle:
+                style_line['color'] = self.basestyle['markerfacecolor']
+            elif 'color' in self.basestyle:
+                style_line['color'] = self.basestyle['color']
+            else:
+                style_line['color'] = 'k'
+
+            Tmin = min(x)
+            Tmax = max(x)
+            T = [Tmin, Tmax]
+            p = np.polyfit(x, logD, 1)
+            fig_axis.plot(T,np.polyval(p, T), **style_line)
+               
         fig_axis.plot(x, logD, label=legendlabel, **style)
 
 
     def plotDx(self, fig_axis, llabel='// [100]', offset_celsius=0, er=True,
-               style_x=None, bestfitline=True, ecolor=None):
+               style_x=None, bestfitline=True, ecolor=None, plotline=True,
+               style_line=None):
 #        style_x = dict(self.basestyle.items() + styles.style_Dx.items())
         if style_x is None:
             style_x = self.basestyle
             style_x['fillstyle'] = styles.style_Dx['fillstyle']
+
+        if (style_line is None) and (plotline is True):
+            style_line = styles.style_Dx_line.copy()
+            
         self.plotloop(fig_axis, self.celsius_x, self.logDx, style_x, llabel, 
                        offset_celsius, Derror=self.logDx_error,
-                       show_error=er, ecolor=ecolor)
+                       show_error=er, ecolor=ecolor, plotline=plotline, 
+                       style_line=style_line)
         
     def plotDy(self, fig_axis, llabel='// [010]', offset_celsius=0, er=True,
-               style_y=None, ecolor=None):
+               style_y=None, ecolor=None, plotline=True, style_line=None):
 #        style_y = dict(self.basestyle.items() + styles.style_Dy.items())
         if style_y is None:
             style_y = self.basestyle
             style_y['fillstyle'] = styles.style_Dy['fillstyle']
+
+        if (style_line is None) and (plotline is True):
+            style_line = styles.style_Dy_line.copy()
+            
         self.plotloop(fig_axis, self.celsius_y, self.logDy, style_y, llabel, 
                        offset_celsius, Derror=self.logDy_error,
-                       show_error=er, ecolor=ecolor)
+                       show_error=er, ecolor=ecolor, plotline=plotline,
+                       style_line=style_line)
         
     def plotDz(self, fig_axis, llabel='// [001]', offset_celsius=0, er=True,
-               style_z=None, ecolor=None):
+               style_z=None, ecolor=None, plotline=True, style_line=None):
 #        style_z = dict(self.basestyle.items() + styles.style_Dz.items())
         if style_z is None:
              style_z = self.basestyle
              style_z['fillstyle'] = styles.style_Dz['fillstyle']
+
+        if (style_line is None) and (plotline is True):
+            style_line = styles.style_Dz_line.copy()
+            
         self.plotloop(fig_axis, self.celsius_z, self.logDz, style_z, llabel,
                        offset_celsius, Derror=self.logDz_error,
-                       show_error=er, ecolor=ecolor)
+                       show_error=er, ecolor=ecolor, plotline=plotline,
+                       style_line=style_line)
         
     def plotDu(self, fig_axis, llabel='unoriented', offset_celsius=0, er=True,
-               style_u=None, ecolor=None):
+               style_u=None, ecolor=None, plotline=True, style_line=None):
         if style_u is None:
             style_u = self.basestyle
+
+        if (style_line is None) and (plotline is True):
+            style_line = styles.style_Du_line.copy()
+            
 #        style_u['fillstyle']
         self.plotloop(fig_axis, self.celsius_unoriented, self.logD_unoriented, 
                       style_u, llabel, offset_celsius, Derror=self.logDu_error,
-                      show_error=er, ecolor=ecolor)
+                      show_error=er, ecolor=ecolor, plotline=plotline,
+                      style_line=style_line)
             
     def plotD(self, fig_axis, xoffset_celsius=0, er=True, legend_add=False,
-              legend_handle_list=None, style=None, ecolor=None):
+              legend_handle_list=None, style=None, ecolor=None, plotline=True):
                   
         if legend_add is True and legend_handle_list is None:
             print self.description
@@ -890,19 +926,19 @@ class Diffusivities():
 
         if len(self.logDx) > 0:
             self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_x=style, ecolor=ecolor)
+                        style_x=style, ecolor=ecolor, plotline=plotline)
             
         if len(self.logDy) > 0:
             self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_y=style, ecolor=ecolor)
+                        style_y=style, ecolor=ecolor, plotline=plotline)
             
         if len(self.logDz) > 0:
             self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_z=style, ecolor=ecolor)
+                        style_z=style, ecolor=ecolor, plotline=plotline)
         
         if len(self.logD_unoriented) > 0:
             self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_u=style, ecolor=ecolor)
+                        style_u=style, ecolor=ecolor, plotline=plotline)
         
 
     def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,

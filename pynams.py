@@ -51,12 +51,12 @@ from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
-import lmfit
+#import lmfit
 import uncertainties
 import xlsxwriter
 import json
-#import matplotlib.transforms as mtransforms
 
+#%%
 # Optional: Set default folder where to find and/or save files for use with 
 # functions like save_spectrum and save_baseline. Eventually I will get 
 # rid of this, but for now having it hard-coded here is helpful for me.
@@ -83,6 +83,7 @@ def make_line_style(direction, style_marker):
 class Sample():
     mineral_name = None
     source = None
+    IGSN = None
     initial_water = None
     sample_thick_microns = None
     twoA_list = []
@@ -551,7 +552,8 @@ class Spectrum():
         plt.setp(ax.get_xticklabels(), rotation=45)
         return f, ax
 
-    def plot_spectrum(self, style=styles.style_spectrum, figaxis=None, wn=None):
+    def plot_spectrum(self, style=styles.style_spectrum, figaxis=None, wn=None,
+					  size_inches=(3., 2.5)):
         """Plot the raw spectrum divided by thickness"""
         if self.wn is None:
             check = self.start_at_zero()
@@ -559,7 +561,7 @@ class Spectrum():
                 return
 
         if figaxis is None:
-            fig, ax = self.plot_spectrum_outline()
+            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
         else:
             fig = None
             ax = figaxis
