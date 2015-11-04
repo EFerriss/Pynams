@@ -111,9 +111,11 @@ def area2water(area_cm2, mineral='cpx', calibration='Bell'):
         print 'only Bell calibration so far'
         return
     if mineral == 'cpx':           
-        w = cpx_calib_Bell95*area_cm2
+        w = cpx_calib_Bell95 * area_cm2
+    elif mineral == 'olivine':
+        w = 0.188 * area_cm2
     else:
-        print 'only mineral=cpx supported right now'
+        print 'only mineral=cpx and olivine supported right now'
         return
     return w
         

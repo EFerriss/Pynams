@@ -40,7 +40,7 @@ for use in plotting directly onto Arrhenius diagrams
 
 
 """
-#import lmfit
+import lmfit
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
