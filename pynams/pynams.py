@@ -398,7 +398,8 @@ class Spectrum():
         if show_water is True:
             print self.fname
             print 'area:', numformat.format(area), '/cm^2'
-            print 'water:', numformat.format(w), 'ppm H2O'
+            print ''.join(('water: ', numformat.format(w), ' ppm H2O; *3 = ', 
+                    numformat.format(w*3.), ' ppm H2O'))
         return area, w
 
     def save_spectrum(self, folder=default_folder, delim='\t',
