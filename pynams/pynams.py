@@ -80,15 +80,17 @@ def make_line_style(direction, style_marker):
     
 
 # Define classes, attributes, and functions related to samples
-class Sample():
-    mineral_name = None
-    source = None
-    IGSN = None
-    initial_water = None
-    sample_thick_microns = None
-    twoA_list = []
-    twoB_list = []
-    twoC_list = []
+class Sample():    
+    def __init__(self, sample_thick_microns=None, IGSN=None, 
+                 mineral_name=None, initial_water=None, twoA_list = [],
+                 twoB_list = [], twoC_list = []):
+        self.sample_thick_microns = sample_thick_microns
+        self.IGSN = IGSN
+        self.mineral_name = mineral_name
+        self.initial_water = initial_water
+        self.twoA_list = twoA_list
+        self.twoB_list = twoB_list
+        self.twoC_list = twoC_list
 
 def get_3thick(sample_name):
     """Average thickness measurements in 3 directions and return a list"""
@@ -121,9 +123,12 @@ def area2water(area_cm2, mineral='cpx', calibration='Bell'):
         
 # Define classes and functions related to FTIR spectra        
 class Spectrum():
-    fname = None  # Used to set filename.CSV
+    def __init__(self, fname=None, thick_microns=None, filename = None):
+        self.fname = fname
+        self.filename = filename
+        self.thick_microns = thick_microns
+        
     sample = None
-    thick_microns = None
     # full range of measured wavenumber and absorbances
     wn_full = None
     abs_full_cm = None
@@ -145,7 +150,6 @@ class Spectrum():
     nscans = 100
     date = None
     other_name = None
-    filename = None  # generated automatically below
     # default baseline range
     base_low_wn = 3200
     base_high_wn = 3700
@@ -202,14 +206,14 @@ class Spectrum():
         self.thick_microns = th
         return th
 
-    def make_average_spectra(self, spectra_list):
+    def make_average_spectra(self, spectra_list, folder=default_folder):
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""
         list_abs_to_average = []
         list_wn = []
         for sp in spectra_list:
             if sp.abs_full_cm is None:
-                check = sp.divide_by_thickness()
+                check = sp.divide_by_thickness(folder=folder)
                 if check is False:
                     return False
             abs_to_append = sp.abs_full_cm
@@ -220,7 +224,7 @@ class Spectrum():
         self.wn_full = waven
         self.abs_full_cm = ave_abs
     
-    def divide_by_thickness(self, delim=','):
+    def divide_by_thickness(self, delim=',', folder=default_folder):
         """Divide raw absorbance by thickness"""
         if self.thick_microns is None:
             check = self.set_thick()
@@ -231,8 +235,15 @@ class Spectrum():
             print 'Need .fname to know what to call saved file'
             return False
         if self.filename is None:
-            make_filenames()
-        signal = np.loadtxt(default_folder + self.filename, delimiter=delim)
+            make_filenames(folder=folder)
+            
+        if os.path.isfile(self.filename):            
+            signal = np.loadtxt(self.filename, delimiter=delim)
+        else:
+            print 'There is a problem finding the file.'
+            print 'You may need to run pynams.make_filenames(folder=)'
+            print 'filename =', self.filename
+            return False
         
         # Make sure wavenumber is ascending
         if signal[0, 0] > signal[-1, 0]:
@@ -251,11 +262,11 @@ class Spectrum():
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
 
-    def start_at_zero(self):
+    def start_at_zero(self, folder=default_folder):
         """Divide raw absorbance by thickness and
         shift minimum to 0 within specified wavenumber range """
         if self.abs_full_cm is None:
-            check = self.divide_by_thickness()
+            check = self.divide_by_thickness(folder=folder)
             if check is False:
                 return False
         # print 'Setting to zero in range of interest wn, abs_cm'
@@ -400,7 +411,7 @@ class Spectrum():
             print 'area:', numformat.format(area), '/cm^2'
             print ''.join(('water: ', numformat.format(w), ' ppm H2O; *3 = ', 
                     numformat.format(w*3.), ' ppm H2O'))
-        return area, w
+        return area, w*3
 
     def save_spectrum(self, folder=default_folder, delim='\t',
                       file_ending='-per-cm.txt'):
@@ -411,7 +422,7 @@ class Spectrum():
             print 'Need .fname to know what to call saved file'
             return
         if self.abs_full_cm is None:
-            self.divide_by_thickness()
+            self.divide_by_thickness(folder=folder)
             
         abs_filename = folder + self.fname + file_ending
         print 'Saving:'
@@ -556,7 +567,7 @@ class Spectrum():
         return f, ax
 
     def plot_spectrum(self, style=styles.style_spectrum, figaxis=None, wn=None,
-					  size_inches=(3., 2.5)):
+					  size_inches=(3., 2.5), label=None):
         """Plot the raw spectrum divided by thickness"""
         if self.wn is None:
             check = self.start_at_zero()
@@ -568,8 +579,15 @@ class Spectrum():
         else:
             fig = None
             ax = figaxis
-            
-        ax.plot(self.wn, self.abs_cm, **style)
+
+        if label is not None:
+            style_to_use = style.copy()
+            style_to_use.update({'label' : label})
+        else:
+            style_to_use = style            
+
+        ax.plot(self.wn, self.abs_cm, **style_to_use)
+        
         if wn is not None:
             ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], color='r')
         return fig, ax
@@ -605,7 +623,7 @@ class Spectrum():
     def plot_showbaseline(self, polyorder=1, shiftline=None,
                           wn_baseline=None, abs_baseline=None,
                           style=styles.style_spectrum, style_base=styles.style_baseline,
-                          figaxis=None):
+                          figaxis=None, label=None):
         """Plot FTIR spectrum and show baseline. 
         You can pass in your own baseline"""
         if figaxis is None:
@@ -630,8 +648,14 @@ class Spectrum():
                 print ('Need to pass in baseline wavenumber range too ' +
                        'either here as wn_baseline or as spectrum.base_wn')
                 return                
+
+        if label is not None:
+            style_to_use = style.copy()
+            style_to_use.update({'label' : label})
+        else:
+            style_to_use = style            
             
-        ax.plot(self.wn, self.abs_cm, **style)
+        ax.plot(self.wn, self.abs_cm, **style_to_use)
         ax.plot(wn_baseline, abs_baseline, **style_base)
         return fig, ax
 
@@ -661,7 +685,7 @@ def make_filenames(classname=Spectrum, folder=default_folder,
     for obj in gc.get_objects():
         if isinstance(obj, classname):
             if obj.fname is not None and obj.filename is None:
-                obj.filename = ''.join((obj.fname, file_ending))
+                obj.filename = ''.join((folder, obj.fname, file_ending))
 
 def water_from_spectra(list3, mineral_name='cpx',
                        proper3=False, numformat='{:.0f}',
@@ -2115,14 +2139,15 @@ class Profile():
 #                print string
 #            peakstrings.append(string)
 #
-    def start_at_arbitrary(self, wn_matchup=3000, offset=0.):
+    def start_at_arbitrary(self, wn_matchup=3000, offset=0.,
+                           folder=default_folder):
         """For each spectrum in profile, divide raw absorbance by thickness 
         and set spectra abs_full_cm such that they overlap at the specified 
         wavenumber wn_matchup with specified offset up from zero"""
         for x in self.spectra_list:
             # Divide by thickness if not done already
             if x.abs_full_cm is None:
-                check = x.divide_by_thickness()
+                check = x.divide_by_thickness(folder=folder)
                 if check is False:
                     return False
             # print 'Setting to zero at wn_matchup'
@@ -2298,10 +2323,11 @@ def plotsetup_3x3minus2(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
     return axis_list
 
 def plotsetup_3x3(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
-                  xtickgrid=250, ytickgrid=0.5):
+                  xtickgrid=250, ytickgrid=0.5,
+                  fig_size_inches=(6.5, 6.5)):
     """Setup plot for spectra comparison e.g., Kunlun_peakcheck.py"""
     fig = plt.figure()
-    fig.set_size_inches(6.5, 6.5)
+    fig.set_size_inches(fig_size_inches)
     gs = gridspec.GridSpec(3,3)
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[0, 1])

@@ -17,8 +17,12 @@ style_fitpeak = {'color' : 'g', 'linewidth' : 1}
 style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
                  'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
-style_initial = {'color' : 'b', 'linewidth' : 1}
+
+style_initial = {'color':'red', 'label':'initial', 'linewidth':2, 'linestyle':'--'}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None}
+style_2 = {'color':'green', 'linewidth':2}
+style_3 = {'color':'blue', 'linewidth':2}
+
 style_unoriented = {'fillstyle' : 'none'}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 
