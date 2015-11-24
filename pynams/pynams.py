@@ -458,8 +458,9 @@ class Spectrum():
             self.plot_showbaseline(baseline=basel)
         self.abs_nobase_cm = self.subtract_baseline(polyorder, bline=basel)
         
-        base_filename = folder + self.fname + bline_file_ending
+        base_filename = self.fname + bline_file_ending
         print 'Saving', self.fname + bline_file_ending
+        
         t = ['wavenumber (/cm)', 'baseline value (/cm)', 
              'baseline-subtracted absorbance (/cm)']
         with open(base_filename, 'w') as base_file:
