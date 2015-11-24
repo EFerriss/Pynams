@@ -1,6 +1,6 @@
 % Ferriss 1/2015
 % take a baseline-subtracted spectrum 
-% generated using python FTIRspectra.py self.save_pek()
+% generated using python FTIRspectra.py self.save_baseline()
 % and fits the peaks using peakfit from the Matlab file exchange
 % Use savefit.m to save fit to filename-peakfit.csv
 %
@@ -38,7 +38,7 @@ for r=1:length(fname_list)
     peakshape = 16;
     
     % file folders and names
-    spectraLocation = '../FTIR/';
+    spectraLocation = '../../../../FTIR/';
     saveFigureLocation = '../CpxPaper/figures/peakfits/';
 
     set_title = 0;
@@ -296,8 +296,8 @@ set(hleg,'LineWidth',linesize,'FontSize',legendtext,...
         'Location','Northeast');
 
 Fig=[saveFigureLocation, fname,'-peakfit'];
-export_fig(Fig, '-jpeg',resolution,'-painters');
+%export_fig(Fig, '-jpeg',resolution,'-painters');
 
-savefit
-disp('fit saved')
+%savefit
+%disp('fit saved')
 end % end loop through all spectra in fname_list

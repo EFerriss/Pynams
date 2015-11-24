@@ -1,5 +1,5 @@
 % Ferriss 1/2015
-% Saves peakfit information from FTIR_peakfit_afterpython
+% Saves peakfit information from FTIR_peakfit_loop
 % to fname-peakfit.CSV
 
 % band positions, heights, widths, and areas
