@@ -7,8 +7,7 @@
 clear all; close all; 
 
 %% User input section 
-fname_list = {'P_0_unpol' 'P_1_unpol' 'P_2_unpol' 'P_3_unpol'...
-              'P_4_unpol' 'P_5_unpol' 'P_6_unpol'};
+fname_list = {'P_0_unpol'};
 
 %default_peakpos = [3645 3617 3540 3460 3443 3355 3305 3250]; % diopsides
 default_peakpos = [3620 3550 3460 3355]; % PMR-53
@@ -298,6 +297,6 @@ set(hleg,'LineWidth',linesize,'FontSize',legendtext,...
 Fig=[saveFigureLocation, fname,'-peakfit'];
 %export_fig(Fig, '-jpeg',resolution,'-painters');
 
-%savefit
-%disp('fit saved')
+savefit
+disp('fit saved')
 end % end loop through all spectra in fname_list

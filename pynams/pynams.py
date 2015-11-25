@@ -343,6 +343,23 @@ class Spectrum():
         index_hi = (np.abs(self.wn-self.base_high_wn)).argmin()
             
         humps = self.abs_cm[index_lo:index_hi]
+
+        # length check
+        if len(humps) > len(base_abs):
+            ndif = len(humps) - len(base_abs)
+            humps = humps[0:-ndif]
+        elif len(humps) < len(base_abs):
+            ndif = len(base_abs) - len(humps)
+            for n in range(ndif):
+                humps = np.append(humps, humps[-1])
+        
+        if len(humps) != len(base_abs):
+            print
+            print 'baseline subtraction failed; returning false'
+            print 'len humps', len(humps)
+            print 'len base_abs', len(base_abs)
+            return False
+            
         abs_nobase_cm = humps - base_abs
 
         # plotting
@@ -458,7 +475,7 @@ class Spectrum():
             self.plot_showbaseline(baseline=basel)
         self.abs_nobase_cm = self.subtract_baseline(polyorder, bline=basel)
         
-        base_filename = self.fname + bline_file_ending
+        base_filename = folder + self.fname + bline_file_ending
         print 'Saving', self.fname + bline_file_ending
         
         t = ['wavenumber (/cm)', 'baseline value (/cm)', 
@@ -489,6 +506,8 @@ class Spectrum():
         self.base_wn = data[:, 0]
         self.base_abs = data[:, 1]
         self.abs_nobase_cm = data[:, 2]
+        self.base_high_wn = max(data[:, 0])
+        self.base_low_wn = min(data[:, 0])
         return self.base_abs, self.abs_nobase_cm
         
     def get_3baselines(self, folder=default_folder, delim=',', 
