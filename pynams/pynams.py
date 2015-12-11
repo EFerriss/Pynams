@@ -55,6 +55,7 @@ import lmfit
 import uncertainties
 import xlsxwriter
 import json
+from scipy import signal as scipysignal
 
 #%%
 # Optional: Set default folder where to find and/or save files for use with 
@@ -214,6 +215,30 @@ class Spectrum():
                 return False
         self.thick_microns = th
         return th
+
+    def find_peaks(self, widths=np.arange(1,40), 
+                   line_order=1, shiftline=0.):
+        """Locate wavenumbers of npeaks number of most prominent peaks
+        in wavenumber range of interest wn_high to wn_low"""
+#        print ''.join((str(npeaks), ' most prominent bands between wavenumbers ', 
+#                       str(self.wn_high), ' and ', str(self.wn_low), ' /cm2:'))
+        if self.abs_nobase_cm is None:
+            self.make_baseline(line_order=line_order, 
+                               shiftline=shiftline, show_plot=False)
+        else:
+            print "Using previously fit baseline-subtracted absorbance"
+
+        self.abs_nobase_cm = self.subtract_baseline()               
+        peak_idx = scipysignal.find_peaks_cwt(self.abs_nobase_cm, widths)
+        print 'change widths=np.arange(1,40) to alter sensitivity'
+        print 'peaks found at the following wavenumbers:'
+        print self.base_wn[peak_idx]
+
+        fig, ax = self.plot_subtractbaseline()
+        for idx in peak_idx:
+            wn = self.base_wn[idx]
+            ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)
+        
 
     def make_average_spectra(self, spectra_list, folder=default_folder):
         """Takes list of spectra and returns average absorbance (/cm)
