@@ -118,17 +118,19 @@ def pressure_design(capsule_material = 'copper',
             th_flap = thick/2.
             verts = [(x + thick*2 + innerD, y),
                      (x, y),
-                     (x, y + height + thick),
+                     (x, y + height + th_flap),
+                     (x + thick + innerD/2., y + height + th_flap),
+                     (x + thick + innerD/2., y + height),
                      (x + thick, y + height),
-                     (x + thick, y + height + outerD/2.),
-                     (x + thick, y + th_flap + outerD/2.),
-                     (x + thick, y + innerD/2.),
-                     (x + thick + innerD/2., y + thick),
-                     (x + thick + innerD, y + innerD/2.),
+                     (x + thick, y + thick),
+                     (x + thick + innerD, y + thick),
                      (x + thick + innerD, y + height),
-                     (x + thick*2 + innerD, y + height),
+                     (x + thick + innerD/2., y + height),
+                     (x + thick + innerD/2., y + height + th_flap),
+                     (x + thick*2 + innerD, y + height + th_flap),
+                     (x + thick*2 + innerD, y + height - th_flap),
                      (0., 0.)]
-            codes = [Path.MOVETO] + ([Path.LINETO] * 10) + [Path.CLOSEPOLY]
+            codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
         path = Path(verts, codes)
         return path
     
@@ -238,7 +240,8 @@ def pressure_design(capsule_material = 'copper',
     elif lid_shape == 'suaged':
         th_flap = th_capsule / 2.
         x = xgc + th_gc + th_sleeve + th_flap
-        y = h_graphite_button + h_MgO_base + h_sleeve_bottom + h_capsule - th_flap
+        ystart = h_graphite_button + h_MgO_base + h_sleeve_bottom
+        y = ystart + h_capsule - th_flap*2
         th_lid = h_lid / 2.
         th_capsule = (id_sleeve - id_capsule) / 2.
         lid_verts = [(x + th_capsule - th_flap, y), 
@@ -270,8 +273,8 @@ def pressure_design(capsule_material = 'copper',
     ax.add_patch(MgO_wafer)
     ax.add_patch(MgO_top)
     ax.add_patch(thermocouple)
-    ax.add_patch(lid)
     ax.add_patch(capsule)
+    ax.add_patch(lid)
       
     fig.tight_layout()
     if legend_on is True:

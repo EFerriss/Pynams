@@ -23,10 +23,12 @@ style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_2 = {'color':'green', 'linewidth': 1.5}
 style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
-style_3 = {'color':'blue', 'linewidth': 2.}
-style_3a = {'color':'blue', 'linewidth': 2., 'linestyle' : '--'}
-style_4 = {'color':'orange', 'linewidth':1.}
-style_4 = {'color':'orange', 'linewidth':1., 'linestyle' : '--'}
+style_3 = {'color':'blue', 'linewidth': 1.}
+style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
+style_4 = {'color':'brown', 'linewidth':1.5, 'linestyle' : '--'}
+style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
+style_5 = {'color':'sage', 'linewidth':2., 'linestyle' : '--'}
+style_6 = {'color':'darkorchid', 'linewidth':2., 'linestyle' : '--'}
 
 style_unoriented = {'fillstyle' : 'none'}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}

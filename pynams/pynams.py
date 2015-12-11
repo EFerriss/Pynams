@@ -81,10 +81,10 @@ def make_line_style(direction, style_marker):
 
 # Define classes, attributes, and functions related to samples
 class Sample():    
-    def __init__(self, sample_thick_microns=None, IGSN=None, 
+    def __init__(self, thickness_microns=None, IGSN=None, 
                  mineral_name=None, initial_water=None, twoA_list = [],
                  twoB_list = [], twoC_list = []):
-        self.sample_thick_microns = sample_thick_microns
+        self.thickness_microns = thickness_microns
         self.IGSN = IGSN
         self.mineral_name = mineral_name
         self.initial_water = initial_water
@@ -104,37 +104,48 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
 
-def area2water(area_cm2, mineral='cpx', calibration='Bell'):
+def area2water(area_cm2, phase='cpx', calibration='Bell'):
     """Takes area in cm-2, multiplies by absorption coefficient, 
     return water concentration in ppm H2O"""
-    if calibration == 'Bell':
-        cpx_calib_Bell95 = 1.0 / ufloat(7.09, 0.32)
+    # Bell et al. 1995
+    if (calibration == 'Bell') and (phase=='cpx'):
+        absorption_coeff = 1.0 / ufloat(7.09, 0.32)
+
+    # Bell et al. 2003        
+    elif (calibration == 'Bell') and (phase=='olivine'):
+        absorption_coeff = ufloat(0.188, 0.012)
+        
+    # Withers et al. 2012
+    elif (calibration == 'Withers') and (phase=='olivine'):
+        absorption_coeff = ufloat(0.119, 0.006)
+        
     else:
-        print 'only Bell calibration so far'
+        print 'Calibrations supported so far:',
+        print '   Bell et al. 1995 for cpx'
+        print '   Bell et al. 2003 for olivine'
+        print '   Withers et al. 2012 for olivine'
         return
-    if mineral == 'cpx':           
-        w = cpx_calib_Bell95 * area_cm2
-    elif mineral == 'olivine':
-        w = 0.188 * area_cm2
-    else:
-        print 'only mineral=cpx and olivine supported right now'
-        return
+        
+    w = absorption_coeff * area_cm2
     return w
         
 # Define classes and functions related to FTIR spectra        
 class Spectrum():
-    def __init__(self, fname=None, thick_microns=None, filename = None):
+    def __init__(self, fname=None, sample=None, filename=None,
+                 thick_microns=None, wn_high=4000, wn_low=3000,
+                 base_low_wn = 3200, base_high_wn = 3700):
         self.fname = fname
+        self.sample = sample
         self.filename = filename
         self.thick_microns = thick_microns
-        
-    sample = None
+        self.wn_high = wn_high
+        self.wn_low = wn_low
+        self.base_high_wn = base_high_wn
+        self.base_low_wn = base_low_wn
+
     # full range of measured wavenumber and absorbances
     wn_full = None
     abs_full_cm = None
-    # default wavenumber range of interest
-    wn_high = 4000
-    wn_low = 3000
     wn = None
     abs_cm = None
     # other metadata with a few defaults
@@ -151,8 +162,6 @@ class Spectrum():
     date = None
     other_name = None
     # default baseline range
-    base_low_wn = 3200
-    base_high_wn = 3700
     base_wn = None
     base_abs = None
     # need these for quadratic baseline
@@ -184,24 +193,24 @@ class Spectrum():
         else:
             s = self.sample
         
-        if s.sample_thick_microns is None:
-            s.sample_thick_microns = get_3thick(s)
+        if s.thickness_microns is None:
+            s.thickness_microns = get_3thick(s)
 
-        if isinstance(self.sample.sample_thick_microns, float) is True:
-            th = s.sample_thick_microns
-        elif isinstance(self.sample.sample_thick_microns, list) is True:
-            if len(s.sample_thick_microns) == 3:
+        if isinstance(self.sample.thickness_microns, float) is True:
+            th = s.thickness_microns
+        elif isinstance(self.sample.thickness_microns, list) is True:
+            if len(s.thickness_microns) == 3:
                 if self.raypath == 'a':
-                    th = s.sample_thick_microns[0]
+                    th = s.thickness_microns[0]
                 elif self.raypath == 'b':
-                    th = s.sample_thick_microns[1]
+                    th = s.thickness_microns[1]
                 elif self.raypath == 'c':
-                    th = s.sample_thick_microns[2]
+                    th = s.thickness_microns[2]
                 else:
                     print 'Need spectrum raypath a, b, or c'
                     return False
             else:
-                print 'sample.sample_thick_microns must have 1 or 3 values'
+                print 'sample.thickness_microns must have 1 or 3 values'
                 return False
         self.thick_microns = th
         return th
@@ -250,7 +259,6 @@ class Spectrum():
             print 'WARNING: need to reverse wavenumber progression'
             # from operator import itemgetter
             # sig = sorted(signal, key=itemgetter(1))
-        # print 'Getting full range signal wn_full, abs_full_cm'
         self.wn_full = signal[:, 0]
         self.abs_raw = signal[:, 1]
         # Convert from numpy.float64 to regular python float
@@ -411,16 +419,16 @@ class Spectrum():
         self.area = area
         return area
 
-    def water(self, polyorder=1, mineral_name='cpx', numformat='{:.1f}',
+    def water(self, phase_name='cpx', calibration='Bell', numformat='{:.1f}',
               show_plot=True, show_water=True, printout_area=False,
-              shiftline=None):
+              polyorder=1, shiftline=None):
         """Produce water estimate without error for a single FTIR spectrum. 
         Use water_from_spectra() for errors, lists, and 
         non-Bell calibrations."""
         # determine area
         area = self.area_under_curve(polyorder, show_plot, shiftline, 
                                      printout_area)
-        w = area2water(area, mineral=mineral_name)
+        w = area2water(area, phase=phase_name, calibration=calibration)
                         
         # output for each spectrum
         if show_water is True:
@@ -600,12 +608,12 @@ class Spectrum():
             fig = None
             ax = figaxis
 
-        if label is not None:
-            style_to_use = style.copy()
-            style_to_use.update({'label' : label})
-        else:
-            style_to_use = style            
-
+        if label is None:
+            label = self.fname
+            
+        style_to_use = style.copy()
+        style_to_use.update({'label' : label})
+        
         ax.plot(self.wn, self.abs_cm, **style_to_use)
         
         if wn is not None:
@@ -669,18 +677,18 @@ class Spectrum():
                        'either here as wn_baseline or as spectrum.base_wn')
                 return                
 
-        if label is not None:
-            style_to_use = style.copy()
-            style_to_use.update({'label' : label})
-        else:
-            style_to_use = style            
+        if label is None:
+            label = self.fname
+            
+        style_to_use = style.copy()
+        style_to_use.update({'label' : label})
             
         ax.plot(self.wn, self.abs_cm, **style_to_use)
         ax.plot(wn_baseline, abs_baseline, **style_base)
         return fig, ax
 
     def plot_subtractbaseline(self, polyorder=1, style=styles.style_spectrum, 
-                              figaxis=None):
+                              figaxis=None, label=None):
         """Make and plot baseline-subtracted spectrum"""
         abs_nobase_cm = self.subtract_baseline(polyorder)
         
@@ -689,12 +697,18 @@ class Spectrum():
         else:
             fig = None
             ax = figaxis
+
+        if label is None:
+            label = self.fname
+            
+        style_to_use = style.copy()
+        style_to_use.update({'label' : label})
             
         pad = max(abs_nobase_cm)
         yhigh = pad + 0.1*pad
         ax.set_ylim(0, yhigh)
         ax.set_xlim(self.base_high_wn, self.base_low_wn)
-        ax.plot(self.base_wn, abs_nobase_cm, **style)
+        ax.plot(self.base_wn, abs_nobase_cm, **style_to_use)
         return fig, ax
 
 
@@ -934,15 +948,15 @@ class Profile():
         else:
             s = self.sample
 
-        if s.sample_thick_microns is None:
-            s.sample_thick_microns = get_3thick(s)                
+        if s.thickness_microns is None:
+            s.thickness_microns = get_3thick(s)                
         
         if self.direction == 'a':
-           self.len_microns = s.sample_thick_microns[0]
+           self.len_microns = s.thickness_microns[0]
         elif self.direction == 'b':
-            self.len_microns = s.sample_thick_microns[1]
+            self.len_microns = s.thickness_microns[1]
         elif self.direction == 'c':
-            self.len_microns = s.sample_thick_microns[2]
+            self.len_microns = s.thickness_microns[2]
         else:
             print 'Set direction of profile to a, b, or c'
 
@@ -957,15 +971,15 @@ class Profile():
         else:
             s = self.sample
         
-        if s.sample_thick_microns is None:
-            s.sample_thick_microns = get_3thick(s)
+        if s.thickness_microns is None:
+            s.thickness_microns = get_3thick(s)
 
         if self.raypath == 'a':
-           self.thick_microns = s.sample_thick_microns[0]
+           self.thick_microns = s.thickness_microns[0]
         elif self.raypath == 'b':
-            self.thick_microns = s.sample_thick_microns[1]
+            self.thick_microns = s.thickness_microns[1]
         elif self.raypath == 'c':
-            self.thick_microns = s.sample_thick_microns[2]
+            self.thick_microns = s.thickness_microns[2]
         else:
             print 'Need raypath'
             return False
@@ -1819,7 +1833,7 @@ class Profile():
                                                        
         if self.len_microns is not None:
             microns = self.len_microns
-        elif self.sample.sample_thick_microns is not None:
+        elif self.sample.thickness_microns is not None:
             microns = self.set_len()
         else:
             print '\nNeed to set profile length directly or with a sample'
