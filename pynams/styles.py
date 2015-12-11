@@ -18,10 +18,15 @@ style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
                  'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
 
-style_initial = {'color':'red', 'label':'initial', 'linewidth':2, 'linestyle':'--'}
-style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None}
-style_2 = {'color':'green', 'linewidth':2}
-style_3 = {'color':'blue', 'linewidth':2}
+style_initial = {'color':'red', 'label':'initial', 'linewidth':2.5, 'linestyle':':'}
+style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
+style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
+style_2 = {'color':'green', 'linewidth': 1.5}
+style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
+style_3 = {'color':'blue', 'linewidth': 2.}
+style_3a = {'color':'blue', 'linewidth': 2., 'linestyle' : '--'}
+style_4 = {'color':'orange', 'linewidth':1.}
+style_4 = {'color':'orange', 'linewidth':1., 'linestyle' : '--'}
 
 style_unoriented = {'fillstyle' : 'none'}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
@@ -37,10 +42,15 @@ style_Dy = {'fillstyle' : 'bottom', 'color' : 'green',
             'markerfacecolor' : 'green' }
 style_Dz = {'fillstyle' : 'right', 'color' : 'blue', 
             'markerfacecolor' : 'blue'}
+style_Du = {'fillstyle' : 'none', 'color' : 'k', 
+            'markerfacecolor' : 'white'}
 style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
 style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
 style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
 style_Du_line = {'linestyle' : '-', 'color' : 'black'}
+style_orient = [style_Dx, style_Dy, style_Dz, style_Du]            
+style_orient_lines = [style_Dx_line, style_Dy_line, style_Dz_line, style_Du_line]            
+
 # different ray paths
 style_Rx = {'marker' : 'd'}
 style_Ry = {'marker' : 'o'}

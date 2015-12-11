@@ -612,19 +612,6 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
                              bbox_to_anchor=(low, bottom, high-low, sunk),
                              bbox_transform=ax.transData, mode='expand')
     plt.gca().add_artist(main_legend)
-    
-#    if generic_legend is True:
-#        leg2 = []
-#        print 'Still working on generic legend'
-#        generic.add_to_legend(ax, leg2, descript='// [100]*', orientation='x', 
-#                              addline=True)
-#        generic.add_to_legend(ax, leg2, descript='// [010]', orientation='y', 
-#                              addline=True)
-#        generic.add_to_legend(ax, leg2, descript= '// [001]', orientation='z',
-#                              addline=True)
-#        generic.add_to_legend(ax, leg2, descript='not oriented', orientation='u')
-#        plt.legend(handles=leg2, loc=3, numpoints=1, frameon=True)
-
     return fig, ax, legend_handles_main
 
 def Arrhenius_add_line(fig_ax, Ea, D0, low=6.0, high=10.0, 
@@ -643,6 +630,10 @@ def solve_Ea_D0(log10D_list, celsius_list):
     T = np.array(celsius_list) + 273.15
     x = 1.E4 / T
     y = np.array(log10D_list)
+
+    if (len(x) < 2) or (len(y) < 2):
+        print 'You need more than one point to fit a line'
+        return None, None
     
     # If I don't add in a very low weighted extra number, the covariance
     # matrix, and hence the error, comes out as infinity. The actual
@@ -677,88 +668,108 @@ def whatIsD(Ea, D0, celsius, printout=True):
     return np.log10(D)
 
 #%%
+def get_iorient(orient):
+    """Converts x, y, z, u to 0, 1, 2, 3"""
+    if orient == 'x':
+        iorient = 0
+    elif orient == 'y':
+        iorient = 1
+    elif orient == 'z':
+        iorient = 2
+    elif orient == 'u':
+        iorient = 3
+    else:
+        iorient = orient
+    return iorient
+        
 class Diffusivities():
-    description = None
-    celsius_all = []
-    celsius_unoriented = []
-    celsius_x = []
-    celsius_y = []
-    celsius_z = []
-    logD_unoriented = []
-    logDx = []
-    logDy = []
-    logDz = []
-    logDx_error = []
-    logDy_error = []
-    logDz_error = []
-    logDu_error = []
-    basestyle = styles.style_points
-    wholeblocks = []
-    # generic for isotropic or no directional information
-    activation_energy_kJmol = None
-    logD0_m2s = None
-    # and for different directions
-    activation_energy_kJmol_xyz = [None, None, None]
-    logD0_m2s_xyz = [None, None, None]
 
-    def picker_DCelsius(self, orient=None):
-        """Returns lists of log10D in m2/s and temperatares in Celsius
-        for specified orientation"""
-        if orient == 'x':
-            log10D_list = self.logDx
-            celsius_list = self.celsius_x
-        elif orient == 'y':
-            log10D_list = self.logDy
-            celsius_list = self.celsius_y
-        elif orient == 'z':
-            log10D_list = self.logDz
-            celsius_list = self.celsius_z
-        elif orient == 'u':
-            log10D_list = self.logD_unoriented
-            celsius_list = self.celsius_unoriented
+    def __init__(self, description=None, celsius_all=None, logD_all=None,
+                 celsius_unoriented = [], 
+                 celsius_x = [], celsius_y = [], celsius_z = [], 
+                 logDx = [], logDy = [], logDz = [], logD_unoriented = [], 
+                 logDx_error = [], logDy_error = [], logDz_error = [], 
+                 logDu_error = [], basestyle = styles.style_points.copy(), 
+                 activation_energy_kJmol = [None, None, None, None], 
+                 logD0 = [None, None, None, None], Fe=None, Mg=None, Al=None):
+        """All logarithms of diffusivities, logD, are base 10 and m2/s.
+        Order is || x, || y, ||z, not oriented or isotropic"""
+        self.description = description
+        self.celsius_all = celsius_all
+        if celsius_all is not None:
+            celsius_x = celsius_all
+            celsius_y = celsius_all
+            celsius_z = celsius_all
+            celsius_unoriented = celsius_all
+        if logD_all is not None:
+            logDx = logD_all
+            logDy = logD_all
+            logDz = logD_all
+            logD_unoriented = logD_all            
+        self.celsius = [celsius_x, celsius_y, celsius_z, celsius_unoriented]
+        self.logD = [logDx, logDy, logDz, logD_unoriented]
+        self.logD_error = [logDx_error, logDy_error, logDz_error, logDu_error]
+        self.activation_energy_kJmol = activation_energy_kJmol
+        self.logD0 = logD0
+        self.basestyle = basestyle
+        self.Fe = Fe
+        self.Mg = Mg
+        self.Al = Al
+
+    def get_MgNumber(self):
+        try:
+            MgNum = 100. * self.Mg / (self.Fe + self.Mg)
+        except TypeError:
+            print self.description
+            print 'Check Mg and Fe are not None'
         else:
-            print "orient = 'x', 'y', 'z', or 'u' for unoriented"
-            return False, False
-
-        if len(celsius_list) < 1: 
-            celsius_list = self.celsius_all
-
-        return log10D_list, celsius_list
-        
-    def whatIsD(self, celsius, orient, printout=True):
-        """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
-        """
-        if orient == 'x':
-            log10D_list = self.logDx
-            celsius_list = self.celsius_x
-        elif orient == 'y':
-            log10D_list = self.logDy
-            celsius_list = self.celsius_y
-        elif orient == 'z':
-            log10D_list = self.logDz
-            celsius_list = self.celsius_z
-        elif orient == 'u':
-            log10D_list = self.logD_unoriented
-            celsius_list = self.celsius_unoriented
-        else:
-            print "orient = 'x', 'y', 'z', or 'u' for unoriented"
-            return False
+            return MgNum
             
-        if len(celsius_list) < 1: 
-            celsius_list = self.celsius_all
-        
-
-        Ea, D0 = solve_Ea_D0(log10D_list, celsius_list)
-        D = whatIsD(Ea.n, D0.n, celsius)
-        return D
+    def picker_DCelsius(self, orient=None):
+        """Returns lists of log10D in m2/s and temperatures in Celsius
+        of Diffusivities object for specified orientation"""
+        iorient = get_iorient(orient)
+        try:
+            logD_of_interest = self.logD[iorient]
+            celsius_of_interest = self.celsius[iorient]
+        except TypeError:
+            print ''.join(("orient must be an integer 0-3 or", 
+                           "'x' (=0), 'y' (=1), 'z' (=2), or 'u' (=3) for unoriented"))
+        except IndexError:
+            print ''.join(("orient must be an integer 0-3 or", 
+                           "'x'=0, 'y'=1, 'z'=2, or 'u'=3 for unoriented"))
+        else:
+            return logD_of_interest, celsius_of_interest
         
     def solve_Ea_D0(self, orient=None):
         """Returns activation energy in kJ/mol and D0 in m2/s for 
         diffusivity estimates""" 
-        log10D_list, celsius_list = self.picker_DCelsius(orient=orient)
-        Ea, D0 = solve_Ea_D0(log10D_list, celsius_list)
+        logD_and_Celsius = self.picker_DCelsius(orient=orient)        
+
+        if logD_and_Celsius is None:
+            print 'Problem with self.picker_DCelsius()'
+            return None            
+        else:
+            logD = logD_and_Celsius[0]
+            celsius = logD_and_Celsius[1]
+
+        if (len(logD) < 2) or (len(celsius) < 2):
+            print 'You need more than one point to fit a line'
+            return None
+
+        Ea, D0 = solve_Ea_D0(logD, celsius)
         return Ea, D0
 
+    def whatIsD(self, celsius, orient, printout=True):
+        """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
+        """
+        Ea_and_D0 = self.solve_Ea_D0(orient=orient)
+        if Ea_and_D0 is None:
+            print 'Problem with self.solve_Ea_D0()'
+            return None
+        D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius)
+        return D
+        
     def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False,
                             wholeblock=True, heights_instead=False):
         """Grab diffusivities from whole-block"""
@@ -803,187 +814,146 @@ class Diffusivities():
         self.logDy_error = error[1]
         self.logDz_error = error[2]
 
-    def plotloop(self, fig_axis, celsius, logD, style, legendlabel=None, 
-                  offset_celsius=0, show_error=True, Derror=None, ecolor=None,
-                  plotline=True, style_line={'linestyle':'-', 'marker':None}):
-        """Where the checks and actual plotting gets done"""
-        # checks
-        if len(celsius) == 0:
-            if self.celsius_all is not None:
-                celsius = self.celsius_all
-            else:
-                return
+    def make_styles(self, orient):
+        """Marker and line styles for plotting and adding to the legend"""
+        iorient = get_iorient(orient)
+        style = self.basestyle
+        style['linestyle'] = 'None'
 
-        if logD is None:
-            return            
-
-        if len(celsius) != len(logD):
-            print '\n', self.description
-            print 'temp and logD not the same length'
-#            print 'celsius:', celsius
-#            print 'logD:', logD            
-            return
-
-        # change temperature scale
-        x = []
-        for k in range(len(celsius)):
-            x.append(1.0e4 / (celsius[k] + offset_celsius + 273.15))
-
-        if show_error is True:
-            if len(Derror) > 0:
-                if ecolor is None:
-                    ecolor = style['color']
-                fig_axis.errorbar(x, logD, yerr=Derror, ecolor=ecolor,
-                                  fmt=None)
-               
-        if plotline is True:
-            if 'markerfacecolor' in self.basestyle:
-                style_line['color'] = self.basestyle['markerfacecolor']
-            elif 'color' in self.basestyle:
-                style_line['color'] = self.basestyle['color']
-            else:
-                style_line['color'] = 'k'
-
-            Tmin = min(x)
-            Tmax = max(x)
-            T = [Tmin, Tmax]
-            p = np.polyfit(x, logD, 1)
-            fig_axis.plot(T,np.polyval(p, T), **style_line)
-               
-        fig_axis.plot(x, logD, label=legendlabel, **style)
-
-
-    def plotDx(self, fig_axis, llabel='// [100]', offset_celsius=0, er=True,
-               style_x=None, bestfitline=True, ecolor=None, plotline=True,
-               style_line=None):
-#        style_x = dict(self.basestyle.items() + styles.style_Dx.items())
-        if style_x is None:
-            style_x = self.basestyle
-            style_x['fillstyle'] = styles.style_Dx['fillstyle']
-
-        if (style_line is None) and (plotline is True):
-            style_line = styles.style_Dx_line.copy()
+        if orient is None:
+            style['fillstyle'] = 'full'
+            style_line = styles.style_orient_lines[3].copy()
+            style_line['linestyle'] = '-'
             
-        self.plotloop(fig_axis, self.celsius_x, self.logDx, style_x, llabel, 
-                       offset_celsius, Derror=self.logDx_error,
-                       show_error=er, ecolor=ecolor, plotline=plotline, 
-                       style_line=style_line)
+        else:
+            style['fillstyle'] = styles.style_orient[iorient]['fillstyle']
+            style_line = styles.style_orient_lines[iorient].copy()
+
+        style_line['color'] = style['color']
         
-    def plotDy(self, fig_axis, llabel='// [010]', offset_celsius=0, er=True,
-               style_y=None, ecolor=None, plotline=True, style_line=None):
-#        style_y = dict(self.basestyle.items() + styles.style_Dy.items())
-        if style_y is None:
-            style_y = self.basestyle
-            style_y['fillstyle'] = styles.style_Dy['fillstyle']
+        return style, style_line
 
-        if (style_line is None) and (plotline is True):
-            style_line = styles.style_Dy_line.copy()
-            
-        self.plotloop(fig_axis, self.celsius_y, self.logDy, style_y, llabel, 
-                       offset_celsius, Derror=self.logDy_error,
-                       show_error=er, ecolor=ecolor, plotline=plotline,
-                       style_line=style_line)
-        
-    def plotDz(self, fig_axis, llabel='// [001]', offset_celsius=0, er=True,
-               style_z=None, ecolor=None, plotline=True, style_line=None):
-#        style_z = dict(self.basestyle.items() + styles.style_Dz.items())
-        if style_z is None:
-             style_z = self.basestyle
-             style_z['fillstyle'] = styles.style_Dz['fillstyle']
-
-        if (style_line is None) and (plotline is True):
-            style_line = styles.style_Dz_line.copy()
-            
-        self.plotloop(fig_axis, self.celsius_z, self.logDz, style_z, llabel,
-                       offset_celsius, Derror=self.logDz_error,
-                       show_error=er, ecolor=ecolor, plotline=plotline,
-                       style_line=style_line)
-        
-    def plotDu(self, fig_axis, llabel='unoriented', offset_celsius=0, er=True,
-               style_u=None, ecolor=None, plotline=True, style_line=None):
-        if style_u is None:
-            style_u = self.basestyle
-
-        if (style_line is None) and (plotline is True):
-            style_line = styles.style_Du_line.copy()
-            
-#        style_u['fillstyle']
-        self.plotloop(fig_axis, self.celsius_unoriented, self.logD_unoriented, 
-                      style_u, llabel, offset_celsius, Derror=self.logDu_error,
-                      show_error=er, ecolor=ecolor, plotline=plotline,
-                      style_line=style_line)
-            
-    def plotD(self, fig_axis, xoffset_celsius=0, er=True, legend_add=False,
-              legend_handle_list=None, style=None, ecolor=None, plotline=True):
+    def plotD(self, fig_axis, orient='ALL', plotdata=True,
+              offset_celsius=0, plotline=True, extrapolate_line=False,
+              show_error=True, legend_add=False, legendlabel=None, 
+              legend_handle=None, style=None, ecolor=None, 
+              style_line=None, label=None, oriented_shading=True):
+        """Takes axis label for Arrhenius diagram created by 
+        Arrhenius_outline() and plots data (plotdata=True) and 
+        best-fit line (plotline=True) for specified orientations, 
+        default: orient='ALL'. """
+        if orient == 'ALL':
+            orient_list = range(4)
+        else:
+            iorient = get_iorient(orient)    
+            orient_list = [iorient]
                   
-        if legend_add is True and legend_handle_list is None:
-            print self.description
-            print 'Need legend_handle_list for legend'
-            return
-            
-        if legend_add is True:
-            self.add_to_legend(fig_axis, legend_handle_list)
+        for iorient in orient_list:
+            celsius = self.celsius[iorient]
+            logD = self.logD[iorient]
+            Derror = self.logD_error[iorient]
 
-        if len(self.logDx) > 0:
-            self.plotDx(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_x=style, ecolor=ecolor, plotline=plotline)
-            
-        if len(self.logDy) > 0:
-            self.plotDy(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_y=style, ecolor=ecolor, plotline=plotline)
-            
-        if len(self.logDz) > 0:
-            self.plotDz(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_z=style, ecolor=ecolor, plotline=plotline)
-        
-        if len(self.logD_unoriented) > 0:
-            self.plotDu(fig_axis, offset_celsius=xoffset_celsius, er=er,
-                        style_u=style, ecolor=ecolor, plotline=plotline)
-        
+            if orient == 'ALL':
+                label = None
+                style = None
+                style_line = None
+                
+            if label is None:
+                if iorient == 0:
+                    label = '|| [100]'
+                elif iorient == 1:
+                    label = '|| [010]'
+                elif iorient == 2:
+                    label = '|| [001]'
+                elif iorient == 3:
+                    label = 'not oriented'                   
 
+            if style is None:
+                style, _ = self.make_styles(iorient)
+    
+            if (style_line is None) and (plotline is True):
+                _, style_line = self.make_styles(iorient)
+                
+            if legend_add is True and legend_handle is None:
+                print self.description
+                print 'Need legend_handle for legend'
+                return
+               
+            if (len(celsius) == 0) and (self.celsius_all is not None):
+                celsius = self.celsius_all
+
+            if (len(celsius) == 0):
+                continue
+    
+            if logD is None:
+                continue
+    
+            if len(celsius) != len(logD):
+                print '\n', self.description
+                print 'temp and logD not the same length'
+                continue
+    
+            # change temperature scale                   
+            x = []
+            for k in range(len(celsius)):
+                x.append(1.0e4 / (celsius[k] + offset_celsius + 273.15))
+
+            if show_error is True:
+                if len(Derror) > 0:
+                    if ecolor is None:
+                        ecolor = style['color']
+                    fig_axis.errorbar(x, logD, yerr=Derror, ecolor=ecolor,
+                                      fmt=None)
+
+            if plotline is True:
+                if 'markerfacecolor' in self.basestyle:
+                    style_line['color'] = self.basestyle['markerfacecolor']
+                elif 'color' in self.basestyle:
+                    style_line['color'] = self.basestyle['color']
+                else:
+                    style_line['color'] = 'k'
+    
+                Tmin = min(x)
+                Tmax = max(x)
+                T = [Tmin, Tmax]
+                p = np.polyfit(x, logD, 1)
+                
+                if extrapolate_line is True:
+                    extrap = fig_axis.get_xlim()
+                    fig_axis.plot(extrap,np.polyval(p, extrap), **style_line)
+                else:
+                    fig_axis.plot(T,np.polyval(p, T), **style_line)
+                   
+            fig_axis.plot(x, logD, label=legendlabel, **style)
+
+            if legend_add is True:
+                self.add_to_legend(fig_axis, legend_handle, style=style,
+                                   style_line=style_line, plotline=plotline,
+                                   oriented_shading=oriented_shading)
+    
+            
     def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,
-                      descript=None, orientation=None, addline=False,
-                      ncol=2):
+                      descript=None, orient=None, plotline=False,
+                      ncol=2, oriented_shading=False, 
+                      style=None, style_line=None):
         """Take a figure axis and its list of legend handles 
         and adds information to it"""
         if descript is None:
             if self.description is None:
-                print 'Need description!'
+                print 'Need self.description to make legend'
                 return
             else:
                descript = self.description
-        
-        # set marker style
-#        if orientation == 'x':
-#            bstyle = dict(self.basestyle.items() + styles.style_Dx.items())
-#        elif orientation == 'y':
-#            bstyle = dict(self.basestyle.items() + styles.style_Dy.items())
-#        elif orientation == 'z':
-#            bstyle = dict(self.basestyle.items() + styles.style_Dz.items())
-#        elif orientation == 'u':
-#            bstyle = dict(self.basestyle.items() + 
-#                          styles.style_unoriented.items())
-#        else:
-        bstyle = self.basestyle
-        if 'fillstyle' in bstyle:
-            if bstyle['fillstyle'] == 'right':
-                bstyle['fillstyle'] = 'full'
 
-        # set line style
-        if addline is False:
-            bstyleline = bstyle
-        elif addline is True:
-            if orientation == 'x':
-                bstyleline = dict(bstyle.items() +styles.style_Dx_line.items())
-            elif orientation == 'y':
-                bstyleline = dict(bstyle.items() +styles.style_Dy_line.items())
-            elif orientation == 'z':
-                bstyleline = dict(bstyle.items() +styles.style_Dz_line.items())
-            elif orientation == 'u':
-                bstyleline = dict(bstyle.items() + 
-                            styles.style_unoriented_line.items())
-            
-        add_marker = mlines.Line2D([], [], label=descript, **bstyleline)
+        if style is None:
+            style, _ = self.make_styles(orient)
+
+        if plotline is True:
+            if style_line is None:
+                _, style_line = self.make_styles(orient)
+            style['linestyle'] = style_line['linestyle']
+        
+        add_marker = mlines.Line2D([], [], label=descript, **style) 
         
         legend_handle_list.append(add_marker)
         

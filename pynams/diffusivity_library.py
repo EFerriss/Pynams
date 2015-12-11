@@ -19,7 +19,6 @@ with their own marker styles set up.
 
 """
 import numpy as np
-#import matplotlib.lines as mlines
 from uncertainties import ufloat
 from diffusion import Diffusivities
 
@@ -51,8 +50,164 @@ def make_line(celsius_list, logD_list, lowD=6.0, highD=10.0):
     return x, y
 
 
-#%% clinopyroxene
+#%% olivine
+Wanamaker_Si = Diffusivities(
+               description = "San Carlos ol. $V''''_{Si}$\nWanamaker 1994",
+               celsius_unoriented = [1100., 1200.], 
+               logD_unoriented = [-10.4, -9.99],
+               basestyle = {'color' : 'k', 'marker' : '*', 'alpha' : 0.5,
+                            'linestyle' : 'none', 'markersize' : 10})
 
+Wanamaker_Mg = Diffusivities(
+               description = "San Carlos ol. $V''_{Me}$\nWanamaker 1994",
+               celsius_unoriented = [1100., 1200., 1300.],
+               logD_unoriented = [-11.20, -10.8, -10.3],
+               basestyle = {'color' : 'g', 'marker' : '*', 'alpha' : 0.5,
+                            'fillstyle' : 'none',
+                            'linestyle' : 'none', 'markersize' : 10})
+                            
+DM03 = Diffusivities(
+       description = 'bulk H forsterite\nDemouchy & Mackwell 2003',
+       celsius_x = [1100, 1058, 1056, 1015], 
+       celsius_y = [1109, 1099, 1060, 1056, 1001],
+       celsius_z = [1109, 1060, 1057, 999, 949, 899, 898],
+       logDx = [-12.2829, -12.6956, -12.6956, -12.9896],
+       logDy = [-11.7728, -11.9740, -11.9688, -12.2108, -12.5100],
+       logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, -12.5924, -12.6800],
+       basestyle = {'color' : 'green', 'marker' : 'v', 'alpha' : 0.5,
+                    'linestyle' : 'none', 'markersize' : markersizefloat})
+
+# Padron-Navarta et al. 2014
+# [Si]: 3613 peak in MgO-buffered Fo, [Si]-[Ti]: 3613 peak in Ti-doped sample
+# [Ti]: 3525 peak, [Mg]: 3220 peak
+pnav_Si = Diffusivities(description = 'forsterite, [Si]', 
+          celsius_unoriented = [1000, 1100, 1200],
+          logD_unoriented = [-15.66, -14.17, -13.02],
+          basestyle = {'color' : 'black', 'marker' : '^',
+                       'markersize' :  markersizefloat})
+
+pnav_SiTi = Diffusivities(description = 'forsterite, [Si-Ti]',
+            celsius_unoriented = [1000, 900, 800],
+            logD_unoriented = [-13.35, -14.3, -15.29],
+            basestyle = {'color' : 'red', 'marker' : '>',
+                         'markersize' :  markersizefloat})
+
+pnav_Ti = Diffusivities(description = 'forsterite, [Ti]',
+          celsius_unoriented = [1000, 900, 800],
+          logD_unoriented = [-13.16, -14.1, -15.26],
+          basestyle = {'color' : 'blue', 'marker' : 'v',
+                       'markersize' :  markersizefloat})
+                        
+pnav_Mg = Diffusivities(description = 'forsterite, [Mg]',
+          celsius_unoriented = [1000, 900, 800],
+          logD_unoriented = [-12.66, -13.7, -14.29],
+          basestyle = {'color' : 'green', 'marker' : '<',
+                       'markersize' :  markersizefloat})
+
+# Du Frane & Tybursky 2012 self-diffusion in olivine
+DuFrane = Diffusivities(
+          description = 'H self-diffusion\nDuFrane & Tybursky 2012',
+          celsius_x = [750, 800, 900], logDx = [-12.3, -11.7, -11.2],
+          celsius_z = [900], logDz = [-12], logDx_error = [0.3, 0.1, 0.1],
+          logDz_error = [0.2],
+          basestyle = {'color' : 'purple', 'marker' : 's', 'alpha' : 0.5,
+                       'markersize' :  markersizefloat})
+
+# Kohlstedt and Mackwell 1hr data "fast proton-polaron mechanism"
+KM98_fast = Diffusivities(description = 'fast mech., KM98',
+            celsius_all = [1000, 1000, 900, 900, 800],
+            logDx = [-9.5634, -9.3928, -9.9876, -10.3970, -10.8071],
+            logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306],
+            logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140],
+            basestyle = {'marker' : 'd', 'color' : 'navy', 'alpha' : 0.5,
+                        'markersize' :  markersizefloat})
+
+# Demouchy&Mackwell 2006 - 1 hr for all "fast"
+DM06_fast = Diffusivities(description = 'fast mech., DM06', 
+            celsius_all = [900], logDx = [np.log10(4e-11)], 
+            logDy = [np.log10(2e-12)], logDz = [np.log10(1e-12)],
+            Fe=0.092, Mg=0.904, Al=0.0,
+            basestyle = {'marker' : 's', 'color' : 'navy', 'alpha' : 0.5,
+                        'markersize' :  markersizefloat})
+
+# Kohlstedt&Mackwell 1998, 8 hour data "slow"
+KM98_slow = Diffusivities(description = 'slow mech., KM98', 
+            celsius_all = [900, 1000], logDx = [-13.994, -12.783],
+            logDy = [-14.17, -13.171], logDz = [-12.885, -11.776],
+            basestyle = {'marker' : 'D', 'color' : 'green', 'alpha' : 0.5,
+                      'markersize' :  markersizefloat+3})
+
+#% Demouchy & Mackwell 2006 - 20 hour and 5 hour - "slow"
+DM06_slow = Diffusivities(description = 'slow mech., DM06', celsius_x = [900],
+            celsius_y  = [900, 1000], celsius_z = [900], 
+            logDx = [np.log10(5e-13)], Fe=0.092, Mg=0.904, Al=0.0,
+            logDy = [np.log10(5e-14), np.log10(3e-13)], 
+            logDz = [np.log10(1e-12)],
+            basestyle = {'marker' : 's', 'color' : KM98_slow.basestyle['color'], 
+                         'alpha' : 0.5, 'markersize' : markersizefloat+3})
+
+# Ferriss et al. 2015- single mechanism in San Carlos olivine
+Ferriss_single = Diffusivities(description = 'San Carlos ol.\nsingle mech.',
+                 celsius_all = [900], logDx = [-11.3], logDy = [-13.6],
+                 logDz = [-12.1], logDx_error = [0.1], logDy_error = [0.6],
+                 logDz_error = [0.2], 
+                 basestyle = {'color' : 'orangered', 'marker' : '*', 
+                              'markersize' :  markersizefloat+5})
+
+#%  Ferriss et al. 2015 - slow mechanism in simultaneous model 
+Ferriss_slow = Diffusivities(
+               description = 'Slow mechanism,\nsimultaneous model',
+               celsius_all = [900], logDx = [-12.2], logDy = [-13.2], 
+               logDz = [-12.3], logDx_error = [0.3], logDy_error = [0.5],
+               logDz_error = [0.3],
+               basestyle = {'marker' : 'D', 'color' : 'yellow', 'alpha' : 1,
+                            'markersize' : markersizefloat})
+
+# ---------------- natural olivine data -----------------------------
+# Loihi, Hawaii: Hauri 2002 Part 2
+Hauri02 = Diffusivities(description = 'Hauri 2002', 
+                        celsius_unoriented = [1275], 
+                        logD_unoriented = [np.log10(4e-9)], 
+                        logDu_error = [], 
+                        Fe=0.+0.378, Mg=0.159+0.302, Al=0.389+0.229,
+                        basestyle = {'marker' : '+', 'color' : 'blue', 
+                                     'markersize' : markersizefloat,
+                                'markeredgewidth' : '1'})
+
+# Portnyagin 2008 minimum value, see new Miranov paper
+Portnyagin = Diffusivities(
+             description = 'Portnyagin et al. 2008\nMiranov et al. 2015',
+             celsius_unoriented = [1140], logD_unoriented = [np.log10(5e-12)],
+             basestyle = {'marker' : 1, 'color' : 'crimson', 
+                          'markersize' : markersizefloat,
+                          'markeredgewidth' : '3'})
+
+# Chen et al. 2011
+Chen11 = Diffusivities()
+Chen11.description = 'Chen et al. 2011'
+Chen11.celsius_unoriented = [1533-273.15, 1471-273.15, 
+                             1437-273.15, 1561-273.15]
+Chen11.logD_unoriented  = [np.log10(2e-11), np.log10(2.5e-11), 
+                           np.log10(0.5e-11), np.log10(2.5e-11)]
+Chen11.basestyle = {'marker' : 'x', 'color' : 'black',
+                    'markersize' : markersizefloat,
+                    'markeredgewidth' : '1'}
+# Gaetani et al. 2012 hydration data
+# Moana Loa olivine with melt inclusion unoriented grain
+Gaetani12 = Diffusivities()
+Gaetani12.description = 'Gaetani et al., 2012'
+Gaetani12.celsius_unoriented = [1250]
+Gaetani12.logD_unoriented = [np.log10(1.7e-11)]
+Gaetani12.basestyle = {'marker' : 'h', 'color' : 'red', 
+                     'markersize' : markersizefloat,
+                     'markeredgewidth' : '1'}
+
+
+generic = Diffusivities()
+generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
+                     'markersize' : markersizefloat, 'linestyle': 'none'}
+
+#%% clinopyroxene
 H_CrDiopside_Ingrin95 = Diffusivities()
 H_CrDiopside_Ingrin95.description = 'H in Cr-rich diopside in air\nmainly 3645 cm$^{-1}$\nIngrin et al. 1995'
 H_CrDiopside_Ingrin95.celsius_all = np.array([973, 1073, 1173, 1273]) - 273.
@@ -245,7 +400,7 @@ Al_diopside.description = 'Al in diopside; Sautter\net al. EPSL 1988'
 Al_diopside.logD_unoriented = [-18.495]
 #Al_diopside.logDu_error = [0.66]
 Al_diopside.celsius_unoriented = [1180.]
-Al_diopside.basestyle = {'color' : 'g', 'marker' : 'x', 'linestyle' : 'none',
+Al_diopside.basestyle = {'color' : 'g', 'marker' : 'x',
                          'fillstyle' : 'full'}
 
 CaMg_diopside_2010 = Diffusivities()
@@ -364,234 +519,3 @@ Li_cpx_effective.basestyle = {'color' : 'darkorchid', 'marker' : '+',
                                  'markersize' : 10, 'alpha' : 1.}
 
 
-#%% olivine
-
-WanamakerD1 = Diffusivities()
-WanamakerD1.description = "San Carlos ol. $V''''_{Si}$\nWanamaker 1994"
-WanamakerD1.celsius_unoriented = [1100., 1200.]
-WanamakerD1.logD_unoriented = [-10.4, -9.99]
-WanamakerD1.basestyle = {'color' : 'k', 'marker' : '*', 'alpha' : 0.5,
-                         'linestyle' : 'none', 'markersize' : 10}
-
-WanamakerD2 = Diffusivities()
-WanamakerD2.description = "San Carlos ol. $V''_{Me}$\nWanamaker 1994"
-WanamakerD2.celsius_unoriented = [1100., 1200., 1300.]
-WanamakerD2.logD_unoriented = [-11.20, -10.8, -10.3]
-WanamakerD2.basestyle = {'color' : 'g', 'marker' : '*', 'alpha' : 0.5,
-                         'fillstyle' : 'none',
-                         'linestyle' : 'none', 'markersize' : 10}
-DM03 = Diffusivities()
-DM03.description = 'bulk H forsterite\nDemouchy & Mackwell 2003'
-DM03.celsius_x = [1100, 1058, 1056, 1015]
-DM03.celsius_y = [1109, 1099, 1060, 1056, 1001] 
-DM03.celsius_z = [1109, 1060, 1057, 999, 949, 899, 898]
-DM03.logDx = [-12.2829, -12.6956, -12.6956, -12.9896]
-DM03.logDy = [-11.7728, -11.9740, -11.9688, -12.2108, -12.5100]
-DM03.logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, 
-                      -12.5924, -12.6800]
-DM03.basestyle = {'color' : 'green', 'marker' : 'v', 'alpha' : 0.5,
-                  'linestyle' : 'none', 'markersize' : markersizefloat}
-
-# Padron-Navarta et al. 2014
-# [Si]: 3613 peak in MgO-buffered Fo
-# [Si]-[Ti]: 3613 peak in Ti-doped sample
-# [Ti]: 3525 peak 
-# [Mg]: 3220 peak
-class pnav(Diffusivities):
-    celsius_unoriented = [1000, 900, 800]
-pnav_Si = pnav()
-pnav_SiTi = pnav()
-pnav_Ti = pnav()
-pnav_Mg = pnav()
-pnav_Si.description = 'forsterite, [Si]'
-pnav_SiTi.description = 'forsterite, [Si-Ti]'
-pnav_Ti.description = 'forsterite, [Ti]'
-pnav_Mg.description = 'forsterite, [Mg]'
-pnav_Si.celsius_unoriented = [1000, 1100, 1200]
-pnav_Si.logD_unoriented = [-15.66, -14.17, -13.02]
-pnav_SiTi.logD_unoriented = [-13.35, -14.3, -15.29]
-pnav_Ti.logD_unoriented = [-13.16, -14.1, -15.26]
-pnav_Mg.logD_unoriented = [-12.66, -13.7, -14.29]
-pnav_Si.basestyle = {'color' : 'black', 'marker' : '^', 'fillstyle' : 'none',
-                     'markersize' :  markersizefloat, 'linestyle' : 'none'}
-pnav_SiTi.basestyle = {'color' : 'red', 'marker' : '>', 'fillstyle' : 'none',
-                       'markersize' :  markersizefloat, 'linestyle' : 'none'}
-pnav_Ti.basestyle = {'color' : 'blue', 'marker' : 'v', 'fillstyle' : 'none',
-                     'markersize' :  markersizefloat, 'linestyle' : 'none'}
-pnav_Mg.basestyle = {'color' : 'green', 'marker' : '<', 'fillstyle' : 'none',
-                     'markersize' :  markersizefloat, 'linestyle' : 'none'}
-
-
-# Du Frane & Tybursky 2012 self-diffusion in olivine
-DuFrane = Diffusivities()
-DuFrane.description = 'H self-diffusion\nDuFrane & Tybeursky 2012'
-DuFrane.celsius_x = [750, 800, 900]
-DuFrane.logDx = [-12.3, -11.7, -11.2]
-DuFrane.celsius_z = [900]
-DuFrane.logDz = [-12]
-DuFrane.basestyle = {'color' : 'purple', 'marker' : 'd', 'alpha' : 0.5,
-                     'markersize' :  markersizefloat, 'linestyle' : 'none'}
-
-
-# fast
-# Kohlstedt and Mackwell 1hr data "fast"
-KM98_fast = Diffusivities()
-KM98_fast.description = 'fast mech., KM98'
-KM98_fast.celsius_all = [1000, 1000, 900, 900, 800]
-KM98_fast.logDx = [-9.5634, -9.3928, -9.9876, -10.3970, -10.8071]
-KM98_fast.logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306]
-KM98_fast.logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140]
-KM98_fast.basestyle = {'marker' : 'd', 'color' : 'navy', 'alpha' : 0.5,
-                       'markersize' :  markersizefloat, 'linestyle' : 'none'}
-
-#### Not sure why solution through the above points comes up with different
-#### answers, but here are the numbers that seem to work
-KM98_fast.activation_energy_kJmol_xyz = [145., 180., 110.]
-KM98_fast.logD0_m2s_xyz = [-4., -3.9, -6.8]
-
-#% Demouchy&Mackwell 2006 - 1 hr for all "fast"
-DM06_fast = Diffusivities()
-DM06_fast.description = 'fast mech., DM06'
-DM06_fast.celsius_all = [900]
-DM06_fast.logDx = [np.log10(4e-11)]
-DM06_fast.logDy = [np.log10(2e-12)]
-DM06_fast.logDz = [np.log10(1e-12)]
-DM06_fast.basestyle = {'marker' : 's', 'color' : 'navy', 'alpha' : 0.5,
-                       'markersize' :  markersizefloat, 'linestyle' : 'none'}
-
-#% slow
-#% Kohlstedt&Mackwell 1998, 8 hour data "slow"
-KM98_slow = Diffusivities()
-KM98_slow.description = 'slow mech., KM98'
-KM98_slow.celsius_all = [900, 1000]
-KM98_slow.logDx = [-13.994, -12.783]
-KM98_slow.logDy = [-14.17, -13.171]
-KM98_slow.logDz = [-12.885, -11.776]
-KM98_slow.basestyle = {'marker' : 'D', 'color' : 'green', 'alpha' : 0.5,
-                       'markersize' :  markersizefloat+3, 'linestyle' : 'none'}
-
-
-#% Demouchy & Mackwell 2006 - 20 hour and 5 hour - "slow"
-DM06_slow = Diffusivities()
-DM06_slow.description = 'slow mech., DM06'
-DM06_slow.celsius_all = [900]
-DM06_slow.logDx = [np.log10(5e-13)]
-DM06_slow.celsius_y  = [900, 1000]
-DM06_slow.logDy = [np.log10(5e-14), np.log10(3e-13)]
-DM06_slow.logDz = [np.log10(1e-12)]
-#    slowTb=10000./([900 1000]+273.15); % // [010] has 1000 degree point too
-DM06_slow.basestyle = {'marker' : 's', 'color' : KM98_slow.basestyle['color'], 
-                       'alpha' : 0.5,
-                      'markersize' : markersizefloat+3, 'linestyle' : 'none'}
-
-
-# single mechanism - Ferriss et al. 2015
-single = Diffusivities()
-single.description = 'San Carlos ol.\nsingle mech.'
-single.celsius_all = [900]
-single.logDx = [-11.3]
-single.logDy = [-13.6]
-single.logDz = [-12.1]
-single.logDx_error = [0.1]
-single.logDy_error = [0.6]
-single.logDz_error = [0.2]
-single.basestyle = {'color' : 'orangered', 'marker' : '*', 
-                            'markersize' :  markersizefloat+5, 
-                            'linestyle' : 'none', 'alpha' : 1,}
-
-#% mech 2 in simultaneous model - Ferriss et al. whole-block paper
-mech2 = Diffusivities()
-mech2.description = 'This work: Slow mechanism in simultaneous model'
-mech2.celsius_all = [900]
-mech2.logDx = [-12.2]
-mech2.logDy = [-13.2]
-mech2.logDz = [-12.3]
-mech2.basestyle = {'marker' : 'D', 'color' : 'yellow', 'alpha' : 1,
-                   'markersize' : markersizefloat, 'linestyle' : 'none'}
-
-#% Other olivine data -----------------------------
-#% See also Lloyd.m
-
-# Hauri 2002
-Hauri02 = Diffusivities()
-Hauri02.description = 'Hauri 2002'
-Hauri02.celsius_unoriented = [1275]
-Hauri02.logD_unoriented = [np.log10(4e-9)]
-Hauri02.basestyle = {'marker' : '+', 'color' : 'blue', 
-                     'markersize' : markersizefloat, 'linestyle' : 'none',
-                     'markeredgewidth' : '1'}
-                     
-
-# Portnyagin 2008 minimum value
-Portnyagin08 = Diffusivities()
-Portnyagin08.description = 'Portnyagin et al. 2008'
-Portnyagin08.celsius_unoriented = [1140]
-Portnyagin08.logD_unoriented = [np.log10(5e-12)]
-Portnyagin08.basestyle = {'marker' : 1, 'color' : 'crimson', 
-                    'markersize' : markersizefloat, 'linestyle' : 'none',
-                    'markeredgewidth' : '3', 'fillstyle' : 'none'}
-
-# Chen et al. 2011
-Chen11 = Diffusivities()
-Chen11.description = 'Chen et al. 2011'
-Chen11.celsius_unoriented = [1533-273.15, 1471-273.15, 
-                             1437-273.15, 1561-273.15]
-Chen11.logD_unoriented  = [np.log10(2e-11), np.log10(2.5e-11), 
-                           np.log10(0.5e-11), np.log10(2.5e-11)]
-Chen11.basestyle = {'marker' : 'x', 'color' : 'black',
-                    'markersize' : markersizefloat, 'linestyle' : 'none',
-                    'markeredgewidth' : '1'}
-# Gaetani et al. 2012 hydration data
-# Moana Loa olivine with melt inclusion unoriented grain
-Gaetani12 = Diffusivities()
-Gaetani12.description = 'Gaetani et al., 2012'
-Gaetani12.celsius_unoriented = [1250]
-Gaetani12.logD_unoriented = [np.log10(1.7e-11)]
-Gaetani12.basestyle = {'marker' : 'h', 'color' : 'red', 
-                     'markersize' : markersizefloat, 'linestyle' : 'none',
-                     'markeredgewidth' : '1', 'fillstyle' : 'none'}
-
-
-generic = Diffusivities()
-generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
-                     'markersize' : markersizefloat, 'linestyle': 'none'}
-
-# olivine lines --
-
-# Demouchy and Mackwell 2003 forsterite
-x_DM03_list = DM03.celsius_x + DM03.celsius_y + DM03.celsius_z
-y_DM0_list = DM03.logDx + DM03.logDy + DM03.logDz
-#x_DM03, y_DM03 = make_line(x_DM03_list, y_DM0_list)
-
-# [Mg] in forsterite: Mg from Padron-Navarta + DM03
-x_MgFo_list = x_DM03_list + pnav_Mg.celsius_unoriented
-y_MgFo_list = y_DM0_list + pnav_Mg.logD_unoriented
-#x_MgFo, y_MgFo = make_line(x_MgFo_list, y_MgFo_list)
-
-# EVERY measurement in forsterite
-x_Fo_list = (x_MgFo_list + pnav_Si.celsius_unoriented + 
-            pnav_SiTi.celsius_unoriented + pnav_Ti.celsius_unoriented)
-y_Fo_list = (y_MgFo_list + pnav_Si.logD_unoriented + 
-            pnav_SiTi.logD_unoriented + pnav_Ti.logD_unoriented)
-x_Fo, y_Fo = make_line(x_Fo_list, y_Fo_list)
-
-# all "fast" mechanism
-x_fast_list = KM98_fast.celsius_all*3 + DM06_fast.celsius_all*3
-y_fast_list = (KM98_fast.logDx + KM98_fast.logDy + KM98_fast.logDz +
-                DM06_fast.logDx + DM06_fast.logDy + DM06_fast.logDz)
-x_fast, y_fast = make_line(x_fast_list, y_fast_list)
-
-x_KM_fast_a, y_KM_fast_a = make_line(KM98_fast.celsius_all, KM98_fast.logDx)
-x_KM_fast_b, y_KM_fast_b = make_line(KM98_fast.celsius_all, KM98_fast.logDy)
-x_KM_fast_c, y_KM_fast_c = make_line(KM98_fast.celsius_all, KM98_fast.logDz)
-
-# all "slow" mechanism
-x_slow_list = (KM98_slow.celsius_all*3 + DM06_slow.celsius_all +
-            DM06_slow.celsius_y + DM06_slow.celsius_all)
-y_slow_list = (KM98_slow.logDx + KM98_slow.logDy + KM98_slow.logDz +
-                DM06_slow.logDx + DM06_slow.logDy + DM06_slow.logDz)
-x_slow, y_slow = make_line(x_slow_list, y_slow_list)
-
-x_KM_slow_a, y_KM_slow_a = make_line(KM98_slow.celsius_all, KM98_slow.logDx)
-x_KM_slow_b, y_KM_slow_b = make_line(KM98_slow.celsius_all, KM98_slow.logDy)
-x_KM_slow_c, y_KM_slow_c = make_line(KM98_slow.celsius_all, KM98_slow.logDz)
