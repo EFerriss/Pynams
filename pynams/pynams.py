@@ -56,6 +56,7 @@ import uncertainties
 import xlsxwriter
 import json
 from scipy import signal as scipysignal
+import scipy.interpolate as interp
 
 #%%
 # Optional: Set default folder where to find and/or save files for use with 
@@ -217,13 +218,13 @@ class Spectrum():
         return th
 
     def find_peaks(self, widths=np.arange(1,40), 
-                   line_order=1, shiftline=0.):
+                   linetype='line', shiftline=0.):
         """Locate wavenumbers of npeaks number of most prominent peaks
         in wavenumber range of interest wn_high to wn_low"""
 #        print ''.join((str(npeaks), ' most prominent bands between wavenumbers ', 
 #                       str(self.wn_high), ' and ', str(self.wn_low), ' /cm2:'))
         if self.abs_nobase_cm is None:
-            self.make_baseline(line_order=line_order, 
+            self.make_baseline(linetype=linetype, 
                                shiftline=shiftline, show_plot=False)
         else:
             print "Using previously fit baseline-subtracted absorbance"
@@ -268,10 +269,11 @@ class Spectrum():
         if self.fname is None:
             print 'Need .fname to know what to call saved file'
             return False
+            
         if self.filename is None:
             make_filenames(folder=folder)
-            
-        if os.path.isfile(self.filename):            
+          
+        if os.path.isfile(self.filename):
             signal = np.loadtxt(self.filename, delimiter=delim)
         else:
             print 'There is a problem finding the file.'
@@ -302,17 +304,30 @@ class Spectrum():
             check = self.divide_by_thickness(folder=folder)
             if check is False:
                 return False
+
         # print 'Setting to zero in range of interest wn, abs_cm'
         index_lo = (np.abs(self.wn_full-self.wn_low)).argmin()
         index_hi = (np.abs(self.wn_full-self.wn_high)).argmin()
+
         indices = range(index_lo, index_hi, 1)
         self.wn = self.wn_full[indices]
-        self.abs_cm = self.abs_full_cm[indices] - min(self.abs_full_cm[indices])
+        try: 
+            self.abs_cm = self.abs_full_cm[indices] - min(self.abs_full_cm[indices])
+        except ValueError:
+            print 'There was a problem.'
+            print 'index_lo at wn', self.wn_low, ':', index_lo
+            print 'index_hi at wn', self.wn_high, ':', index_hi
+            return False
+        
         return self.abs_cm
 
-    def make_baseline(self, line_order=1, shiftline=None, 
-                      show_fit_values=False, show_plot=False):
-        """Make linear (1) or quadratic baseline (2) baseline 
+    def make_baseline(self, linetype='line', shiftline=0.02, 
+                      show_fit_values=False, show_plot=False,
+                      size_inches=(3., 2.5)):
+        """Make baseline that is a spline (linetype='spline'; default),
+        a line (linetype='line'), 
+        or quadratic baseline (linetype='quadratic' with 
+        argmument shiftline determining extent of curvature) 
         and return baseline absorption curve. Shiftline value determines
         how much quadratic deviates from linearity"""
         if self.abs_cm is None:
@@ -333,9 +348,9 @@ class Spectrum():
         y = np.array([self.abs_cm[index_hi], self.abs_cm[index_lo]])
         p = np.polyfit(x, y, 1)
         
-        if line_order == 1:
+        if linetype == 'line':
             base_abs = np.polyval(p, self.base_wn)
-        elif line_order == 2:
+        elif linetype == 'quadratic':
             x = np.insert(x, 1, self.base_mid_wn)
             yadd = np.polyval(p, self.base_mid_wn) - yshift
             y = np.insert(y, 1, yadd)
@@ -344,22 +359,30 @@ class Spectrum():
                 print 'fitting y values:', y
             p2 = np.polyfit(x, y, 2)
             base_abs = np.polyval(p2, self.base_wn)
+        elif linetype == 'spline':
+            idx_max = self.wn.argmax()
+            xinterp = np.concatenate((self.wn[0:index_lo], 
+                                      self.wn[index_hi:idx_max]))
+            yinterp = np.concatenate((self.abs_cm[0:index_lo], 
+                                      self.abs_cm[index_hi:idx_max]))
+            f = interp.interp1d(xinterp, yinterp, kind = 'cubic')
+            base_abs = f(self.base_wn)
         else:
-            print "polynomial order must be either 1 (linear)",
-            "or 2 (quadratic)"
+            print "linetype must be 'line', 'quadratic', or 'spline'"
             return
+            
         self.base_abs = base_abs
         
         if show_plot is True:
-            self.plot_showbaseline()
+            self.plot_showbaseline(size_inches=size_inches)
             
         return base_abs
 
-    def subtract_baseline(self, polyorder=1, bline=None, 
-                          show_plot=False, shifter=None):
+    def subtract_baseline(self, linetype='line', bline=None, 
+                          show_plot=False, shiftline=0.02):
         """Make baseline and return baseline-subtracted absorbance.
         Preferred baseline used is (1) input bline, (2) self.base_abs, 
-        (3) one made using polyorder, default is linear"""
+        (3) created based on linetype information"""
         if self.wn is None:
             self.start_at_zero()
         
@@ -369,8 +392,8 @@ class Spectrum():
 #            print 'Subtracting baseline stored in attribute base_abs'
             base_abs = self.base_abs
         else:
-            print 'Making baseline or polynomial order', polyorder
-            base_abs = self.make_baseline(polyorder, shiftline=shifter)
+            print 'Making', linetype, 'baseline'
+            base_abs = self.make_baseline(linetype=linetype, shiftline=shiftline)
         
         index_lo = (np.abs(self.wn-self.base_low_wn)).argmin()
         index_hi = (np.abs(self.wn-self.base_high_wn)).argmin()
@@ -410,7 +433,7 @@ class Spectrum():
             
         return abs_nobase_cm
 
-    def area_under_curve(self, polyorder=1, area_plot=True, shiftline=None,
+    def area_under_curve(self, linetype='line', area_plot=True, shiftline=0.02,
                          printout=True, numformat='{:.1f}', 
                          require_saved_baseline=False):
         """Returns area under the curve in cm^2"""
@@ -425,7 +448,7 @@ class Spectrum():
         # Get or make absorbance and wavenumber range for baseline
         if (self.base_abs is None) or (self.base_wn is None):
             print 'Making baseline...'
-            abs_baseline = self.make_baseline(polyorder, shiftline)
+            abs_baseline = self.make_baseline(linetype, shiftline)
         else:
             print ('Using previously fit baseline. ' + 
                    'Use make_baseline to change it.')
@@ -446,12 +469,12 @@ class Spectrum():
 
     def water(self, phase_name='cpx', calibration='Bell', numformat='{:.1f}',
               show_plot=True, show_water=True, printout_area=False,
-              polyorder=1, shiftline=None):
+              shiftline=None, linetype='line'):
         """Produce water estimate without error for a single FTIR spectrum. 
         Use water_from_spectra() for errors, lists, and 
         non-Bell calibrations."""
         # determine area
-        area = self.area_under_curve(polyorder, show_plot, shiftline, 
+        area = self.area_under_curve(linetype, show_plot, shiftline, 
                                      printout_area)
         w = area2water(area, phase=phase_name, calibration=calibration)
                         
@@ -486,9 +509,9 @@ class Spectrum():
         with open(abs_filename, 'w') as abs_file:
             np.savetxt(abs_file, a, delimiter=delim)
         
-    def save_baseline(self, polyorder=1, folder=default_folder, 
-                 bline_file_ending='-baseline.CSV',
-                 shiftline=None, basel=None, delim=',', showplots=False):
+    def save_baseline(self, folder=default_folder, 
+                 bline_file_ending='-baseline.CSV', linetype='line', 
+                 shiftline=0.02, basel=None, delim=',', showplots=False):
         """Save baseline with baseline-subtracted spectrum 
         (-baseline) to file. These can be retrieved using get_baseline(). 
         Use save_spectrum() to save full wavenumber and -per-cm absorbances.
@@ -499,14 +522,15 @@ class Spectrum():
             
         if self.base_abs is None:
             print 'making baseline...'
-            basel = self.make_baseline(polyorder, shiftline)
+            basel = self.make_baseline(linetype, shiftline)
         else:
             print 'using existing baseline'
             basel = self.base_abs
 
         if showplots is True:
             self.plot_showbaseline(baseline=basel)
-        self.abs_nobase_cm = self.subtract_baseline(polyorder, bline=basel)
+        self.abs_nobase_cm = self.subtract_baseline(linetype=linetype, 
+                                                    bline=basel)
         
         base_filename = folder + self.fname + bline_file_ending
         print 'Saving', self.fname + bline_file_ending
@@ -620,7 +644,7 @@ class Spectrum():
         return f, ax
 
     def plot_spectrum(self, style=styles.style_spectrum, figaxis=None, wn=None,
-					  size_inches=(3., 2.5), label=None):
+                      size_inches=(3., 2.5), label=None, offset=0.):
         """Plot the raw spectrum divided by thickness"""
         if self.wn is None:
             check = self.start_at_zero()
@@ -639,7 +663,7 @@ class Spectrum():
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
         
-        ax.plot(self.wn, self.abs_cm, **style_to_use)
+        ax.plot(self.wn, self.abs_cm + offset, **style_to_use)
         
         if wn is not None:
             ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], color='r')
@@ -673,14 +697,14 @@ class Spectrum():
 
         return fig, ax
         
-    def plot_showbaseline(self, polyorder=1, shiftline=None,
-                          wn_baseline=None, abs_baseline=None,
+    def plot_showbaseline(self, linetype='line', shiftline=None,
+                          wn_baseline=None, abs_baseline=None, 
                           style=styles.style_spectrum, style_base=styles.style_baseline,
-                          figaxis=None, label=None):
+                          figaxis=None, label=None, size_inches=(3., 2.5)):
         """Plot FTIR spectrum and show baseline. 
         You can pass in your own baseline"""
         if figaxis is None:
-            fig, ax = self.plot_spectrum_outline()
+            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
         else:
             fig = None
             ax = figaxis
@@ -689,7 +713,7 @@ class Spectrum():
         if abs_baseline is None:          
             if self.base_abs is None:
                 print 'Making baseline...'
-                abs_baseline = self.make_baseline(polyorder, shiftline)
+                abs_baseline = self.make_baseline(linetype, shiftline)
             else:
                 abs_baseline = self.base_abs
 
@@ -797,7 +821,7 @@ def water_from_spectra(list3, mineral_name='cpx',
         for bam in [window_small, -window_small, -window_large]:
             # Setting up 3 different baseline shapes
             main_yshift = main_yshift - bam
-            base_abs = spec.make_baseline(2, shiftline=main_yshift)
+            base_abs = spec.make_baseline('quadratic', shiftline=main_yshift)
             abs_nobase_cm = spec.subtract_baseline(bline=base_abs)
             if show_plots is True:
                 ax.plot(spec.base_wn, base_abs, **styles.style_baseline)
@@ -881,12 +905,21 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    fname_list = [] # list of spectra filenames without the .CSV extension
-    positions_microns = np.array([]) # location of each spectrum along profile
-    sample = None # e.g., K3 (Kunlun diopside)
-    raypath = None # 'a', 'b', or 'c'
-    direction = None # 'a', 'b', or 'c'
-    profile_name = None # string
+    def __init__(self, profile_name=None, 
+                 fname_list=[], positions_microns = np.array([]),
+                 sample=None, direction=None, raypath=None):
+        """fname_list = list of spectra filenames without the .CSV extension.
+        Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
+        info contained in sample's twoA_list, twoB_list, and twoC_list"""
+        self.profile_name = profile_name
+        self.fname_list = fname_list
+        self.positions_microns = positions_microns
+        self.sample = sample
+        self.direction = direction
+        self.raypath = raypath
+        
+        self.make_spectra_list()
+        
     short_name = None # short string for saving diffusivities, etc.
     initial_profile = None # for constructing whole-block profiles
     # The actual list of spectra is made automatically by make_spectra_list.
@@ -1078,7 +1111,8 @@ class Profile():
     def plot_spectra(self, show_baseline=True, show_initial_ave=True, 
                      show_final_ave=True, plot_all=False, 
                      initial_and_final_together=False, style=styles.style_spectrum, 
-                     stylei=styles.style_initial, wn=None):
+                     stylei=styles.style_initial, wn=None,
+                     figsize=(3.2, 3.2)):
         """Plot averaged spectrum across profile. Returns figure and axis."""
         if self.spectra_list is None or len(self.spectra_list) < 1:
             self.make_spectra_list()
@@ -1146,13 +1180,18 @@ class Profile():
             if shift is not None:
                 spectrum.base_mid_yshift = shift
 
-    def make_baselines(self, lineorder=1, shiftline=None, 
-                       show_fit_values=False, show_plot=False):
+    def make_baselines(self, linetype='line', shiftline=None, 
+                       wn_high=3700., wn_low=3200., 
+                       show_fit_values=False, show_plot=False,
+                       size_inches=(3., 2.5)):
         """Make baselines for all final and initial spectra in profile"""      
         for spectrum in self.spectra_list:
-            spectrum.make_baseline(line_order=lineorder, shiftline=shiftline,
+            spectrum.base_high_wn = wn_high
+            spectrum.base_low_wn = wn_low
+            spectrum.make_baseline(linetype=linetype, shiftline=shiftline,
                                     show_fit_values=show_fit_values,
-                                    show_plot=False)
+                                    show_plot=show_plot, 
+                                    size_inches=size_inches)
 
     def get_baselines(self, initial_too=False):
         """Get previously saved baselines for all spectra in profile"""
@@ -2839,7 +2878,7 @@ class WholeBlock():
                        shiftline, printout_area, peak)
 
     def plot_spectra(self, profile_idx=None, show_baseline=True, 
-                     show_initial_ave=True, 
+                     show_initial_ave=True,
                      show_final_ave=True, plot_all=False, 
                      initial_and_final_together=False, style=styles.style_spectrum, 
                      stylei=styles.style_initial, wn=None):
@@ -3071,14 +3110,14 @@ class WholeBlock():
             profile_list = self.profiles
         return profile_list
 
-    def make_baselines(self, initial_too=False, line_order=1, shiftline=None, 
+    def make_baselines(self, initial_too=False, linetype='line', shiftline=None, 
                        show_fit_values=False, show_plot=False): 
         """Make spectra baselines for all spectra in all profiles in 
         whole-block"""        
         profile_list = self.make_profile_list(initial_too)        
         for prof in profile_list:
             for spectrum in prof.spectra_list:
-                spectrum.make_baseline(line_order, shiftline, show_fit_values,
+                spectrum.make_baseline(linetype, shiftline, show_fit_values,
                                        show_plot)                
 
     def save_baselines(self, initial_too=True):

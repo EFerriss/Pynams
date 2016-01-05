@@ -7,7 +7,6 @@ Diffusion in 1 and 3 dimensions with and without path-integration
 Uses lmfit library to set up and pass parameters
 
 THIS MODULE ASSUMES THAT ALL CONCENCENTRATIONS ARE ALREADY NORMALIZED TO 1.
-Another option will be available at some point.
 
 ### 1-dimensional diffusion ###
 Simplest function call is diffusion1D(length, diffusivity, time)
@@ -25,7 +24,6 @@ Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
     Step 3. Plot with styles.plot_3panels(slice positions, slice profiles)
 
 ### Whole-Block: 3-dimensional diffusion with path integration: 3Dwb ###
-
     Step 1. Create parameters with params = params_setup3D 
             Same as for non-path integrated 3D.
     Step 2. Pass parameters into diffusion3Dwb(params)
@@ -251,7 +249,7 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
                 erf_or_sum='erf', show_plot=True, 
                 fighandle=None, axishandle=None,
                 style=None, need_to_center_x_data=True,
-                infinity=100, points=50, top=1.2, show_km_scale=False):
+                infinity=100, points=100, top=1.2, show_km_scale=False):
     """Simplest implementation.
     Takes required inputs length, diffusivity, and time 
     and plots diffusion curve on new or specified figure. 
@@ -569,8 +567,12 @@ def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
         Returns plot of 3D path-averaged (whole-block) diffusion profiles"""
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
+
+        return params
+        
         x, y = diffusion3Dwb_params(params, raypaths=raypaths, show_plot=False,
                                     points=points)
+
         if show_plot is True:
             if figax is None:
                 f, ax = styles.plot_3panels(x, y, top=top)

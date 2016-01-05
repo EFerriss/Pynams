@@ -14,8 +14,13 @@ high pressure piston cylinder experiments
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
+from scipy import constants
+import numpy as np
 
 plt.style.use('paper') # my personal style sheet
+
+GAS_CONSTANT = constants.physical_constants['molar gas constant'][0]
+FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
 
 style_pressure_medium = {'hatch' : 'O', 'facecolor' : 'lightgrey'}
 style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
@@ -24,6 +29,42 @@ style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
 style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
 style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
 
+def furnace_calibration(reading_celsius):
+    """Calibration for furnace 4 in Dave Walker's lab at LDEO
+    based on gold calibration"""
+    real_temp = reading_celsius - (6. / (reading_celsius/1064.))
+    print '{:.1f}'.format(real_temp), 'degrees C'
+    return real_temp
+
+def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
+    """Takes milliVolts reading from pO2 meter and temperature in Celsius and 
+    and returns log10 oxygen fugacity in bars using the Nernst equation:
+    E(Volts) = -(RT/zF)lnQ 
+    and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
+    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    Kelvin = celsius + 273.15
+    z = 2.
+    exponent_in_Q = -0.5    
+    my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
+    logfO2 = -1. * my_constant * mV / (Kelvin)
+    print '{:.1f}'.format(logfO2), 'log10 oxygen fugacity'
+    return logfO2
+    
+def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
+    """Reverse of log10fO2_from_mV
+    Takes target log10fO2 for furnace and temperature in Celsius and 
+    and returns target mV reading on pO2 sensor using the Nernst equation:
+    E(Volts) = -(RT/zF)lnQ 
+    and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
+    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    Kelvin = celsius + 273.15
+    z = 2.
+    exponent_in_Q = -0.5    
+    my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
+    mV = -1. * log10fO2 * Kelvin / my_constant
+    print '{:.3f}'.format(mV), 'target mV on pO2 meter'
+    return mV
+       
 def pressure_design(capsule_material = 'copper',
                     pressure_medium_material='BaCO$_3$',
                     sleeve_material='pyrophyllite',
