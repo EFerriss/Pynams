@@ -7,4 +7,6 @@ pynams includes tools for plotting FTIR spectra, drawing linear and quadratic ba
 Please cite this code as  
 Ferriss, E. (2015); pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.1.0; DOI: 10.5281/zenodo.32056
 
+This material is based upon work supported by the National Science Foundation under Grant Number 1449699. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
+
 
