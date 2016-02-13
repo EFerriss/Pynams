@@ -693,7 +693,8 @@ class Diffusivities():
                  logDx_error = [], logDy_error = [], logDz_error = [], 
                  logDu_error = [], basestyle = styles.style_points.copy(), 
                  activation_energy_kJmol = [None, None, None, None], 
-                 logD0 = [None, None, None, None], Fe=None, Mg=None, Al=None):
+                 logD0 = [None, None, None, None], 
+                 Fe2=None, Fe3=None, Mg=None, Al=None, Ti=None):
         """All logarithms of diffusivities, logD, are base 10 and m2/s.
         Order is || x, || y, ||z, not oriented or isotropic"""
         self.description = description
@@ -714,9 +715,13 @@ class Diffusivities():
         self.activation_energy_kJmol = activation_energy_kJmol
         self.logD0 = logD0
         self.basestyle = basestyle
-        self.Fe = Fe
+        self.Fe2 = Fe2
+        self.Fe3 = Fe3
         self.Mg = Mg
         self.Al = Al
+        self.Ti = Ti
+        if (Fe2 is not None) and (Fe3 is not None):
+            self.Fe = Fe2 + Fe3
 
     def get_MgNumber(self):
         try:
@@ -746,6 +751,7 @@ class Diffusivities():
     def solve_Ea_D0(self, orient=None):
         """Returns activation energy in kJ/mol and D0 in m2/s for 
         diffusivity estimates""" 
+        
         logD_and_Celsius = self.picker_DCelsius(orient=orient)        
 
         if logD_and_Celsius is None:
@@ -756,7 +762,11 @@ class Diffusivities():
             celsius = logD_and_Celsius[1]
 
         if (len(logD) < 2) or (len(celsius) < 2):
+            print
             print 'You need more than one point to fit a line'
+            print 'logD:', logD
+            print 'celsius:', celsius
+            print
             return None
 
         Ea, D0 = solve_Ea_D0(logD, celsius)
@@ -819,7 +829,7 @@ class Diffusivities():
     def make_styles(self, orient):
         """Marker and line styles for plotting and adding to the legend"""
         iorient = get_iorient(orient)
-        style = self.basestyle
+        style = self.basestyle.copy()
         style['linestyle'] = 'None'
 
         if orient is None:
@@ -935,17 +945,19 @@ class Diffusivities():
     
             
     def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,
-                      descript=None, orient=None, plotline=False,
+                      orient=None, plotline=False,
                       ncol=2, oriented_shading=False, 
-                      style=None, style_line=None):
+                      style=None, style_line=None, label=None):
         """Take a figure axis and its list of legend handles 
         and adds information to it"""
-        if descript is None:
+        if label is None:
             if self.description is None:
-                print 'Need self.description to make legend'
+                print 'Need label or self.description to make legend'
                 return
             else:
                descript = self.description
+        else:
+            descript = label
 
         if style is None:
             style, _ = self.make_styles(orient)

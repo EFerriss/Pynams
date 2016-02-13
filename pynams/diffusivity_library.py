@@ -20,6 +20,7 @@ with their own marker styles set up.
 """
 import numpy as np
 from uncertainties import ufloat
+import diffusion
 from diffusion import Diffusivities
 
 GAS_CONSTANT = 0.00831 # kJ/mol K
@@ -74,6 +75,7 @@ DM03 = Diffusivities(
        logDx = [-12.2829, -12.6956, -12.6956, -12.9896],
        logDy = [-11.7728, -11.9740, -11.9688, -12.2108, -12.5100],
        logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, -12.5924, -12.6800],
+       Fe2=0., Fe3=0., Al=0., Mg=2.0, Ti=0.,
        basestyle = {'color' : 'green', 'marker' : 'v', 'alpha' : 0.5,
                     'linestyle' : 'none', 'markersize' : markersizefloat})
 
@@ -114,11 +116,15 @@ DuFrane = Diffusivities(
                        'markersize' :  markersizefloat})
 
 # Kohlstedt and Mackwell 1hr data "fast proton-polaron mechanism"
+# Data from Frey and Prinz 1978
 KM98_fast = Diffusivities(description = 'fast mech., KM98',
-            celsius_all = [1000, 1000, 900, 900, 800],
+            celsius_x = [1000, 1000, 900, 900, 800],
+            celsius_y = [1000, 1000, 900, 900, 800],
+            celsius_z = [1000, 1000, 900, 900, 800],
             logDx = [-9.5634, -9.3928, -9.9876, -10.3970, -10.8071],
             logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306],
             logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140],
+            Fe3=0.003, Fe2=0.174, Mg=1.821, Ti=0., Al=0.,
             basestyle = {'marker' : 'd', 'color' : 'navy', 'alpha' : 0.5,
                         'markersize' :  markersizefloat})
 
@@ -126,7 +132,6 @@ KM98_fast = Diffusivities(description = 'fast mech., KM98',
 DM06_fast = Diffusivities(description = 'fast mech., DM06', 
             celsius_all = [900], logDx = [np.log10(4e-11)], 
             logDy = [np.log10(2e-12)], logDz = [np.log10(1e-12)],
-            Fe=0.092, Mg=0.904, Al=0.0,
             basestyle = {'marker' : 's', 'color' : 'navy', 'alpha' : 0.5,
                         'markersize' :  markersizefloat})
 
@@ -140,7 +145,7 @@ KM98_slow = Diffusivities(description = 'slow mech., KM98',
 #% Demouchy & Mackwell 2006 - 20 hour and 5 hour - "slow"
 DM06_slow = Diffusivities(description = 'slow mech., DM06', celsius_x = [900],
             celsius_y  = [900, 1000], celsius_z = [900], 
-            logDx = [np.log10(5e-13)], Fe=0.092, Mg=0.904, Al=0.0,
+            logDx = [np.log10(5e-13)], 
             logDy = [np.log10(5e-14), np.log10(3e-13)], 
             logDz = [np.log10(1e-12)],
             basestyle = {'marker' : 's', 'color' : KM98_slow.basestyle['color'], 
@@ -164,43 +169,56 @@ Ferriss_slow = Diffusivities(
                             'markersize' : markersizefloat})
 
 # ---------------- natural olivine data -----------------------------
+# See also OlivineNormalization.xls
+
 # Loihi, Hawaii: Hauri 2002 Part 2
+# Chemistry estimated from Garcia 1995 Table 2; Al and Ti not measured
 Hauri02 = Diffusivities(description = 'Hauri 2002', 
                         celsius_unoriented = [1275], 
                         logD_unoriented = [np.log10(4e-9)], 
                         logDu_error = [], 
-                        Fe=0.+0.378, Mg=0.159+0.302, Al=0.389+0.229,
-                        basestyle = {'marker' : '+', 'color' : 'blue', 
-                                     'markersize' : markersizefloat,
-                                'markeredgewidth' : '1'})
+                        Fe3=0.004, Fe2=0.261, Mg=1.727, Al=0., Ti=0.,
+                        basestyle = {'marker' : '+', 'color' : 'darkorange', 
+                                     'markersize' : 12,
+                                     'markeredgewidth' : '2'})
 
 # Portnyagin 2008 minimum value, see new Miranov paper
+# See Supplementary Materials. Al and Ti not measured in host olivines
 Portnyagin = Diffusivities(
-             description = 'Portnyagin et al. 2008\nMiranov et al. 2015',
-             celsius_unoriented = [1140], logD_unoriented = [np.log10(5e-12)],
-             basestyle = {'marker' : 1, 'color' : 'crimson', 
+             description = 'Portnyagin et al. 2008\nMironov et al. 2015',
+             celsius_unoriented = [1140.], logD_unoriented = [np.log10(5e-12)],
+             Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.,
+             basestyle = {'marker' : 's', 'color' : 'darkmagenta', 
+                          'markerfacecolor' : 'white',
+                          'markeredgecolor' : 'darkmagenta',
                           'markersize' : markersizefloat,
-                          'markeredgewidth' : '3'})
+                          'markeredgewidth' : '1'})
 
 # Chen et al. 2011
-Chen11 = Diffusivities()
-Chen11.description = 'Chen et al. 2011'
-Chen11.celsius_unoriented = [1533-273.15, 1471-273.15, 
-                             1437-273.15, 1561-273.15]
-Chen11.logD_unoriented  = [np.log10(2e-11), np.log10(2.5e-11), 
-                           np.log10(0.5e-11), np.log10(2.5e-11)]
-Chen11.basestyle = {'marker' : 'x', 'color' : 'black',
-                    'markersize' : markersizefloat,
-                    'markeredgewidth' : '1'}
+# Chemistry from Le Voyer 2014 Table 1 SOM1 olivine; Al and Ti not measured...
+Chen11 = Diffusivities(description = 'Chen et al. 2011',
+                       celsius_unoriented = [1533.-273.15, 1471.-273.15, 
+                                             1437.-273.15, 1561.-273.15],
+                       logD_unoriented  = [np.log10(2e-11), np.log10(2.5e-11), 
+                                           np.log10(0.5e-11), np.log10(2.5e-11)],
+                       Fe3=0.0, Fe2=0.192, Mg=1.784, Al=0., Ti=0.,
+                       basestyle = {'marker' : 'x', 'color' : 'black',
+                                     'markersize' : markersizefloat,
+                                     'markeredgewidth' : '1'})
+                    
 # Gaetani et al. 2012 hydration data
-# Moana Loa olivine with melt inclusion unoriented grain
-Gaetani12 = Diffusivities()
-Gaetani12.description = 'Gaetani et al., 2012'
-Gaetani12.celsius_unoriented = [1250]
-Gaetani12.logD_unoriented = [np.log10(1.7e-11)]
-Gaetani12.basestyle = {'marker' : 'h', 'color' : 'red', 
-                     'markersize' : markersizefloat,
-                     'markeredgewidth' : '1'}
+# Moana Loa olivine with melt inclusion unoriented grain; 
+# MID-1 data in Supplement, Ti and Al not measured...
+# *** Si deficiency ***
+Gaetani12 = Diffusivities(description = 'Gaetani et al., 2012',
+                          celsius_unoriented = [1250.],
+                          logD_unoriented = [np.log10(1.7e-11)],
+                          Fe3=0.036, Fe2=0.206, Mg=1.769, Al=0., Ti=0.,
+                          basestyle = {'marker' : 'h', 'color' : 'red',
+                                       'markeredgecolor' : 'red', 
+                                       'markersize' : 10,
+                                       'markeredgewidth' : '1',
+                                       'markerfacecolor' : 'white'})
 
 
 generic = Diffusivities()
@@ -208,72 +226,75 @@ generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
                      'markersize' : markersizefloat, 'linestyle': 'none'}
 
 #%% clinopyroxene
-H_CrDiopside_Ingrin95 = Diffusivities()
-H_CrDiopside_Ingrin95.description = 'H in Cr-rich diopside in air\nmainly 3645 cm$^{-1}$\nIngrin et al. 1995'
-H_CrDiopside_Ingrin95.celsius_all = np.array([973, 1073, 1173, 1273]) - 273.
-H_CrDiopside_Ingrin95.logDx = [np.log10(3E-14), np.log10(9E-14),
-                               np.log10(5.5E-13), np.log10(1.9E-12)]
-H_CrDiopside_Ingrin95.logDz = [np.log10(5E-14), np.log10(13E-14), 
-                              np.log10(4.5E-13), np.log10(12E-13)]
-H_CrDiopside_Ingrin95.basestyle = {'color' : 'green', 'marker' : '^', 
+H_CrDiopside_Ingrin95 = Diffusivities(
+                        description = ''.join(('H in Cr-rich diopside in air',
+                               '\nmainly 3645 cm$^{-1}$\nIngrin et al. 1995')),
+                        celsius_all = np.array([973, 1073, 1173, 1273]) - 273.,
+                        logDx = [np.log10(3E-14), np.log10(9E-14),
+                                 np.log10(5.5E-13), np.log10(1.9E-12)],
+                        logDz = [np.log10(5E-14), np.log10(13E-14), 
+                                np.log10(4.5E-13), np.log10(12E-13)],
+                        basestyle = {'color' : 'green', 'marker' : '^', 
                                    'markersize' :  12, 
-                                   'linestyle' : 'none', 'alpha' : 1.}
+                                   'linestyle' : 'none', 'alpha' : 1.})
 
-H_cpx_Wade2008 = Diffusivities()
-H_cpx_Wade2008.description = 'H in cpx phenocryst\nWade et al. 2008'
-H_cpx_Wade2008.celsius_all = [1100]
-H_cpx_Wade2008.logD_unoriented = [-13.]
-H_cpx_Wade2008.basestyle = {'color' : 'indigo', 'marker' : '$\clubsuit$', 
+H_cpx_Wade2008 = Diffusivities(
+                 description = 'H in cpx phenocryst\nWade et al. 2008',
+                 celsius_all = [1100], logD_unoriented = [-13.],
+                 basestyle = {'color' : 'indigo', 'marker' : '$\clubsuit$', 
                             'markersize' :  12,
                             'markeredgewidth' : 0,
-                            'linestyle' : 'none', 'alpha' : 1.}
+                            'linestyle' : 'none', 'alpha' : 1.})
 
-H_diopside_Woods00 = Diffusivities()
-H_diopside_Woods00.description = 'Jaipur bulk H\nWoods et al. 2000'
-H_diopside_Woods00.logDx = np.log10(np.array([5e-13, 7e-12, 1.1e-11, 1.5e-11, 
-                                              2e-11, 1.8e-11, 3.5e-12, 3.5e-11]))
-H_diopside_Woods00.logDy = np.log10(np.array([1.5e-12, 3e-12, 2.5e-12, 8e-13, 2e-12]))
-H_diopside_Woods00.logDz = np.log10(np.array([2e-12, 7e-12, 1.5e-11, 1.5e-11, 
-                                              6e-12, 3e-11]))
-H_diopside_Woods00.celsius_x = [700, 750, 800, 800, 800, 850, 700, 850]
-H_diopside_Woods00.celsius_y = [750, 800, 800, 800, 850]
-H_diopside_Woods00.celsius_z = [700, 750, 800, 800, 800, 850]
-H_diopside_Woods00.basestyle = {'color' : 'k', 'marker' : 's', 
-                            'markerfacecolor' : 'turquoise',
-                            'markersize' :  10, 
-                            'linestyle' : 'none', 'alpha' : 1.,
-                            'markeredgewidth' : 0.5}
-H_diopside_Woods00.activation_energy_kJmol_xyz = []
+H_diopside_Woods00 = diffusion.Diffusivities(
+                     description = 'Jaipur bulk H\nWoods et al. 2000',
+                     logDx = np.log10(np.array([5e-13, 7e-12, 1.1e-11, 1.5e-11, 
+                                          2e-11, 1.8e-11, 3.5e-12, 3.5e-11])),
+                     logDy = np.log10(np.array([1.5e-12, 3e-12, 2.5e-12, 8e-13, 
+                                                2e-12])),
+                     logDz = np.log10(np.array([2e-12, 7e-12, 1.5e-11, 1.5e-11, 
+                                                6e-12, 3e-11])),
+                     celsius_x = [700, 750, 800, 800, 800, 850, 700, 850],
+                     celsius_y = [750, 800, 800, 800, 850],
+                     celsius_z = [700, 750, 800, 800, 800, 850],
+                     basestyle = {'color' : 'k', 'marker' : 's', 
+                                  'markerfacecolor' : 'turquoise',
+                                  'markersize' :  10, 
+                                  'linestyle' : 'none', 'alpha' : 1.,
+                                  'markeredgewidth' : 0.5})
                             
-H_cpxBasanite_Xia00 = Diffusivities()
-H_cpxBasanite_Xia00.description = 'H in basanite cpx\n3630 + 3500 cm$^{-1}$\nf$_{02}=10^{-14}$ Xia et al. 2000'
-H_cpxBasanite_Xia00.logDz = [np.log10(1.8E-12), np.log10(6.5E-12)]
-H_cpxBasanite_Xia00.celsius_z = [850, 950]
-H_cpxBasanite_Xia00.basestyle = {'color' : 'k', 'marker' : '>', 
-                                 'markerfacecolor' : 'k',
-                                 'markersize' :  8, 
-                                 'linestyle' : 'none', 'alpha' : 1.,
-                                 'markeredgewidth' : 1}
+H_cpxBasanite_Xia00 = Diffusivities(
+                      description = ''.join(('H in basanite cpx\n3630 + 3500',
+                            ' cm$^{-1}$\nf$_{02}=10^{-14}$ Xia et al. 2000')),
+                      logDz = [np.log10(1.8E-12), np.log10(6.5E-12)],
+                      celsius_z = [850, 950],
+                      basestyle = {'color' : 'k', 'marker' : '>', 
+                                   'markerfacecolor' : 'k',
+                                   'markersize' :  8, 
+                                   'linestyle' : 'none', 'alpha' : 1.,
+                                   'markeredgewidth' : 1})
 
-H_diopside_noFe = Diffusivities()
-H_diopside_noFe.description = 'pure synth. diopside in air\nSundvall et al. 2009'
-H_diopside_noFe.logDx = [-12.3, -14.7]
-H_diopside_noFe.celsius_x = np.array([1273, 1073]) - 273.;
-H_diopside_noFe.logDy = [-12.6, -13.9, -15.1]
-H_diopside_noFe.celsius_y = np.array([1273, 1173, 1073]) - 273.;
-H_diopside_noFe.basestyle = {'color' : 'b', 'marker' : '>', 
-                             'markerfacecolor' : 'b', 'markersize' :  8, 
-                             'linestyle' : 'none', 'alpha' : 1.,
-                             'markeredgewidth' : 1}
+H_diopside_noFe = Diffusivities(
+                  description = ''.join(('pure synth. diopside in air',
+                                         '\nSundvall et al. 2009')),
+                  logDx = [-12.3, -14.7], 
+                  celsius_x = np.array([1273, 1073]) - 273.,
+                  logDy = [-12.6, -13.9, -15.1],
+                  celsius_y = np.array([1273, 1173, 1073]) - 273.,
+                  basestyle = {'color' : 'b', 'marker' : '>', 
+                               'markerfacecolor' : 'b', 'markersize' :  8, 
+                               'linestyle' : 'none', 'alpha' : 1.,
+                               'markeredgewidth' : 1})
 
-H_diopside_Sundvall = Diffusivities()
-H_diopside_Sundvall.description = 'synth. Fe-bearing diopside\nin air; Sundvall et al. 2009'
-H_diopside_Sundvall.logDy = [-13.7, -15.3, -15.9]
-H_diopside_Sundvall.celsius_y = np.array([1000., 900., 800.]);
-H_diopside_Sundvall.basestyle = {'color' : 'y', 'marker' : 'v', 
-                             'markerfacecolor' : 'y', 'markersize' :  13, 
-                             'linestyle' : 'none', 'alpha' : 1.,
-                             'markeredgewidth' : 1}
+H_diopside_Sundvall = Diffusivities(
+                      description = ''.join(('synth. Fe-bearing diopside\n',
+                                             'in air; Sundvall et al. 2009')),
+                      logDy = [-13.7, -15.3, -15.9],
+                      celsius_y = np.array([1000., 900., 800.]),
+                      basestyle = {'color' : 'y', 'marker' : 'v', 
+                                   'markerfacecolor' : 'y', 'markersize' :  13, 
+                                   'linestyle' : 'none', 'alpha' : 1.,
+                                   'markeredgewidth' : 1})
 
 #Fe_diopside = Diffusivities()
 #Fe_diopside.description = 'Fe in diopside\nAzough & Freer 2000'

@@ -18,7 +18,10 @@ style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
                  'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
 
-style_initial = {'color':'red', 'label':'initial', 'linewidth':2.5, 'linestyle':':'}
+style_initial_point = {'color' : 'grey', 'label' : 'initial', 'linestyle' : 'none',
+                       'marker' : 'o', 'alpha' : 0.5}
+style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
+style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_2 = {'color':'green', 'linewidth': 1.5}
@@ -115,7 +118,7 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
         else:
             axis3[0].set_ylabel('Height (cm$^{-1}$)')
         
-    axis3[0].set_xlabel('|| a*')
+    axis3[0].set_xlabel('|| a')
     axis3[1].set_xlabel('position ($\mu$m) || b')
     axis3[2].set_xlabel('|| c')
     plt.setp(axis3[1].get_yticklabels(), visible=False)

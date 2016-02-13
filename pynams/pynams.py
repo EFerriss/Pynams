@@ -700,7 +700,8 @@ class Spectrum():
     def plot_showbaseline(self, linetype='line', shiftline=None,
                           wn_baseline=None, abs_baseline=None, 
                           style=styles.style_spectrum, style_base=styles.style_baseline,
-                          figaxis=None, label=None, size_inches=(3., 2.5)):
+                          figaxis=None, label=None, size_inches=(3., 2.5),
+                          offset=0.0):
         """Plot FTIR spectrum and show baseline. 
         You can pass in your own baseline"""
         if figaxis is None:
@@ -732,12 +733,12 @@ class Spectrum():
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
             
-        ax.plot(self.wn, self.abs_cm, **style_to_use)
-        ax.plot(wn_baseline, abs_baseline, **style_base)
+        ax.plot(self.wn, self.abs_cm + offset, **style_to_use)
+        ax.plot(wn_baseline, abs_baseline + offset, **style_base)
         return fig, ax
 
     def plot_subtractbaseline(self, polyorder=1, style=styles.style_spectrum, 
-                              figaxis=None, label=None):
+                              figaxis=None, label=None, offset=0.):
         """Make and plot baseline-subtracted spectrum"""
         abs_nobase_cm = self.subtract_baseline(polyorder)
         
@@ -757,7 +758,7 @@ class Spectrum():
         yhigh = pad + 0.1*pad
         ax.set_ylim(0, yhigh)
         ax.set_xlim(self.base_high_wn, self.base_low_wn)
-        ax.plot(self.base_wn, abs_nobase_cm, **style_to_use)
+        ax.plot(self.base_wn, abs_nobase_cm+offset, **style_to_use)
         return fig, ax
 
 
@@ -907,7 +908,8 @@ def list_with_attribute(classname, attributename, attributevalue):
 class Profile():
     def __init__(self, profile_name=None, 
                  fname_list=[], positions_microns = np.array([]),
-                 sample=None, direction=None, raypath=None):
+                 sample=None, direction=None, raypath=None,
+                 initial_profile=None):
         """fname_list = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
         info contained in sample's twoA_list, twoB_list, and twoC_list"""
@@ -917,11 +919,15 @@ class Profile():
         self.sample = sample
         self.direction = direction
         self.raypath = raypath
-        
-        self.make_spectra_list()
+        self.initial_profile = initial_profile
+
+        if (self.fname_list is not None) and (self.sample is not None):
+            self.make_spectra_list()
         
     short_name = None # short string for saving diffusivities, etc.
-    initial_profile = None # for constructing whole-block profiles
+    
+    # for constructing whole-block profiles
+
     # The actual list of spectra is made automatically by make_spectra_list.
     # Set spectrum_class_name to use non-default spectra classes
     # e.g., to set different baseline limits consistently
@@ -1049,7 +1055,8 @@ class Profile():
         """Set profile length and generate spectra_list 
         with key attributes"""
         if self.thick_microns is None and self.sample is None:
-            print 'Need with thick_microns or sample attribute'
+            print 'profile_name', self.profile_name
+            print 'make_spectra_list needs thick_microns or sample attribute'
             return False
             
         if (self.raypath is not None) and (self.raypath == self.direction):
@@ -1553,7 +1560,8 @@ class Profile():
         
     def plot_area_profile_outline(self, centered=True, peakwn=None,
                                   figsize=(6.5, 2.5), top=1.2, 
-                                    wholeblock=False, heights_instead=False):
+                                  wholeblock=False, heights_instead=False,
+                                  show_water_ppm=True):
         """Set up area profile outline and style defaults. 
         Default is for 0 to be the middle of the profile (centered=True)."""
         if self.style_base is None:
@@ -1565,8 +1573,18 @@ class Profile():
         else:
             leng = self.len_microns
 
-        f, ax = plt.subplots(1, 1)
-        f.set_size_inches(figsize)
+        fig = plt.figure(figsize=figsize)
+        ax = SubplotHost(fig, 1,1,1)
+        fig.add_subplot(ax)
+
+        ax_ppm = ax.twin()
+        ax_ppm.axis["top"].major_ticklabels.set_visible(False)
+        
+        if show_water_ppm is True:
+            pass
+        else:
+            ax_ppm.axis["right"].major_ticklabels.set_visible(False)    
+        
         ax.set_xlabel('Position ($\mu$m)')
         
         # Set y-label
@@ -1595,15 +1613,19 @@ class Profile():
             ax.set_xlim(0, leng)
                     
         ax.grid()
-        return f, ax
+        return fig, ax, ax_ppm
 
     def plot_area_profile(self, polyorder=1, centered=True, 
-                          heights_instead = False, figaxis=None, 
-                          bestfitline=False, show_FTIR=False, 
+                          heights_instead=False, figaxis=None, 
+                          bestfitline=False, style_bestfitline=None,
+                          show_FTIR=False, show_water_ppm=True,
                           show_values=False, set_class=None,
                           peakwn=None, peak_idx=None,
                           style=None, show_initial_areas=False,
-                          error_percent=2., wholeblock=False):
+                          error_percent=2., wholeblock=False,
+                          label=None, initial_style=None,
+                          initial_label=None, phase='olivine',
+                          calibration='Bell'):
         """Plot area profile. Centered=True puts 0 in the middle of the x-axis.
         figaxis sets whether to create a new figure or plot on an existing axis.
         bestfitline=True draws a best-fit line through the data.
@@ -1671,8 +1693,9 @@ class Profile():
 
         # Use new or old figure axes
         if figaxis is None:
-            f, ax = self.plot_area_profile_outline(centered, peakwn,
-                       heights_instead=heights_instead, wholeblock=wholeblock)
+            f, ax, ax_ppm = self.plot_area_profile_outline(centered, peakwn,
+                           heights_instead=heights_instead, wholeblock=wholeblock,
+                           show_water_ppm=show_water_ppm)
         else:
             ax = figaxis
 
@@ -1686,9 +1709,14 @@ class Profile():
             leng = self.len_microns
 
         # Set up plotting styles
-        style_bestfitline = self.choose_line_style()
+        if style_bestfitline is None:
+            style_bestfitline = self.choose_line_style()
         if style is None:
             style = self.choose_marker_style()
+        if label is None:
+            style['label'] = self.profile_name
+        else:
+            style['label'] = label
 
         # Plot best fit line beneath data points
         if bestfitline is True:
@@ -1719,8 +1747,13 @@ class Profile():
             
         # Plot initial profile areas
         if show_initial_areas is True:
-            self.initial_profile.plot_area_profile(style={'color' : 'r', 
-                                                          'marker' : 'o'},
+            if initial_style is None:
+                initial_style = styles.style_initial_point
+            if initial_label is None:
+                initial_style['label'] = 'initial'
+            else:
+                initial_style['label'] = label
+            self.initial_profile.plot_area_profile(style=initial_style,
                                                    figaxis=ax)            
         ax.set_ylim(0, max(areas)+0.2*(max(areas)))
 
@@ -1731,18 +1764,29 @@ class Profile():
             peakwn = self.peakpos[peak_idx]
             tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
         ax.set_title(tit)
-#        top = ax.get_ylim()[1]
-#        ax.text(0, top + 0.05*top, tit, horizontalalignment='center')
 
+#        if show_water_ppm is True:
+#    parasite_tick_locations = 1e4/(celsius_labels + 273.15)
+#    ax_celsius.set_xticks(parasite_tick_locations)
+#    ax_celsius.set_xticklabels(celsius_labels)
+#    fig.add_subplot(ax)
+#    ax.axis["bottom"].set_label("10$^4$/Temperature (K$^{-1}$)")
+#    ax.axis["left"].set_label("log$_{10}$diffusivity (m$^{2}$/s)")
+#    ax_celsius.axis["top"].set_label("Temperature ($\degree$C)")
+#    ax_celsius.axis["top"].label.set_visible(True)
+#    ax_celsius.axis["right"].major_ticklabels.set_visible(False)
+
+#            max_water = area2water(ax.get_ylim()[1]*3, phase=phase, 
+#                                   calibration=calibration)
+#            ax_ppm.axis["right"].major_ticklabels.set_visible(False) 
+#            ax_ppm.axis["right"].set_label(''.join(("max ppm H$_2$O ~ ", 
+#                                                    str(max_water))))
+         
         if figaxis is None:
             return f, ax
         else:
             return
 
-#        ax2 = ax.twinx()
-#        ax2.set_ylim(0, top*max_concentration)
-#        ax2.set_ylabel('Absolute concentration')
-#
 
 #    def plot_wb_water(self, polyorder=1, centered=True, style=styles.style_profile):
 #        """Plot area ratios and scale up with initial water"""
@@ -2774,13 +2818,19 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
                 
 #%% Group profiles together as whole-block unit
 class WholeBlock():
-    profiles = []
-    name = None
-    # generated by setupWB below
-    directions = None
-    raypaths = None
-    initial_profiles = None
-    lengths = None
+    def __init__(self,profiles=[], name='', peakfit=False, 
+                 make_wb_areas=False):
+        self.profiles = profiles
+        self.name = name
+        
+        if len(self.profiles) > 0:
+            self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas)
+
+#    # generated by setupWB below
+#    directions = None
+#    raypaths = None
+#    initial_profiles = None
+#    lengths = None
     # optional for diffusion work and plotting
     style_base = None
     time_seconds = None
@@ -2807,9 +2857,9 @@ class WholeBlock():
         L = []
         
         for prof in self.profiles:
-            if isinstance(prof, Profile) is False:
-                print 'Only profiles objects allowed in profile list!'
-                return False
+#            if isinstance(prof, Profile) is False:
+#                print 'Only profile objects allowed in profile list!'
+#                return False
             d.append(prof.direction)
             r.append(prof.raypath)
             L.append(prof.set_len())
@@ -2926,7 +2976,7 @@ class WholeBlock():
                 iprof = self.initial_profiles[k]
                 if iprof is not None:
                     initspec = iprof.average_spectra()
-                    ax3[k].plot(initspec.wn, initspec.abs_cm, label='Initial', 
+                    ax3[k].plot(initspec.wn, initspec.abs_cm, 
                             **stylei)
 
             ax3[k].set_xlim(4000., 3000.)
@@ -3110,15 +3160,17 @@ class WholeBlock():
             profile_list = self.profiles
         return profile_list
 
-    def make_baselines(self, initial_too=False, linetype='line', shiftline=None, 
+    def make_baselines(self, initial_too=False, linetype='line', 
+                       wn_high=3700., wn_low=3200., shiftline=None, 
                        show_fit_values=False, show_plot=False): 
         """Make spectra baselines for all spectra in all profiles in 
         whole-block"""        
         profile_list = self.make_profile_list(initial_too)        
         for prof in profile_list:
-            for spectrum in prof.spectra_list:
-                spectrum.make_baseline(linetype, shiftline, show_fit_values,
-                                       show_plot)                
+            prof.make_baselines(linetype=linetype, shiftline=shiftline, 
+                                show_fit_values=show_fit_values, 
+                                show_plot=show_plot, 
+                                wn_high=wn_high, wn_low=wn_low) 
 
     def save_baselines(self, initial_too=True):
         """Make and save spectra baselines for all spectra."""
@@ -3763,7 +3815,7 @@ class WholeBlock():
                        top=1.2, numformat='{:.1f}', wholeblock=True, 
                        heights_instead=False, init=1.,
                        fin=0, approximation1D=False, labelD=True,
-                       show_errorbars=True):
+                       show_errorbars=True, labelDy=None):
         """Applies 3-dimensionsal diffusion equations to instance shape.
         Requires lengths, time in seconds, and three diffusivities either
         explicitly passed here or as attributes of the WholeBlock object.
@@ -3854,7 +3906,9 @@ class WholeBlock():
             if labelD is True:
                 for k in range(3):
                     dlabel = str(numformat.format(D3[k])) + ' m$^2$s$^{-1}$'
-                    fig_ax[k].text(0, top-top*0.12, dlabel, 
+                    if labelDy is None:
+                        labelDy = top-top*0.12
+                    fig_ax[k].text(0, labelDy, dlabel, 
                                     horizontalalignment='center',
                                     backgroundcolor='w')                              
    

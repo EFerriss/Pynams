@@ -29,6 +29,120 @@ style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
 style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
 style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
 
+def bubble_tower(panel='middle', monoxide_setting=40, 
+                 dioxide_setting=155.,
+                 target_log10fO2=-14., 
+                 furnace_diameter_inches=2.25,
+                 max_flow_rate=4.0, figsize=(6,5)):
+    """For use in mixing CO and CO2 to control oxygen fugacity"""
+    
+    # Flow rate measurements contained in dictionaries
+    # the dictionary keys are the needle valve settings
+    # the values are lists of flow rate measurements in mL / seconds
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('Needle valve setting')
+    ax.set_ylabel('Flow rate mL/s')
+    ax.set_ylim(0, max_flow_rate)
+
+    monoxide = dict()
+    dioxide = dict()
+
+    if panel == 'left':
+        ax.set_xlim(0, 175)
+
+        monoxide[30] = [0.]
+        monoxide[40] = [0.5/13.5, 1./29.1]
+        monoxide[50] = [1./12.6]
+        monoxide[60] = [3./23.0]
+                
+        dioxide[100] = [50./78.4]
+        dioxide[125] = [50./28.3]
+        dioxide[150] = [50./17.9]
+        dioxide[170] = [50./14.1]
+
+    elif panel == 'middle':
+        ax.set_xlim(0, 150)
+        
+        monoxide[7] = [1./13.2] # jerky
+        monoxide[19] = [2./15.3]        
+        monoxide[30] = [5./25.1]
+        monoxide[40] = [5./18.8]
+        
+        dioxide[70] = [20./26.0, 20./25.6]
+        dioxide[100] = [40./27.55]
+        dioxide[145] = [50./18.4]
+        dioxide[150] = [50./14.4]
+    else:
+        print 'Valid entries for "panel" are left and middle'
+        return
+            
+    # Change from list of flow rates to a single mean value
+    dioxide.update((x, np.mean(y)) for x, y in dioxide.items())
+    monoxide.update((x, np.mean(y)) for x, y in monoxide.items())
+    
+    p_dioxide = np.polyfit(dioxide.keys(), dioxide.values(), 1)
+    p_monoxide = np.polyfit(monoxide.keys(), monoxide.values(), 1)
+
+    ax.plot(dioxide.keys(), dioxide.values(), 'o', markerfacecolor='w',
+            markeredgecolor='b', markeredgewidth=2, label='CO$_2$')
+    ax.plot(monoxide.keys(), monoxide.values(), '^', markerfacecolor='w',
+            markeredgecolor='r', markeredgewidth=2, label='CO')
+
+    x = ax.get_xlim()
+    ax.plot(x, np.polyval(p_dioxide, x), '-', color='b')
+    ax.plot(x, np.polyval(p_monoxide, x), '-', color='r')
+    
+    # minimum acceptable flow rate for good mixing 
+    # ~ 1/10 cross-sectional area of furance
+    radius_cm = (furnace_diameter_inches / 2.) * 2.54
+    cross_section_area_cm2 = constants.pi * radius_cm * radius_cm
+    minflow = cross_section_area_cm2 / 10.
+    ax.plot(x, [minflow, minflow], '-g')
+    ax.text(x[0]+5, minflow+0.05, 'minimum flow rate for good mixing')
+    ax.legend(loc=2)
+    
+    yCO2 = np.polyval(p_dioxide, dioxide_setting)
+    ax.text(dioxide_setting, yCO2, '$\leftarrow*$', fontsize=18, 
+            rotation=90, ha='center', va='bottom')
+
+    yCO = np.polyval(p_monoxide, monoxide_setting)
+    ax.text(monoxide_setting, yCO, '$\leftarrow*$', fontsize=18, 
+            rotation=90, ha='center', va='bottom')
+
+    ax.text(10., 2.0, ''.join(('CO$_2$ \nsetting ', 
+                               '{:.0f}'.format(dioxide_setting), '\n',
+                               '{:.2f}'.format(yCO2), ' mL/s')))
+    
+    ax.text(10., 1.3, ''.join(('CO \nsetting ', 
+                               '{:.0f}'.format(monoxide_setting), '\n',
+                               '{:.2f}'.format(yCO), ' mL/s')))
+
+    percentCO2 = 100. * yCO2 / (yCO2 + yCO)
+    ax.text(10., 0.9, ''.join(('{:.2f}'.format(percentCO2), '% CO$_2$')))
+
+def fO2(celsius, bars=1., buffer_curve='QFM'):
+    """ oxygen fugacities
+    Regression of data from O’Neill (1987b) from Herd, 2008.
+    Input is temperature in Celcius, pressure in bars (default is 1)
+    Output is log10 oxygen fugacity in bars"""
+    Kelvin = celsius + 273.15
+
+    if buffer_curve == 'QFM':    
+        A = -24935.0
+        B = 8.489
+        C = 0.0
+    elif buffer_curve == 'NNO':
+        A = -24525.4
+        B = 8.944
+        C = 0.0
+    else: 
+        print 'Only QFM and NNO supported for now'
+        return False
+        
+    logfO2 = ((A / Kelvin) + B + (C * (bars-1.0) / Kelvin))
+    return logfO2
+    
 def furnace_calibration(reading_celsius):
     """Calibration for furnace 4 in Dave Walker's lab at LDEO
     based on gold calibration"""
@@ -62,8 +176,8 @@ def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
     exponent_in_Q = -0.5    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
     mV = -1. * log10fO2 * Kelvin / my_constant
-    print '{:.3f}'.format(mV), 'target mV on pO2 meter'
-    return mV
+    print '\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n'
+    
        
 def pressure_design(capsule_material = 'copper',
                     pressure_medium_material='BaCO$_3$',
@@ -71,16 +185,16 @@ def pressure_design(capsule_material = 'copper',
                     buffer_material='H$_2$O, Ni,\nNiO, SC ol.,\nSC enst.',
                     lid_shape = 'bevel', # or flat or suaged
                     h_graphite_button=1.5, 
-                    h_pressure_medium=33.35, # h for height
+                    h_pressure_medium=33.35,
                     h_graphite_cylinder=33.35,
-                    h_sleeve=10.5,
-                    h_sleeve_bottom=0.65,
-                    h_capsule = 8.65,
-                    h_lid=2., # total thickness, even if it has a lip
+                    h_sleeve=11.5,
+                    h_sleeve_bottom=1.,
+                    h_capsule = 9.7,
+                    h_lid=1., # total 
                     h_MgO_base=10.6,
                     h_MgO_wafer=1.5,
                     h_MgO_top=10.6,
-                    od_pressure_medium=18.9, # od for outer diameter
+                    od_pressure_medium=18.9,
                     od_graphite_cylinder=11.5,
                     id_graphite_cylinder=10.0,
                     id_sleeve=8.7,
