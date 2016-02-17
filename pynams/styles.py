@@ -9,6 +9,16 @@ import numpy as np
 
 style_points = {'color' : 'k', 'marker' : 'o', 'markersize' : 6,
                 'fillstyle' : 'none', 'linestyle' : 'none',}
+style_points_crosses = {'color' : 'blue', 'marker' : '+', 'markersize' : 10,
+                        'linestyle' : 'none'}
+style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3,
+                            'fillstyle' : 'none', 'linestyle' : 'none', 
+                            'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                            'markerfacecolor' : 'w'}
+style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
+                     'fillstyle' : 'none', 'linestyle' : 'none', 
+                     'linewidth' : 1, 'alpha' : 1}
+
 #                'markerfacecolor' : 'w'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
 style_spectrum = {'color' : 'b', 'linewidth' : 3}
@@ -144,23 +154,28 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
     if lengths is None:
         lengths = np.ones(3)
         for k in range(3):
-            lengths[k] = max(positions_microns[k] - 
-                            min(positions_microns[k]))
+            lengths[k] = max(positions_microns[k] - min(positions_microns[k]))
 
-    for k in range(3):      
+    for k in xrange(3): 
         x = positions_microns[k]
         y = area_profiles[k]
-        
+                
         if len(x) != len(y):
             print 'Problem in plot_3panels'
             print 'len(x):', len(x)
             print 'len(y):', len(y)
 
         a = lengths[k] / 2.
-        axis3[k].set_xlim(-a, a)
+        
+        if centered is True:
+            axis3[k].set_xlim(-a, a)
+            pos = x + a
+        else:
+            axis3[k].set_xlim(0., lengths[k])            
+            pos = x 
 
         if show_line_at_1 is True:
-            axis3[k].plot([-a, a], [init, init], '--k')
+            axis3[k].plot([-a, lengths[k]], [init, init], '--k')
             
         if styles3[k] is None:
             styles3[k] = style_lightgreen
@@ -181,10 +196,10 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         else:
             if use_errorbar is True:
                 yerror = np.array(y) * percent_error/100.
-                axis3[k].errorbar(x-a, y, xerr=xerror, yerr=yerror, 
+                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerror, 
                                 **styles3[k])
             else:
-                axis3[k].plot(x-a, y, **styles3[k])
+                axis3[k].plot(pos, y, **styles3[k])
 
     if figaxis3 is None:
         return fig, axis3   

@@ -144,6 +144,9 @@ class Spectrum():
         self.wn_low = wn_low
         self.base_high_wn = base_high_wn
         self.base_low_wn = base_low_wn
+        
+        if self.filename is None and self.fname is not None:
+            self.filename = default_folder + self.fname + '.CSV'
 
     # full range of measured wavenumber and absorbances
     wn_full = None
@@ -185,7 +188,7 @@ class Spectrum():
     temperature_celcius = None
     time_seconds = None
     D_area_wb = None
-    
+   
     def set_thick(self):
         """Set spectrum thick_microns from raypath and sample.thick_microns.
         Similar utility exists for Profiles"""
@@ -1743,7 +1746,11 @@ class Profile():
             x = self.positions_microns            
         
         yerror = np.array(areas)*error_percent/100.
-        ax.errorbar(x, areas, yerr=yerror, **style)
+        
+        if error_percent == 0:
+            ax.plot(x, areas, **style)
+        else:
+            ax.errorbar(x, areas, yerr=yerror, **style)
             
         # Plot initial profile areas
         if show_initial_areas is True:
@@ -2545,71 +2552,6 @@ def plotsetup_3stacked(yhi=2, ylo=0, xlo = 3200, xhi = 3800,
         plt.setp(ax.get_xticklabels(), visible=False)
     return axis_list
 
-#%% 3D Plot setup
-def plot_3panels(positions_microns, area_profiles, lengths=None,
-                 styles3=[None, None, None], top=1.2, figaxis3=None, 
-                 show_line_at_1=True, init=1.,
-                 centered=True, percent_error=3., xerror=50.,
-                 heights_instead=False, wholeblock=True,
-                 use_errorbar=False):
-    """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
-    are passed in lists of three lists for a, b, and c.
-    Positions are assumed to start at 0 and then are centered.
-    """
-    if figaxis3 is None:
-        fig, axis3 = styles.plot_3panels_outline(top=top, 
-                                                 wholeblock=wholeblock,
-                                          heights_instead=heights_instead)
-    else:
-        axis3 = figaxis3
-
-    if lengths is None:
-        lengths = np.ones(3)
-        for k in range(3):
-            lengths[k] = max(positions_microns[k] - 
-                            min(positions_microns[k]))
-
-    for k in range(3):      
-        x = positions_microns[k]
-        y = area_profiles[k]
-
-        if len(x) != len(y):
-            print 'Problem in plot_3panels'
-            print 'len(x):', len(x)
-            print 'len(y):', len(y)
-
-        a = lengths[k] / 2.
-        axis3[k].set_xlim(-a, a)
-
-        if show_line_at_1 is True:
-            axis3[k].plot([-a, a], [init, init], '--k')
-            
-        if styles3[k] is None:
-            styles3[k] = styles.style_lightgreen
-            
-        if np.isnan(y).any():
-            axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
-                         'nan values!',
-                         horizontalalignment='center', backgroundcolor='w',
-                         verticalalignment='center')
-                         
-        elif np.isinf(y).any():
-            infstring = 'inf values!'
-            axis3[k].text(0, axis3[k].get_ylim()[1]/2., infstring,
-                         horizontalalignment='center', backgroundcolor='w',
-                         verticalalignment='center')
-
-        else:
-            if use_errorbar is True:
-                yerror = np.array(y) * percent_error/100.
-                axis3[k].errorbar(x-a, y, xerr=xerror, yerr=yerror, 
-                                **styles3[k])
-            else:
-                axis3[k].plot(x-a, y, **styles3[k])
-
-    if figaxis3 is None:
-        return fig, axis3   
-
 #%% Generate 3D whole-block area and water profiles
 def make_3DWB_area_profile(final_profile, 
                            initial_profile=None, 
@@ -3049,14 +2991,14 @@ class WholeBlock():
             y.append(y_to_add)
         return positions, y
 
-    def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, 
-                           top=1.2, f=None, wn=None, figsize=(6.5, 2.5), 
-                            show_spectra=True, percent_error=3., 
-                            styles3=[None, None, None],
-                            use_area_profile_styles=True,
-                            heights_instead=False, wholeblock=True,
-                            show_line_at_1=True,
-                            show_errorbars=True):
+    def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, centered=True,
+                           top=1.2, wn=None, figsize=(6.5, 2.5), 
+                           show_spectra=True, percent_error=3., 
+                           xerror=50., styles3=[None, None, None],
+                           use_area_profile_styles=True,
+                           heights_instead=False, wholeblock=True,
+                           show_line_at_1=True,
+                           show_errorbars=True):
         """Plot whole-block ratio of Area/Initial Area (default) 
         OR just areas (set wholeblock=False) on three panels"""
         self.get_baselines()    
@@ -3085,36 +3027,35 @@ class WholeBlock():
                 styles3[k] = self.profiles[k].choose_marker_style()
                 styles3[k]['markersize'] = 10
 
-        # Sent positions and areas to plotting command
-        if fig_ax3 is not None:
-            plot_3panels(positions, y, self.lengths, figaxis3=fig_ax3,
-                         styles3=styles3, top=top, wholeblock=wholeblock,
-                         show_line_at_1=show_line_at_1,
-                         heights_instead=heights_instead,
-                         use_errorbar=show_errorbars)
-        else:
-            f, fig_ax3 = plot_3panels(positions, y, self.lengths,
-                         styles3=styles3, top=top, wholeblock=wholeblock,
-                         show_line_at_1=show_line_at_1,
-                         heights_instead=heights_instead,
-                         use_errorbar=show_errorbars)
-                         
-            if f is False:
-                return
-                
-            f.set_size_inches(figsize)
-            f.autofmt_xdate()
-
         # Change title if peak-specific rather than bulk
         if peak_idx is not None:
             tit = ' '.join(('Peak at', str(peakpos[peak_idx]), '/cm'))
         else:
             tit = 'Bulk hydrogen'
-        fig_ax3[1].set_title(tit)
         
-#        plt.subplots_adjust(top=0.9, bottom=0.35)
+        # Sent positions and areas to plotting command
         if fig_ax3 is not None:
-            return f, fig_ax3
+            styles.plot_3panels(positions, y, self.lengths, figaxis3=fig_ax3,
+                                styles3=styles3, top=top, wholeblock=wholeblock,
+                                show_line_at_1=show_line_at_1,
+                                heights_instead=heights_instead,
+                                use_errorbar=show_errorbars,
+                                percent_error=percent_error,
+                                xerror=xerror, centered=centered)
+            fig_ax3[1].set_title(tit)                                
+        else:
+            fig, ax = styles.plot_3panels(positions, y, self.lengths,
+                                          styles3=styles3, top=top, 
+                                          wholeblock=wholeblock,
+                                          show_line_at_1=show_line_at_1,
+                                          heights_instead=heights_instead,
+                                          use_errorbar=show_errorbars,
+                                          percent_error=percent_error,
+                                          xerror=xerror, centered=centered)
+            ax[1].set_title(tit)
+            fig.set_size_inches(figsize)
+            fig.autofmt_xdate()
+            return fig, ax
 
     def print_spectra_names(self, show_initials=True):
         """Print out fnames of all spectra associated with the whole-block 
@@ -3813,9 +3754,10 @@ class WholeBlock():
                        styles3points=[None, None, None], wb_or_3Dnpi='wb', 
                        fig_ax=None, points=50, top_spectra=1.0,
                        top=1.2, numformat='{:.1f}', wholeblock=True, 
-                       heights_instead=False, init=1.,
+                       heights_instead=False, init=1., centered=True,
                        fin=0, approximation1D=False, labelD=True,
-                       show_errorbars=True, labelDy=None):
+                       show_errorbars=True, labelDy=None, 
+                       labelDx=[None, None, None]):
         """Applies 3-dimensionsal diffusion equations to instance shape.
         Requires lengths, time in seconds, and three diffusivities either
         explicitly passed here or as attributes of the WholeBlock object.
@@ -3885,7 +3827,7 @@ class WholeBlock():
                                           heights_instead=heights_instead,
                                           show_line_at_1=False,
                                           styles3=styles3points,
-                                          figsize=figsize, 
+                                          figsize=figsize, centered=centered,
                                           show_errorbars=show_errorbars)
                                           
                 if fig is False:
@@ -3895,20 +3837,23 @@ class WholeBlock():
                 fig = None
 
 
-            plot_3panels(xdiff, ydiff, show_line_at_1=True, 
-                             figaxis3=fig_ax,
-                             init=init, top=top,
-                             styles3=[style, style, style])
-#            for k in range(3):
-#                fig_ax[k].plot(xdiff[k], np.ones_like(x)*init, '--k')
+            styles.plot_3panels(xdiff, ydiff, show_line_at_1=True, 
+                                figaxis3=fig_ax, centered=centered,
+                                init=init, top=top,
+                                styles3=[style, style, style])
 
             # label diffusivities
             if labelD is True:
-                for k in range(3):
+                for k in xrange(3):
+                    if labelDx[k] is None:
+                        if centered is True:
+                            labelDx[k] = 0.
+                        else:
+                            labelDx[k] = self.lengths[k]/2.
                     dlabel = str(numformat.format(D3[k])) + ' m$^2$s$^{-1}$'
                     if labelDy is None:
                         labelDy = top-top*0.12
-                    fig_ax[k].text(0, labelDy, dlabel, 
+                    fig_ax[k].text(labelDx[k], labelDy, dlabel, 
                                     horizontalalignment='center',
                                     backgroundcolor='w')                              
    
