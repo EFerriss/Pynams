@@ -326,7 +326,7 @@ class Spectrum():
 
     def make_baseline(self, linetype='line', shiftline=0.02, 
                       show_fit_values=False, show_plot=False,
-                      size_inches=(3., 2.5)):
+                      size_inches=(3., 2.5), wn_low=None, wn_high=None):
         """Make baseline that is a spline (linetype='spline'; default),
         a line (linetype='line'), 
         or quadratic baseline (linetype='quadratic' with 
@@ -337,6 +337,13 @@ class Spectrum():
             check = self.start_at_zero()
             if check is False:
                 return False
+        
+        if wn_low is not None:
+            self.base_low_wn = wn_low
+        
+        if wn_high is not None:
+            self.base_high_wn = wn_high
+
         
         if shiftline is not None:
             yshift = shiftline
@@ -774,12 +781,13 @@ def make_filenames(classname=Spectrum, folder=default_folder,
             if obj.fname is not None and obj.filename is None:
                 obj.filename = ''.join((folder, obj.fname, file_ending))
 
-def water_from_spectra(list3, mineral_name='cpx',
+def water_from_spectra(list3, phase='cpx',
                        proper3=False, numformat='{:.0f}',
                        savebaselines=False, show_plots=True, 
                        bline_file_ending='-3baselines.CSV', 
                        folder=default_folder, delim=',', 
-                       calibration='Bell'):
+                       calibration='Bell', main_yshift=None,
+                       window_large=None, window_small=None):
     """Produce water estimate from list of FTIR spectra; 
     Default calibration is Bell et al. 1995, ideally using 
     3 spectra that are polarized in orthogonal directions (proper3=True)
@@ -808,10 +816,14 @@ def water_from_spectra(list3, mineral_name='cpx',
             print 'Showing spectrum for', spec.fname
             fig, ax = spec.plot_spectrum_outline()
             plt.plot(spec.wn, spec.abs_cm, **styles.style_spectrum) 
-        
-        main_yshift = spec.base_mid_yshift                        
-        window_large = spec.base_w_large
-        window_small = spec.base_w_small
+
+        # how much to shift each quadratic line
+        if main_yshift is None:        
+            main_yshift = spec.base_mid_yshift        
+        if window_large is None:
+            window_large = spec.base_w_large
+        if window_small is None:
+            window_small = spec.base_w_small
 
         if spec.abs_cm is None:
             spec.start_at_zero()
@@ -839,7 +851,7 @@ def water_from_spectra(list3, mineral_name='cpx',
         # list areas and water with uncertainties
         uarea = ufloat(np.mean(area_list), np.std(area_list))
         uarea_list.append(uarea)
-        uwater = area2water(uarea, mineral=mineral_name)
+        uwater = area2water(uarea, phase=phase)
 
         # Water estimate depends on if you are adding 3 areas 
         # or just multiplying by three and later averaging
@@ -1936,6 +1948,7 @@ class Profile():
                        peak_idx=None, top=1.2, wholeblock=False,
                        maximum_value=None, style=None,
                        heights_instead=False, 
+                       labelD=True, labelDx=None, labelDy=None,
                        initial_unit_value=1., final_unit_value=0.):
         """Plot diffusion curve with profile data."""
         if wholeblock is True and self.initial_profile is None:
@@ -1991,12 +2004,18 @@ class Profile():
         x_diffusion, y_diffusion = diffusion.diffusion1D_params(params)        
         ax.plot(x_diffusion, y_diffusion*scaling_factor)
             
-        # label diffusivity on plot        
-        strD = "{:.2f}".format(log10D_m2s) 
-        top = ax.get_ylim()[1]
-        ax.text(-microns/2., top-0.1*top, 
-                  ''.join(('  D=10$^{', strD, '}$ m$^2$/s')),
-                  ha='left', fontsize=12)                  
+        # label diffusivity on plot
+        if labelD is True:
+            if labelDx is None:
+                labelDx = -microns/2.
+            if labelDy is None:
+                top = ax.get_ylim()[1]
+                labelDy = top-0.1*top
+            strD = "{:.2f}".format(log10D_m2s) 
+            
+            ax.text(labelDx, labelDy,
+                    ''.join(('  D=10$^{', strD, '}$ m$^2$/s')), 
+                    ha='left', fontsize=12)                  
                   
         return fig, ax
 
@@ -2994,7 +3013,8 @@ class WholeBlock():
     def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, centered=True,
                            top=1.2, wn=None, figsize=(6.5, 2.5), 
                            show_spectra=True, percent_error=3., 
-                           xerror=50., styles3=[None, None, None],
+                           xerror=50., yerror=None, 
+                           styles3=[None, None, None],
                            use_area_profile_styles=True,
                            heights_instead=False, wholeblock=True,
                            show_line_at_1=True,
@@ -3040,6 +3060,7 @@ class WholeBlock():
                                 show_line_at_1=show_line_at_1,
                                 heights_instead=heights_instead,
                                 use_errorbar=show_errorbars,
+                                yerror=yerror,
                                 percent_error=percent_error,
                                 xerror=xerror, centered=centered)
             fig_ax3[1].set_title(tit)                                
@@ -3051,6 +3072,7 @@ class WholeBlock():
                                           heights_instead=heights_instead,
                                           use_errorbar=show_errorbars,
                                           percent_error=percent_error,
+                                          yerror=yerror,
                                           xerror=xerror, centered=centered)
             ax[1].set_title(tit)
             fig.set_size_inches(figsize)
@@ -3850,7 +3872,8 @@ class WholeBlock():
                             labelDx[k] = 0.
                         else:
                             labelDx[k] = self.lengths[k]/2.
-                    dlabel = str(numformat.format(D3[k])) + ' m$^2$s$^{-1}$'
+                    dlabel = ''.join(('logD ', str(numformat.format(D3[k])), 
+                                      ' m$^2$/s'))
                     if labelDy is None:
                         labelDy = top-top*0.12
                     fig_ax[k].text(labelDx[k], labelDy, dlabel, 

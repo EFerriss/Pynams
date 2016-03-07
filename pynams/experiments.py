@@ -29,16 +29,24 @@ style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
 style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
 style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
 
-def bubble_tower(panel='middle', monoxide_setting=40, 
-                 dioxide_setting=155.,
-                 target_log10fO2=-14., 
+def bubble_tower(panel='middle', minor_setting=40, 
+                 major_setting=155., major_gas='CO2',
+                 target_log10fO2=-14., minor_gas='CO',
                  furnace_diameter_inches=2.25,
                  max_flow_rate=4.0, figsize=(6,5)):
-    """For use in mixing CO and CO2 to control oxygen fugacity"""
+    """
+    For use estimating gas mixing ratios and settings for gas mixing 
+    furnace in Dave Walker's lab. 
     
-    # Flow rate measurements contained in dictionaries
-    # the dictionary keys are the needle valve settings
-    # the values are lists of flow rate measurements in mL / seconds
+    Required input: 
+        panel (left or middle - default),
+        minor gas (usually CO) minor_setting (default=40)
+        major gas (usually CO2) major_setting (default=155)
+        
+    Flow rate measurements are included in dictionaries.
+    The dictionary keys are the needle valve settings, and
+    the values are lists of flow rate measurements in mL / seconds
+    """
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot(111)
     ax.set_xlabel('Needle valve setting')
@@ -51,28 +59,55 @@ def bubble_tower(panel='middle', monoxide_setting=40,
     if panel == 'left':
         ax.set_xlim(0, 175)
 
-        monoxide[30] = [0.]
-        monoxide[40] = [0.5/13.5, 1./29.1]
-        monoxide[50] = [1./12.6]
-        monoxide[60] = [3./23.0]
-                
-        dioxide[100] = [50./78.4]
-        dioxide[125] = [50./28.3]
-        dioxide[150] = [50./17.9]
-        dioxide[170] = [50./14.1]
+        if major_gas == 'CO2':
+            monoxide[30] = [0.]
+            monoxide[40] = [0.5/13.5, 1./29.1]
+            monoxide[50] = [1./12.6]
+            monoxide[60] = [3./23.0]
+            monoxide[135] = [50./29.6]
+            monoxide[150] = [50./25.2]
+            monoxide[168] = [50./19.7]
+                    
+            dioxide[100] = [50./78.4]
+            dioxide[125] = [50./28.3]
+            dioxide[150] = [50./17.9]
+            dioxide[170] = [50./14.1]
+        elif major_gas == 'CO':
+            monoxide[100] = [10./15.2]
+            monoxide[145] = [50./27.6]
+            monoxide[173] = [50./18.4]
+
+            dioxide[60] = [5./17.2]
+            dioxide[70] = [10./21.8]
+            dioxide[80] = [20./29.0]
+            dioxide[90] = [20./21.3]
+            dioxide[100] = [30./23.8]
+            dioxide[115] = [30./18.0]
+            dioxide[116] = [40./32.1, 30./17.7]
+            dioxide[117] = [30./17.1, 30./17.7]
+            dioxide[119] = [50./29.4]
+            dioxide[168] = [50./14.5]
+            
+        else:
+            print 'major_gas either CO2 (default) or CO'
+            return
 
     elif panel == 'middle':
         ax.set_xlim(0, 150)
-        
-        monoxide[7] = [1./13.2] # jerky
-        monoxide[19] = [2./15.3]        
-        monoxide[30] = [5./25.1]
-        monoxide[40] = [5./18.8]
-        
-        dioxide[70] = [20./26.0, 20./25.6]
-        dioxide[100] = [40./27.55]
-        dioxide[145] = [50./18.4]
-        dioxide[150] = [50./14.4]
+
+        if major_gas == 'CO2':        
+            monoxide[7] = [1./13.2] # jerky
+            monoxide[19] = [2./15.3]        
+            monoxide[30] = [5./25.1]
+            monoxide[40] = [5./18.8]
+            
+            dioxide[70] = [20./26.0, 20./25.6]
+            dioxide[100] = [40./27.55]
+            dioxide[145] = [50./18.4]
+            dioxide[150] = [50./14.4]
+        else:
+            print 'Only CO2 as major gas on middle panel'
+            return
     else:
         print 'Valid entries for "panel" are left and middle'
         return
@@ -84,11 +119,11 @@ def bubble_tower(panel='middle', monoxide_setting=40,
     p_dioxide = np.polyfit(dioxide.keys(), dioxide.values(), 1)
     p_monoxide = np.polyfit(monoxide.keys(), monoxide.values(), 1)
 
+    # plot flow rate measurements
     ax.plot(dioxide.keys(), dioxide.values(), 'o', markerfacecolor='w',
             markeredgecolor='b', markeredgewidth=2, label='CO$_2$')
     ax.plot(monoxide.keys(), monoxide.values(), '^', markerfacecolor='w',
             markeredgecolor='r', markeredgewidth=2, label='CO')
-
     x = ax.get_xlim()
     ax.plot(x, np.polyval(p_dioxide, x), '-', color='b')
     ax.plot(x, np.polyval(p_monoxide, x), '-', color='r')
@@ -102,30 +137,52 @@ def bubble_tower(panel='middle', monoxide_setting=40,
     ax.text(x[0]+5, minflow+0.05, 'minimum flow rate for good mixing')
     ax.legend(loc=2)
     
-    yCO2 = np.polyval(p_dioxide, dioxide_setting)
-    ax.text(dioxide_setting, yCO2, '$\leftarrow*$', fontsize=18, 
-            rotation=90, ha='center', va='bottom')
+    if major_gas == 'CO2':
+        CO2_setting = major_setting
+        CO_setting = minor_setting       
+    else:
+        CO2_setting = minor_setting
+        CO_setting = major_setting
+        minor_gas = 'CO2'
 
-    yCO = np.polyval(p_monoxide, monoxide_setting)
-    ax.text(monoxide_setting, yCO, '$\leftarrow*$', fontsize=18, 
-            rotation=90, ha='center', va='bottom')
+    yCO2 = np.polyval(p_dioxide, CO2_setting)
+    yCO = np.polyval(p_monoxide, CO_setting)
 
-    ax.text(10., 2.0, ''.join(('CO$_2$ \nsetting ', 
-                               '{:.0f}'.format(dioxide_setting), '\n',
-                               '{:.2f}'.format(yCO2), ' mL/s')))
+    if major_gas == 'CO2':
+        major_flowrate = yCO2
+        minor_flowrate = yCO
+    else:
+        minor_gas = 'CO2'
+        major_flowrate = yCO
+        minor_flowrate = yCO2
+
+    # Arrows on data
+    ax.text(CO2_setting, yCO2, '$\leftarrow*$', fontsize=18, 
+            rotation=90, ha='center', va='bottom')
+    ax.text(CO_setting, yCO, '$\leftarrow*$', fontsize=18, 
+            rotation=90, ha='center', va='bottom')
     
-    ax.text(10., 1.3, ''.join(('CO \nsetting ', 
-                               '{:.0f}'.format(monoxide_setting), '\n',
-                               '{:.2f}'.format(yCO), ' mL/s')))
+    ax.text(10., 2.0, ''.join(('major gas ', major_gas, '\nsetting ', 
+                               '{:.0f}'.format(major_setting), '\n',
+                               '{:.2f}'.format(major_flowrate), ' mL/s')))
+    
+    ax.text(10., 1.3, ''.join(('minor gas ', minor_gas, '\nsetting ', 
+                               '{:.0f}'.format(minor_setting), '\n',
+                               '{:.2f}'.format(minor_flowrate), ' mL/s')))
 
+    ax.set_title(' '.join((panel, 'panel')))
     percentCO2 = 100. * yCO2 / (yCO2 + yCO)
     ax.text(10., 0.9, ''.join(('{:.2f}'.format(percentCO2), '% CO$_2$')))
 
 def fO2(celsius, bars=1., buffer_curve='QFM'):
-    """ oxygen fugacities
-    Regression of data from O’Neill (1987b) from Herd, 2008.
+    """ 
     Input is temperature in Celcius, pressure in bars (default is 1)
-    Output is log10 oxygen fugacity in bars"""
+    Output is log10 oxygen fugacity in bars for buffer_curve
+    QFM = quartz - fayalite - magnetite buffer (default)
+    NNO = Ni-NiO
+    IW = iron-wustite; Fe-FeO
+    Regression of data from O’Neill (1987b) from Herd, 2008.
+    """
     Kelvin = celsius + 273.15
 
     if buffer_curve == 'QFM':    
@@ -136,8 +193,12 @@ def fO2(celsius, bars=1., buffer_curve='QFM'):
         A = -24525.4
         B = 8.944
         C = 0.0
+    elif buffer_curve == 'IW':
+        A = -27489.
+        B = 6.702
+        C = 0.055
     else: 
-        print 'Only QFM and NNO supported for now'
+        print 'Only QFM, IW, and NNO supported for now'
         return False
         
     logfO2 = ((A / Kelvin) + B + (C * (bars-1.0) / Kelvin))

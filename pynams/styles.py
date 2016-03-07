@@ -18,6 +18,32 @@ style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3
 style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
                      'fillstyle' : 'none', 'linestyle' : 'none', 
                      'linewidth' : 1, 'alpha' : 1}
+style_points0 = {'color' : 'black', 'marker' : '.', 'markersize' : 1,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points1 = {'color' : 'blue', 'marker' : 's', 'markersize' : 4,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points2 = {'color' : 'green', 'marker' : 'o', 'markersize' : 5,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points3 = {'color' : 'red', 'marker' : 'v', 'markersize' : 4,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points4 = {'color' : 'purple', 'marker' : '^', 'markersize' : 6,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points5 = {'color' : 'orangered', 'marker' : 'd', 'markersize' : 5,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+
+
 
 #                'markerfacecolor' : 'w'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
@@ -137,8 +163,9 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
     
 def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], top=1.2, figaxis3=None, 
-                 show_line_at_1=True, init=1.,
-                 centered=True, percent_error=3., xerror=50.,
+                 show_line_at_1=True, init=1., 
+                 centered=True, 
+                 percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
                  use_errorbar=False):
     """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
@@ -195,8 +222,11 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
 
         else:
             if use_errorbar is True:
-                yerror = np.array(y) * percent_error/100.
-                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerror, 
+                if yerror is None:
+                    yerrorplot = np.array(y) * percent_error/100.
+                else:
+                    yerrorplot = np.ones_like(pos) * yerror
+                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
                                 **styles3[k])
             else:
                 axis3[k].plot(pos, y, **styles3[k])

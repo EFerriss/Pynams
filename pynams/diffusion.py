@@ -304,7 +304,7 @@ def params_setup3D(microns3, log10D3, time_seconds,
     return params
 
 def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', need_to_center_x_data=True,
+                 erf_or_sum='erf', centered=True, 
                  infinity=100, points=50):
     """ Diffusion in 3 dimensions in a rectangular parallelipiped.
     Takes params - Setup parameters with params_setup3D.
@@ -402,7 +402,10 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
     slice_positions_microns = []
     for k in range(3):
         a = L3_microns[k] / 2.
-        x = np.linspace(0, a*2., points)
+        if centered is False:            
+            x = np.linspace(0, a*2., points)
+        else:
+            x = np.linspace(-a, a, points)
         slice_positions_microns.append(x)
           
     # Returning full matrix and 
@@ -417,7 +420,8 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         return residuals
 
 def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
-                    initial=1, final=0., top=1.2, plot3=True):
+                    initial=1, final=0., top=1.2, plot3=True, centered=True,
+                    styles3=[None]*3, figaxis3=None):
         """
         Required input:
         list of 3 lengths, list of 3 diffusivities, and time 
@@ -439,11 +443,23 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
                                                                 
-        v, y, x = diffusion3Dnpi_params(params, points=points)
-        
+        v, y, x = diffusion3Dnpi_params(params, points=points, centered=False)
+
+        if centered is True:
+            for idx in xrange(3):
+                x[idx] = x[idx] - lengths_microns[idx]        
+
         if plot3 is True:
-            f, ax = styles.plot_3panels(x, y, top=top)
-            return f, ax, v, x, y
+            try:
+                f, ax = styles.plot_3panels(x, y, figaxis3=figaxis3, 
+                                            top=top, centered=centered,
+                                            styles3=styles3, 
+                                            lengths=lengths_microns)
+                return f, ax, v, x, y
+            except(TypeError):
+                print
+                print 'TypeError: problem in plot_3panels()'
+                
         else:
             return v, x, y
             
@@ -463,7 +479,8 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     ### Need to add in all the keywords ###
     v, sliceprofiles, slicepositions = diffusion3Dnpi_params(params, 
                     points=points, erf_or_sum=erf_or_sum,
-                    need_to_center_x_data=need_to_center_x_data)
+#                    need_to_center_x_data=need_to_center_x_data
+                    )
 
     
     # Fitting to data or not? Default is not
