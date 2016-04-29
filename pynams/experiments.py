@@ -19,7 +19,7 @@ import numpy as np
 
 plt.style.use('paper') # my personal style sheet
 
-GAS_CONSTANT = constants.physical_constants['molar gas constant'][0]
+GAS_CONSTANT = constants.physical_constants['molar gas constant'][0] # J/molK
 FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
 
 style_pressure_medium = {'hatch' : 'O', 'facecolor' : 'lightgrey'}
@@ -28,6 +28,57 @@ style_MgO = {'hatch' : '..', 'facecolor' : 'white'}
 style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
 style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
 style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
+
+def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
+             printout=True):
+    """Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
+    See Table 3 of Denis et al. 2013"""
+    if phase == 'Fo90':
+        H_to_1_ppm = 16.35
+    elif phase == 'opx':
+        H_to_1_ppm = 11.49
+    elif phase == 'cpx':
+        H_to_1_ppm = 11.61
+    else:
+        print 'Valid options for phase are Fo90, opx, and cpx'
+        return
+      
+    if from_unit == 'H/10^6 Si':
+        if to_unit == 'ppm H2O':
+            new_conc = conc / H_to_1_ppm
+        elif to_unit == 'per m3':
+            new_conc = conc * (1.0/308.67) * (1e30)
+        else:
+            print 'only going to units "ppm H2O" and "per m3"'
+            return
+        
+    elif from_unit == 'ppm H2O':
+        if to_unit == 'H/10^6 Si':
+            new_conc = conc * H_to_1_ppm
+        elif to_unit == 'per m3':
+            new_conc = (conc * H_to_1_ppm) * (1.0/308.67) * (1e30)
+        else:
+            print 'only going to "H/10^6 Si" or "per m3"'
+            return
+            
+    elif from_unit == 'per m3':
+        if to_unit == 'H/10^6 Si':
+            new_conc = conc / ((1.0/308.67) * (1e30))
+        elif to_unit == 'ppm H2O':
+            new_conc = (conc / ((1.0/308.67) * (1e30))) / H_to_1_ppm
+        else:
+            print 'only going to "H/10^6 Si" or "ppm H2O"'
+            return
+        
+    else:
+        print 'Only going from H/10^6 Si, ppm H2O, and per m3 for now'
+        return
+        
+    if printout is True:
+        output = ' '.join(('{:.2f}'.format(conc), from_unit, '=', 
+                           '{:.2f}'.format(new_conc), to_unit, 'for', phase))
+        print output
+    return new_conc
 
 def bubble_tower(panel='middle', minor_setting=40, 
                  major_setting=155., major_gas='CO2',
@@ -499,3 +550,4 @@ def pressure_design(capsule_material = 'copper',
     else:
         plt.subplots_adjust(right=0.9, left=0.17, bottom=0.15, top=0.9)
     return fig, ax
+    

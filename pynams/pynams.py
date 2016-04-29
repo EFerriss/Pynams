@@ -1,5 +1,9 @@
 """
 FTIR class definitions and functions for processing and plotting FTIR spectra
+that are saved in .CSV format either on their own, as profiles, and/or
+ in groups of three othogonal profiles ('whole-block' data).
+Also includes some diffusion modeling (pynams.diffusion) and 
+using my style preferences (pynams.styles).
 
 The main unit is a class called Spectrum, which includes attributes 
 such as sample thickness and lists of wavenumbers and absorbances. 
@@ -7,38 +11,11 @@ A few defaults are set up that are geared toward H in nominally anhydrous
 minerals (NAMs) such a plotting wavenumber range from 3000 to 4000 /cm and
 creating baselines between 3200 and 3700 /cm. 
 
-More detailed instructions and examples are to be written. For an example 
-of how to instantiate these classes, check out my_spectra.py in my 
-CpxCode GitHub repository.
-
 Copyright (c) 2015 Elizabeth Ferriss
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 
 This software was developed using Python 2.7.
 
 """
-#### NOTE: plot_3panels and plot_3panels_outline have been copied
-#### to a separate module called styles.py. This code here could be simplified 
-#### by calling to that instead.
-
-## import necessary python modules
 import styles
 import diffusion
 import gc
@@ -59,11 +36,10 @@ from scipy import signal as scipysignal
 import scipy.interpolate as interp
 
 #%%
-# Optional: Set default folder where to find and/or save files for use with 
-# functions like save_spectrum and save_baseline. Eventually I will get 
-# rid of this, but for now having it hard-coded here is helpful for me.
+# Set default folder where to find and/or save files for use with 
+# functions like save_spectrum and save_baseline. 
 default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
-
+#default_folder = 'FTIR_CSV_FILES\\'
 
 def make_line_style(direction, style_marker):
     """Take direction and marker style and return line style dictionary
@@ -80,7 +56,6 @@ def make_line_style(direction, style_marker):
     d.update({'linewidth' : 2})
     return d
     
-
 # Define classes, attributes, and functions related to samples
 class Sample():    
     def __init__(self, thickness_microns=None, IGSN=None, 
@@ -134,25 +109,29 @@ def area2water(area_cm2, phase='cpx', calibration='Bell'):
 # Define classes and functions related to FTIR spectra        
 class Spectrum():
     def __init__(self, fname=None, sample=None, filename=None,
-                 thick_microns=None, wn_high=4000, wn_low=3000,
-                 base_low_wn = 3200, base_high_wn = 3700):
+                 thick_microns=None, 
+                 base_low_wn=3200, base_high_wn=3700,
+                 base_mid_wn=3450, polar=None, other_name=None,
+                 folder=default_folder, filetype='.CSV'):
         self.fname = fname
         self.sample = sample
         self.filename = filename
         self.thick_microns = thick_microns
-        self.wn_high = wn_high
-        self.wn_low = wn_low
         self.base_high_wn = base_high_wn
         self.base_low_wn = base_low_wn
+        self.base_mid_wn = base_mid_wn
+        self.polar = polar 
+        self.other_name = other_name
+        self.folder = folder
+        self.filetype = filetype
         
         if self.filename is None and self.fname is not None:
-            self.filename = default_folder + self.fname + '.CSV'
+            self.filename = self.folder + self.fname + self.filetype
 
     # full range of measured wavenumber and absorbances
     wn_full = None
     abs_full_cm = None
-    wn = None
-    abs_cm = None
+
     # other metadata with a few defaults
     raypath = None
     polar = None
@@ -170,7 +149,6 @@ class Spectrum():
     base_wn = None
     base_abs = None
     # need these for quadratic baseline
-    base_mid_wn = 3450
     base_mid_yshift = 0.04
     base_w_small = 0.02
     base_w_large = 0.02
@@ -185,7 +163,7 @@ class Spectrum():
     peak_areas = None
     peakshape = None        
     # Experimental information if applicable
-    temperature_celcius = None
+    temperature_celsius = None
     time_seconds = None
     D_area_wb = None
    
@@ -224,8 +202,6 @@ class Spectrum():
                    linetype='line', shiftline=0.):
         """Locate wavenumbers of npeaks number of most prominent peaks
         in wavenumber range of interest wn_high to wn_low"""
-#        print ''.join((str(npeaks), ' most prominent bands between wavenumbers ', 
-#                       str(self.wn_high), ' and ', str(self.wn_low), ' /cm2:'))
         if self.abs_nobase_cm is None:
             self.make_baseline(linetype=linetype, 
                                shiftline=shiftline, show_plot=False)
@@ -250,6 +226,13 @@ class Spectrum():
         list_abs_to_average = []
         list_wn = []
         for sp in spectra_list:
+            sp.filename = folder + sp.fname + '.CSV'
+            if os.path.isfile(sp.filename) is False:
+                print sp.filename
+                print 'File not found'
+                print
+                return False
+                                  
             if sp.abs_full_cm is None:
                 check = sp.divide_by_thickness(folder=folder)
                 if check is False:
@@ -261,8 +244,9 @@ class Spectrum():
         waven = np.mean(list_wn, axis=0)
         self.wn_full = waven
         self.abs_full_cm = ave_abs
+        self.start_at_zero()
     
-    def divide_by_thickness(self, delim=',', folder=default_folder):
+    def divide_by_thickness(self, folder=default_folder):
         """Divide raw absorbance by thickness"""
         if self.thick_microns is None:
             check = self.set_thick()
@@ -273,22 +257,31 @@ class Spectrum():
             print 'Need .fname to know what to call saved file'
             return False
             
+        # Get the data from the file
         if self.filename is None:
-            make_filenames(folder=folder)
-          
+            self.filename = folder + self.fname + self.filetype
+
         if os.path.isfile(self.filename):
-            signal = np.loadtxt(self.filename, delimiter=delim)
+            if self.filetype == '.CSV':
+                signal = np.loadtxt(self.filename, delimiter=',')
+            elif self.filetype == '.txt':
+                try:
+                    signal = np.loadtxt(self.filename, delimiter='\t', 
+                                        dtype=None) 
+                except ValueError:
+                    print '\nProblem reading this file format'
+                    return False
+            else:
+                print 'check filetype'
         else:
             print 'There is a problem finding the file.'
             print 'You may need to run pynams.make_filenames(folder=)'
             print 'filename =', self.filename
             return False
-        
-        # Make sure wavenumber is ascending
-        if signal[0, 0] > signal[-1, 0]:
-            print 'WARNING: need to reverse wavenumber progression'
-            # from operator import itemgetter
-            # sig = sorted(signal, key=itemgetter(1))
+
+        # sort signal by wavenumber
+        signal = signal[signal[:,0].argsort()]
+
         self.wn_full = signal[:, 0]
         self.abs_raw = signal[:, 1]
         # Convert from numpy.float64 to regular python float
@@ -300,41 +293,42 @@ class Spectrum():
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
 
-    def start_at_zero(self, folder=default_folder):
+    def start_at_zero(self, folder=default_folder,
+                      wn_xlim_left=4000., wn_xlim_right=3000.):
         """Divide raw absorbance by thickness and
-        shift minimum to 0 within specified wavenumber range """
+        shift minimum to 0 within specified wavenumber range specified
+        by wn_xlim_left and _right"""
         if self.abs_full_cm is None:
             check = self.divide_by_thickness(folder=folder)
             if check is False:
                 return False
 
-        # print 'Setting to zero in range of interest wn, abs_cm'
-        index_lo = (np.abs(self.wn_full-self.wn_low)).argmin()
-        index_hi = (np.abs(self.wn_full-self.wn_high)).argmin()
+        index_lo = (np.abs(self.wn_full-wn_xlim_right)).argmin()
+        index_hi = (np.abs(self.wn_full-wn_xlim_left)).argmin()
 
         indices = range(index_lo, index_hi, 1)
-        self.wn = self.wn_full[indices]
+
         try: 
-            self.abs_cm = self.abs_full_cm[indices] - min(self.abs_full_cm[indices])
+            self.abs_full_cm = self.abs_full_cm - min(self.abs_full_cm[indices])
         except ValueError:
             print 'There was a problem.'
-            print 'index_lo at wn', self.wn_low, ':', index_lo
-            print 'index_hi at wn', self.wn_high, ':', index_hi
-            return False
-        
-        return self.abs_cm
+            print 'index_lo at wn', wn_xlim_right, ':', index_lo
+            print 'index_hi at wn', wn_xlim_left, ':', index_hi
+            return False        
+        return self.abs_full_cm
 
     def make_baseline(self, linetype='line', shiftline=0.02, 
                       show_fit_values=False, show_plot=False,
-                      size_inches=(3., 2.5), wn_low=None, wn_high=None):
+                      size_inches=(3., 2.5), wn_low=None, wn_high=None,
+                      folder=default_folder):
         """Make baseline that is a spline (linetype='spline'; default),
         a line (linetype='line'), 
         or quadratic baseline (linetype='quadratic' with 
         argmument shiftline determining extent of curvature) 
         and return baseline absorption curve. Shiftline value determines
         how much quadratic deviates from linearity"""
-        if self.abs_cm is None:
-            check = self.start_at_zero()
+        if self.abs_full_cm is None:
+            check = self.start_at_zero(folder=folder)
             if check is False:
                 return False
         
@@ -343,19 +337,18 @@ class Spectrum():
         
         if wn_high is not None:
             self.base_high_wn = wn_high
-
         
         if shiftline is not None:
             yshift = shiftline
         else:
             yshift = self.base_mid_yshift
             
-        index_lo = (np.abs(self.wn-self.base_low_wn)).argmin()
-        index_hi = (np.abs(self.wn-self.base_high_wn)).argmin()        
-        self.base_wn = self.wn[index_lo:index_hi]
+        index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
+        index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()        
+        self.base_wn = self.wn_full[index_lo:index_hi]
         
-        x = np.array([self.wn[index_hi], self.wn[index_lo]])
-        y = np.array([self.abs_cm[index_hi], self.abs_cm[index_lo]])
+        x = np.array([self.wn_full[index_hi], self.wn_full[index_lo]])
+        y = np.array([self.abs_full_cm[index_hi], self.abs_full_cm[index_lo]])
         p = np.polyfit(x, y, 1)
         
         if linetype == 'line':
@@ -371,10 +364,10 @@ class Spectrum():
             base_abs = np.polyval(p2, self.base_wn)
         elif linetype == 'spline':
             idx_max = self.wn.argmax()
-            xinterp = np.concatenate((self.wn[0:index_lo], 
-                                      self.wn[index_hi:idx_max]))
-            yinterp = np.concatenate((self.abs_cm[0:index_lo], 
-                                      self.abs_cm[index_hi:idx_max]))
+            xinterp = np.concatenate((self.wn_full[0:index_lo], 
+                                      self.wn_full[index_hi:idx_max]))
+            yinterp = np.concatenate((self.abs_full_cm[0:index_lo], 
+                                      self.abs_full_cm[index_hi:idx_max]))
             f = interp.interp1d(xinterp, yinterp, kind = 'cubic')
             base_abs = f(self.base_wn)
         else:
@@ -389,13 +382,20 @@ class Spectrum():
         return base_abs
 
     def subtract_baseline(self, linetype='line', bline=None, 
-                          show_plot=False, shiftline=0.02):
+                          show_plot=False, shiftline=0.02, yhigh=0.1,
+                          wn_low=None, wn_high=None,):
         """Make baseline and return baseline-subtracted absorbance.
         Preferred baseline used is (1) input bline, (2) self.base_abs, 
         (3) created based on linetype information"""
-        if self.wn is None:
+        if self.wn_full is None:
             self.start_at_zero()
         
+        if wn_low is not None:
+            self.base_low_wn = wn_low
+        
+        if wn_high is not None:
+            self.base_high_wn = wn_high
+
         if bline is not None:
             base_abs = bline
         elif self.base_abs is not None:
@@ -405,10 +405,10 @@ class Spectrum():
             print 'Making', linetype, 'baseline'
             base_abs = self.make_baseline(linetype=linetype, shiftline=shiftline)
         
-        index_lo = (np.abs(self.wn-self.base_low_wn)).argmin()
-        index_hi = (np.abs(self.wn-self.base_high_wn)).argmin()
-            
-        humps = self.abs_cm[index_lo:index_hi]
+        index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
+        index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()
+#            
+        humps = self.abs_full_cm[index_lo:index_hi]
 
         # length check
         if len(humps) > len(base_abs):
@@ -431,9 +431,8 @@ class Spectrum():
         # plotting
         if show_plot is True:
             fig, ax = self.plot_spectrum_outline()
-            plt.plot(self.wn, self.abs_cm, **styles.style_spectrum) 
+            plt.plot(self.wn_full, self.abs_full_cm, **styles.style_spectrum) 
             ax.plot(self.base_wn, base_abs, **styles.style_baseline)
-            yhigh = max(self.abs_cm) + 0.1*max(self.abs_cm)
             if min(base_abs) > 0:
                 ylow = 0
             else:
@@ -443,13 +442,12 @@ class Spectrum():
             
         return abs_nobase_cm
 
-    def area_under_curve(self, linetype='line', area_plot=True, shiftline=0.02,
+    def area_under_curve(self, linetype='line', show_plot=True, shiftline=0.02,
                          printout=True, numformat='{:.1f}', 
                          require_saved_baseline=False):
         """Returns area under the curve in cm^2"""
         if require_saved_baseline is True:
             self.get_baseline()
-            return
 
         if (self.base_high_wn is None) or (self.base_low_wn is None):
             print 'Need to specify spectrum baseline wavenumber range'
@@ -460,12 +458,12 @@ class Spectrum():
             print 'Making baseline...'
             abs_baseline = self.make_baseline(linetype, shiftline)
         else:
-            print ('Using previously fit baseline. ' + 
-                   'Use make_baseline to change it.')
+#            print ('Using previously fit baseline. ' + 
+#                   'Use make_baseline to change it.')
             abs_baseline = self.base_abs
 
         abs_nobase_cm = self.subtract_baseline(bline=abs_baseline,
-                                               show_plot=area_plot)
+                                               show_plot=show_plot)
 
         dx = self.base_high_wn - self.base_low_wn
         dy = np.mean(abs_nobase_cm)
@@ -559,12 +557,14 @@ class Spectrum():
     def get_baseline(self, folder=default_folder, delim=',', 
                 bline_file_ending='-baseline.CSV'):
         """Get baseline and -subtracted spectrum saved using save_baseline().
-        Same data that goes into MATLAB FTIR_peakfit_loop.m"""
+        Same data that goes into MATLAB FTIR_peakfit_loop.m
+        Returns baseline absorbances and baseline-subtracted absorbances. 
+        For wavenumber range, it sets spectrum's base_wn attribute"""
         filename = folder + self.fname + bline_file_ending
         if os.path.isfile(filename) is False:
-            print ' '
-            print self.fname            
-            print 'use save_baseline() to make -baseline.CSV'
+#            print ' '
+#            print self.fname            
+#            print 'use save_baseline() to make -baseline.CSV'
             return
         data = np.genfromtxt(filename, delimiter=',', dtype='float', 
                              skip_header=1)
@@ -629,19 +629,47 @@ class Spectrum():
             summed_spectrum += peakfitcurves[k]            
         return peakfitcurves, summed_spectrum
     
-    def plot_spectrum_outline(self, size_inches=(3., 2.5), shrinker=0.15):
+    def ylim_picker(self, wn_xlim_left, wn_xlim_right, pad_top=0.1, 
+                    pad_bot=0.):
+        """Returns reasonable min and max values for y-axis of
+        plots based on the absorbance values for the specified wavenumber
+        range and padded top and bottom with pad variable"""
+        if self.wn_full is None:
+            self.start_at_zero()
+            
+        idx_lo = (np.abs(self.wn_full-wn_xlim_right)).argmin()
+        idx_hi = (np.abs(self.wn_full-wn_xlim_left)).argmin()
+        
+        if self.abs_full_cm is None:
+            self.start_at_zero(wn_xlim_left=wn_xlim_left,
+                               wn_xlim_right=wn_xlim_right)
+        y = self.abs_full_cm[idx_lo:idx_hi]
+
+        bottom = min(y) 
+        top = max(y)
+        ylow = bottom - pad_bot
+        yhigh = top + pad_top
+
+        return ylow, yhigh
+          
+    def plot_spectrum_outline(self, size_inches=(3., 2.5), shrinker=0.15,
+                              figaxis=None, wn_xlim_left=4000., 
+                              wn_xlim_right=3000., pad_top=0.1, 
+                              pad_bot=0.):
         """Make standard figure outline for plotting FTIR spectra"""
-        f, ax = plt.subplots(figsize=size_inches)
+        if figaxis is None:
+            f, ax = plt.subplots(figsize=size_inches)
+        else:
+            ax = figaxis
         ax.set_xlabel('Wavenumber (cm$^{-1})$')
         ax.set_ylabel('Absorbance (cm$^{-1})$')
         ax.set_title(self.fname)
-        ax.set_xlim(self.wn_high, self.wn_low)
-        if self.abs_cm is None:
-            self.start_at_zero()
+        ax.set_xlim(wn_xlim_left, wn_xlim_right)
         ax.grid()
-        pad = max(self.abs_cm)
-        yhigh = pad + 0.1*pad
-        ylow = min(self.abs_cm) - 0.1*pad
+
+        ylow, yhigh = self.ylim_picker(wn_xlim_left=wn_xlim_left,
+                                       wn_xlim_right=wn_xlim_right, 
+                                       pad_top=pad_top, pad_bot=pad_bot)
         ax.set_ylim(ylow, yhigh)
         
         box = ax.get_position()
@@ -651,18 +679,24 @@ class Spectrum():
                          box.height*(1.0-shrinker)])
 
         plt.setp(ax.get_xticklabels(), rotation=45)
-        return f, ax
+        
+        if figaxis is None:
+            return f, ax
 
-    def plot_spectrum(self, style=styles.style_spectrum, figaxis=None, wn=None,
-                      size_inches=(3., 2.5), label=None, offset=0.):
+    def plot_spectrum(self, style=styles.style_1, figaxis=None, wn=None,
+                      size_inches=(3., 2.5), label=None, offset=0., 
+                      wn_xlim_left=4000., wn_xlim_right=3000., 
+                      pad_top=0.1, pad_bot=0.):
         """Plot the raw spectrum divided by thickness"""
-        if self.wn is None:
+        if self.wn_full is None:
             check = self.start_at_zero()
             if check is False:
                 return
 
         if figaxis is None:
-            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
+            fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
+                                                 wn_xlim_left=wn_xlim_left,
+                                                 wn_xlim_right=wn_xlim_right)
         else:
             fig = None
             ax = figaxis
@@ -673,10 +707,15 @@ class Spectrum():
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
         
-        ax.plot(self.wn, self.abs_cm + offset, **style_to_use)
+        ax.plot(self.wn_full, self.abs_full_cm + offset, **style_to_use)
         
-        if wn is not None:
-            ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], color='r')
+        ax.set_xlim(wn_xlim_left, wn_xlim_right)
+        
+        ylow, yhigh = self.ylim_picker(wn_xlim_left=wn_xlim_left,
+                                       wn_xlim_right=wn_xlim_right, 
+                                       pad_top=pad_top, pad_bot=pad_bot)
+        ax.set_ylim(ylow, yhigh)
+
         return fig, ax
     
     def plot_peakfit(self, style=styles.style_spectrum, stylesum=styles.style_summed, 
@@ -711,11 +750,13 @@ class Spectrum():
                           wn_baseline=None, abs_baseline=None, 
                           style=styles.style_spectrum, style_base=styles.style_baseline,
                           figaxis=None, label=None, size_inches=(3., 2.5),
-                          offset=0.0):
+                          offset=0.0, wn_xlim_left=4000, wn_xlim_right=3000.):
         """Plot FTIR spectrum and show baseline. 
         You can pass in your own baseline"""
         if figaxis is None:
-            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
+            fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
+                                                 wn_xlim_left=wn_xlim_left,
+                                                 wn_xlim_right=wn_xlim_right)
         else:
             fig = None
             ax = figaxis
@@ -743,7 +784,7 @@ class Spectrum():
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
             
-        ax.plot(self.wn, self.abs_cm + offset, **style_to_use)
+        ax.plot(self.wn_full, self.abs_full_cm + offset, **style_to_use)
         ax.plot(wn_baseline, abs_baseline + offset, **style_base)
         return fig, ax
 
@@ -778,8 +819,11 @@ def make_filenames(classname=Spectrum, folder=default_folder,
     for all Spectra() with fname but no filename."""
     for obj in gc.get_objects():
         if isinstance(obj, classname):
-            if obj.fname is not None and obj.filename is None:
-                obj.filename = ''.join((folder, obj.fname, file_ending))
+            try:
+                if obj.fname is not None and obj.filename is None:
+                    obj.filename = ''.join((folder, obj.fname, file_ending))
+            except AttributeError:
+                print 'just chill, ok?'
 
 def water_from_spectra(list3, phase='cpx',
                        proper3=False, numformat='{:.0f}',
@@ -787,7 +831,7 @@ def water_from_spectra(list3, phase='cpx',
                        bline_file_ending='-3baselines.CSV', 
                        folder=default_folder, delim=',', 
                        calibration='Bell', main_yshift=None,
-                       window_large=None, window_small=None):
+                       window_large=None, window_small=None, yhigh=1.):
     """Produce water estimate from list of FTIR spectra; 
     Default calibration is Bell et al. 1995, ideally using 
     3 spectra that are polarized in orthogonal directions (proper3=True)
@@ -815,7 +859,7 @@ def water_from_spectra(list3, phase='cpx',
         if show_plots is True:
             print 'Showing spectrum for', spec.fname
             fig, ax = spec.plot_spectrum_outline()
-            plt.plot(spec.wn, spec.abs_cm, **styles.style_spectrum) 
+            plt.plot(spec.wn_full, spec.abs_full_cm, **styles.style_spectrum) 
 
         # how much to shift each quadratic line
         if main_yshift is None:        
@@ -825,7 +869,7 @@ def water_from_spectra(list3, phase='cpx',
         if window_small is None:
             window_small = spec.base_w_small
 
-        if spec.abs_cm is None:
+        if spec.abs_full_cm is None:
             spec.start_at_zero()
         # Generate list of 3 possible areas under the curve
         area_list = np.array([])
@@ -862,7 +906,6 @@ def water_from_spectra(list3, phase='cpx',
         # I show() the figures explicitly in this first loop because
         # otherwise they show up inline *after* all the printed output
         if show_plots is True:
-            yhigh = max(spec.abs_cm) + 0.1*max(spec.abs_cm)
             if min(base_abs) > 0:
                 ylow = 0
             else:
@@ -921,24 +964,46 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    def __init__(self, profile_name=None, 
+    def __init__(self, profile_name=None, time_seconds=None, spectra_list = [],
                  fname_list=[], positions_microns = np.array([]),
-                 sample=None, direction=None, raypath=None,
-                 initial_profile=None):
+                 sample=None, direction=None, raypath=None, short_name=None,
+                 initial_profile=None, base_low_wn=None, base_high_wn=None,
+                 diffusivity_log10m2s=None, diff_error=None,
+                 peak_diffusivities=[], peak_diff_error=[]):
         """fname_list = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
-        info contained in sample's twoA_list, twoB_list, and twoC_list"""
+        info contained in sample's twoA_list, twoB_list, and twoC_list.
+        base_low_wn and base_high_wn can be used to set the wavenumber
+        range of the baseline for the spectra.
+        
+        """
         self.profile_name = profile_name
+        self.spectra_list = spectra_list
         self.fname_list = fname_list
         self.positions_microns = positions_microns
         self.sample = sample
         self.direction = direction
         self.raypath = raypath
         self.initial_profile = initial_profile
+        self.short_name = short_name
+        self.time_seconds = time_seconds
+        self.diffusivity_log10m2s = diffusivity_log10m2s
+        self.diff_error = diff_error
+        self.peak_diffusivities = peak_diffusivities
+        self.peak_diff_error = peak_diff_error
 
-        if (self.fname_list is not None) and (self.sample is not None):
-            self.make_spectra_list()
-        
+#        if (self.fname_list is not None) and (self.sample is not None):
+        if base_low_wn is not None:
+            for spectrum in self.spectra_list:
+                spectrum.base_low_wn = base_low_wn
+
+        if base_high_wn is not None:
+            for spectrum in self.spectra_list:
+                spectrum.base_low_wn = base_high_wn
+
+
+#        self.make_spectra_list()
+
     short_name = None # short string for saving diffusivities, etc.
     
     # for constructing whole-block profiles
@@ -946,7 +1011,7 @@ class Profile():
     # The actual list of spectra is made automatically by make_spectra_list.
     # Set spectrum_class_name to use non-default spectra classes
     # e.g., to set different baseline limits consistently
-    spectra_list = [] # 
+    spectra_list = []
     spectrum_class_name = None 
     avespec = None # averaged spectra made by self.average_spectra()
     iavespec = None # initial averaged spectra
@@ -959,7 +1024,6 @@ class Profile():
     # Bulk whole-block 3D-WB information and diffusivities if applicable
     wb_areas = None 
     wb_water = None
-    time_seconds = None
     # for plotting 
     style_base = styles.style_profile
     style_x_marker = None
@@ -1073,10 +1137,13 @@ class Profile():
             print 'profile_name', self.profile_name
             print 'make_spectra_list needs thick_microns or sample attribute'
             return False
-            
-        if (self.raypath is not None) and (self.raypath == self.direction):
-            print "raypath cannot be the same as profile direction"
-            return False
+        
+        try:
+            if (self.raypath is not None) and (self.raypath == self.direction):
+                print "raypath cannot be the same as profile direction"
+                return False
+        except AttributeError:
+            self.raypath = None
 
         if self.thick_microns is None:
             check = self.set_thick()
@@ -1184,8 +1251,8 @@ class Profile():
         # Plot average spectra together
         if initial_and_final_together is True:
             f, ax = avespec.plot_spectrum_outline()
-            ax.plot(avespec.wn, avespec.abs_cm, label='Final', **style)
-            ax.plot(initspec.wn, initspec.abs_cm, label='Initial', **stylei)            
+            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
+            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
             ax.legend()
             tit = self.profile_name + '\nAverage profiles'
             ax.set_title(tit)
@@ -1206,7 +1273,9 @@ class Profile():
                        wn_high=3700., wn_low=3200., 
                        show_fit_values=False, show_plot=False,
                        size_inches=(3., 2.5)):
-        """Make baselines for all final and initial spectra in profile"""      
+        """Make baselines for all final and initial spectra in profile"""
+        if len(self.spectra_list) < 1:
+            self.make_spectra_list()
         for spectrum in self.spectra_list:
             spectrum.base_high_wn = wn_high
             spectrum.base_low_wn = wn_low
@@ -2329,12 +2398,18 @@ class Profile():
 #
 
 class TimeSeries(Profile):
-    times_hours = []
-    style_base = styles.style_points
+    def __init__(self, sample=None, fname_list=[], time_hours=[],
+                 thick_microns=None, style_base=styles.style_points):
+        self.sample = sample
+        self.thick_microns = thick_microns
+        self.fname_list = fname_list
+        self.times_hours = time_hours
+        self.style_base = style_base        
+        self.make_spectra_list()
     
     def plot_timeseries(self, y=None, peak_idx=None, tit=None, D_list=[], 
                         thickness_microns=None, max_hours=None,
-                        style=None, idx_C0=0): 
+                        style=None, idx_C0=0, figaxis=None): 
         """Plot and return figure and axis of time-series data and
         all diffusivities in D_list in m2/s
         """
@@ -2347,12 +2422,16 @@ class TimeSeries(Profile):
         if style is None:
             style = self.style_base
     
-        fig = plt.figure()
-        fig.set_size_inches(3, 3)
-        ax = fig.add_subplot(111)
+        if figaxis is None:
+            fig = plt.figure()
+            fig.set_size_inches(3, 3)
+            ax = fig.add_subplot(111)
+            fig.autofmt_xdate()
+        else:
+            ax = figaxis
+            
         ax.set_xlabel('Time (hours)', fontsize=12)
         ax.set_ylabel('Concentration/\nMaximum Concentration', fontsize=12)
-        fig.autofmt_xdate()
         ax.set_xlim(0, max_hours)
 
         # curves for diffusivities in D_list    
@@ -2368,15 +2447,16 @@ class TimeSeries(Profile):
             if peak_idx is None:
                 if len(self.areas_list) < 1:
                     self.make_area_list()
-                C = self.areas_list    
+                C = self.areas_list
             else:
                 print 'not ready for peak-specific yet'
             C0 = C[idx_C0]
             y = np.array(C) / C0
-    
         
         ax.plot(x, y, **style)
-        return fig, ax
+        
+        if figaxis is None:
+            return fig, ax
 
 
 
@@ -2780,25 +2860,19 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
 #%% Group profiles together as whole-block unit
 class WholeBlock():
     def __init__(self,profiles=[], name='', peakfit=False, 
-                 make_wb_areas=False):
+                 make_wb_areas=False, time_seconds=None, worksheetname=None,
+                 style_base = None, temperature_celsius=None,
+                 diffusivities_log10_m2s=None,
+                 diffusivity_errors=None):
         self.profiles = profiles
         self.name = name
+        self.time_seconds = time_seconds
+        self.worksheetname = worksheetname
+        self.style_base = style_base
+        self.temperature_celsius = temperature_celsius
         
         if len(self.profiles) > 0:
             self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas)
-
-#    # generated by setupWB below
-#    directions = None
-#    raypaths = None
-#    initial_profiles = None
-#    lengths = None
-    # optional for diffusion work and plotting
-    style_base = None
-    time_seconds = None
-    temperature_celcius = None
-    diffusivities_log10_m2s = None # to be phased out
-    diffusivity_errors = None # to be phased out
-    worksheetname = None
                 
     def setupWB(self, peakfit=False, make_wb_areas=False):
         """Sets up and checks WholeBlock instance
@@ -2824,14 +2898,16 @@ class WholeBlock():
             d.append(prof.direction)
             r.append(prof.raypath)
             L.append(prof.set_len())
+            
+            prof.time_seconds = self.time_seconds
 
             if prof.positions_microns is None:
                 print 'profile', prof.profile_name
                 print 'Needs positions_microns attribute'
 
             if prof.initial_profile is None:
-                print 'Need to set initial_profile attribute for each profile.'
-                print 'Assuming these are initial profiles...'
+#                print 'Need to set initial_profile attribute for each profile.'
+#                print 'Assuming these are initial profiles...'
                 prof.initial_profile = prof
             ip.append(prof.initial_profile)
 
@@ -2924,7 +3000,7 @@ class WholeBlock():
         for k in range(3):
             prof = self.profiles[k]
             avespec = prof.average_spectra()
-            ax3[k].plot(avespec.wn, avespec.abs_cm, label='Final', **style)
+            ax3[k].plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
 
             if peak_idx is not None:
                 if self.profiles[k].peakpos is None:
@@ -2937,7 +3013,7 @@ class WholeBlock():
                 iprof = self.initial_profiles[k]
                 if iprof is not None:
                     initspec = iprof.average_spectra()
-                    ax3[k].plot(initspec.wn, initspec.abs_cm, 
+                    ax3[k].plot(initspec.wn_full, initspec.abs_full_cm, 
                             **stylei)
 
             ax3[k].set_xlim(4000., 3000.)
@@ -2965,7 +3041,8 @@ class WholeBlock():
         plt.subplots_adjust(top=0.85, bottom=0.25)
         return f, ax3
 
-    def xy_picker(self, peak_idx=None, wholeblock=True, heights_instead=False):
+    def xy_picker(self, peak_idx=None, wholeblock=True, heights_instead=False,
+                  centered=True):
         """Picks out and returns appropriate x and y-data for 3D"""
         positions = []
         y = []
@@ -3008,6 +3085,14 @@ class WholeBlock():
                     else:
                         y_to_add = prof.peak_heights[peak_idx]
             y.append(y_to_add)
+            
+        if centered is True:
+            a = np.mean(self.profiles[0].sample.twoA_list) / 2.
+            b = np.mean(self.profiles[1].sample.twoB_list) / 2.
+            c = np.mean(self.profiles[2].sample.twoC_list) / 2.
+            halflengths = [a, b, c]
+            for idx in xrange(3):
+                positions[idx] = positions[idx] - halflengths[idx]
         return positions, y
 
     def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, centered=True,
@@ -3040,7 +3125,8 @@ class WholeBlock():
         # concatenate positions and areas across three profiles to 
         # send in to the plotting function
         positions, y = self.xy_picker(peak_idx=peak_idx, wholeblock=wholeblock,
-                                      heights_instead=heights_instead)
+                                      heights_instead=heights_instead, 
+                                      centered=centered)
 
         if use_area_profile_styles is True and None in styles3:
             for k in range(3):

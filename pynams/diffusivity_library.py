@@ -84,27 +84,19 @@ DM03 = Diffusivities(
 # [Ti]: 3525 peak, [Mg]: 3220 peak
 pnav_Si = Diffusivities(description = 'forsterite, [Si]', 
           celsius_unoriented = [1000, 1100, 1200],
-          logD_unoriented = [-15.66, -14.17, -13.02],
-          basestyle = {'color' : 'black', 'marker' : '^',
-                       'markersize' :  markersizefloat})
+          logD_unoriented = [-15.66, -14.17, -13.02],)
 
 pnav_SiTi = Diffusivities(description = 'forsterite, [Si-Ti]',
             celsius_unoriented = [1000, 900, 800],
-            logD_unoriented = [-13.35, -14.3, -15.29],
-            basestyle = {'color' : 'red', 'marker' : '>',
-                         'markersize' :  markersizefloat})
+            logD_unoriented = [-13.35, -14.3, -15.29],)
 
 pnav_Ti = Diffusivities(description = 'forsterite, [Ti]',
           celsius_unoriented = [1000, 900, 800],
-          logD_unoriented = [-13.16, -14.1, -15.26],
-          basestyle = {'color' : 'blue', 'marker' : 'v',
-                       'markersize' :  markersizefloat})
+          logD_unoriented = [-13.16, -14.1, -15.26],)
                         
 pnav_Mg = Diffusivities(description = 'forsterite, [Mg]',
           celsius_unoriented = [1000, 900, 800],
-          logD_unoriented = [-12.66, -13.7, -14.29],
-          basestyle = {'color' : 'green', 'marker' : '<',
-                       'markersize' :  markersizefloat})
+          logD_unoriented = [-12.66, -13.7, -14.29],)
 
 # Du Frane & Tybursky 2012 self-diffusion in olivine
 DuFrane = Diffusivities(
@@ -256,12 +248,12 @@ H_diopside_Woods00 = diffusion.Diffusivities(
                                                 6e-12, 3e-11])),
                      celsius_x = [700, 750, 800, 800, 800, 850, 700, 850],
                      celsius_y = [750, 800, 800, 800, 850],
-                     celsius_z = [700, 750, 800, 800, 800, 850],
-                     basestyle = {'color' : 'k', 'marker' : 's', 
-                                  'markerfacecolor' : 'turquoise',
-                                  'markersize' :  10, 
-                                  'linestyle' : 'none', 'alpha' : 1.,
-                                  'markeredgewidth' : 0.5})
+                     celsius_z = [700, 750, 800, 800, 800, 850],)
+#                     basestyle = {'color' : 'k', 'marker' : 's', 
+#                                  'markerfacecolor' : 'turquoise',
+#                                  'markersize' :  10, 
+#                                  'linestyle' : 'none', 'alpha' : 1.,
+#                                  'markeredgewidth' : 0.5})
                             
 H_cpxBasanite_Xia00 = Diffusivities(
                       description = ''.join(('H in basanite cpx\n3630 + 3500',
@@ -290,11 +282,11 @@ H_diopside_Sundvall = Diffusivities(
                       description = ''.join(('synth. Fe-bearing diopside\n',
                                              'in air; Sundvall et al. 2009')),
                       logDy = [-13.7, -15.3, -15.9],
-                      celsius_y = np.array([1000., 900., 800.]),
-                      basestyle = {'color' : 'y', 'marker' : 'v', 
-                                   'markerfacecolor' : 'y', 'markersize' :  13, 
-                                   'linestyle' : 'none', 'alpha' : 1.,
-                                   'markeredgewidth' : 1})
+                      celsius_y = np.array([1000., 900., 800.]),)
+#                      basestyle = {'color' : 'y', 'marker' : 'v', 
+#                                   'markerfacecolor' : 'y', 'markersize' :  13, 
+#                                   'linestyle' : 'none', 'alpha' : 1.,
+#                                   'markeredgewidth' : 1})
 
 #Fe_diopside = Diffusivities()
 #Fe_diopside.description = 'Fe in diopside\nAzough & Freer 2000'

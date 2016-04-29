@@ -15,6 +15,9 @@ style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3
                             'fillstyle' : 'none', 'linestyle' : 'none', 
                             'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
                             'markerfacecolor' : 'w'}
+style_profile_default = {'markeredgecolor' : 'blue', 'linestyle' : 'none', 
+                         'marker' : 's', 'fillstyle' : 'none', 
+                         'markersize' : 10, 'alpha' : 0.5}
 style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
                      'fillstyle' : 'none', 'linestyle' : 'none', 
                      'linewidth' : 1, 'alpha' : 1}
@@ -22,26 +25,30 @@ style_points0 = {'color' : 'black', 'marker' : '.', 'markersize' : 1,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
                  'markerfacecolor' : 'w'}
-style_points1 = {'color' : 'blue', 'marker' : 's', 'markersize' : 4,
+style_points1 = {'color' : 'violet', 'marker' : 'o', 'markersize' : 4,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'violet'}
+style_points2 = {'color' : 'indigo', 'marker' : '^', 'markersize' : 6,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
                  'markerfacecolor' : 'w'}
-style_points2 = {'color' : 'green', 'marker' : 'o', 'markersize' : 5,
+style_points3 = {'color' : 'blue', 'marker' : 's', 'markersize' : 4,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
-                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'w'}
-style_points3 = {'color' : 'red', 'marker' : 'v', 'markersize' : 4,
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points4 = {'color' : 'green', 'marker' : 'd', 'markersize' : 5,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points5 = {'color' : 'darkgoldenrod', 'marker' : 'D', 'markersize' : 4,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'w'}
-style_points4 = {'color' : 'purple', 'marker' : '^', 'markersize' : 6,
+                 'markerfacecolor' : 'y'}
+style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
-                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'w'}
-style_points5 = {'color' : 'orangered', 'marker' : 'd', 'markersize' : 5,
-                 'fillstyle' : 'none', 'linestyle' : 'none', 
-                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'w'}
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 9,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
 
 
 
@@ -64,7 +71,7 @@ style_2 = {'color':'green', 'linewidth': 1.5}
 style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
 style_3 = {'color':'blue', 'linewidth': 1.}
 style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
-style_4 = {'color':'brown', 'linewidth':1.5, 'linestyle' : '--'}
+style_4 = {'color':'red', 'linewidth':3.5, 'linestyle' : '-.'}
 style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
 style_5 = {'color':'sage', 'linewidth':2., 'linestyle' : '--'}
 style_6 = {'color':'darkorchid', 'linewidth':2., 'linestyle' : '--'}
@@ -193,13 +200,14 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
             print 'len(y):', len(y)
 
         a = lengths[k] / 2.
+        pos = x 
         
         if centered is True:
             axis3[k].set_xlim(-a, a)
-            pos = x + a
+
         else:
             axis3[k].set_xlim(0., lengths[k])            
-            pos = x 
+
 
         if show_line_at_1 is True:
             axis3[k].plot([-a, lengths[k]], [init, init], '--k')

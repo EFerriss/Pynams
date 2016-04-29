@@ -643,9 +643,10 @@ def Arrhenius_add_line(fig_ax, Ea, D0, low=6.0, high=10.0,
 
 def solve_Ea_D0(log10D_list, celsius_list):
     """Takes list of diffusivities as log10 in m2/s and associated 
-    temperatures in celsius.
-    Returns activation energy Ea in kJ/mol K and
-    D0 in m2/s"""
+    temperatures in celsius. 
+    Returns activation energy Ea in kJ/mol K and D0 in m2/s.
+    The errors on the individual diffusivities are not included.
+    """
     T = np.array(celsius_list) + 273.15
     x = 1.E4 / T
     y = np.array(log10D_list)
@@ -703,35 +704,60 @@ def get_iorient(orient):
         
 class Diffusivities():
 
-    def __init__(self, description=None, celsius_all=None, logD_all=None,
+    def __init__(self, description=None, celsius_all=None, logD_all=[],
                  celsius_unoriented = [], 
                  celsius_x = [], celsius_y = [], celsius_z = [], 
                  logDx = [], logDy = [], logDz = [], logD_unoriented = [], 
+                 logD_all_error = [],   
                  logDx_error = [], logDy_error = [], logDz_error = [], 
-                 logDu_error = [], basestyle = styles.style_points.copy(), 
+                 logDu_error = [], basestyle = styles.style_points_tiny, 
                  activation_energy_kJmol = [None, None, None, None], 
                  logD0 = [None, None, None, None], 
-                 Fe2=None, Fe3=None, Mg=None, Al=None, Ti=None):
+                 Fe2=None, Fe3=None, Mg=None, Al=None, Ti=None,
+                 color=None,
+                 marker=None, markersize=12, mew=1., alpha=1., error=[]):
+
         """All logarithms of diffusivities, logD, are base 10 and m2/s.
         Order is || x, || y, ||z, not oriented or isotropic"""
         self.description = description
         self.celsius_all = celsius_all
+        self.basestyle = basestyle.copy()
+        
         if celsius_all is not None:
             celsius_x = celsius_all
             celsius_y = celsius_all
             celsius_z = celsius_all
             celsius_unoriented = celsius_all
-        if logD_all is not None:
+            
+        if len(logD_all) > 0:
             logDx = logD_all
             logDy = logD_all
             logDz = logD_all
-            logD_unoriented = logD_all            
+            logD_unoriented = logD_all
+            
+        if len(logD_all_error) > 0:
+            logDx_error = logD_all_error
+            logDy_error = logD_all_error
+            logDz_error = logD_all_error
+            logDu_error = logD_all_error
+            
         self.celsius = [celsius_x, celsius_y, celsius_z, celsius_unoriented]
         self.logD = [logDx, logDy, logDz, logD_unoriented]
         self.logD_error = [logDx_error, logDy_error, logDz_error, logDu_error]
         self.activation_energy_kJmol = activation_energy_kJmol
         self.logD0 = logD0
-        self.basestyle = basestyle
+
+        if color is not None:
+            self.basestyle['color'] = color
+        if marker is not None:
+            self.basestyle['marker'] = marker
+        if markersize is not None:
+            self.basestyle['markersize'] = markersize
+        if mew is not None:
+            self.basestyle['mew'] = mew
+        if alpha is not None:
+            self.basestyle['alpha'] = alpha                                       
+
         self.Fe2 = Fe2
         self.Fe3 = Fe3
         self.Mg = Mg
