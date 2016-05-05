@@ -451,11 +451,17 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
 
         if plot3 is True:
             try:
-                f, ax = styles.plot_3panels(x, y, figaxis3=figaxis3, 
-                                            top=top, centered=centered,
-                                            styles3=styles3, 
-                                            lengths=lengths_microns)
-                return f, ax, v, x, y
+                if figaxis3 is None:
+                    f, ax = styles.plot_3panels(x, y, figaxis3=figaxis3, 
+                                                top=top, centered=centered,
+                                                styles3=styles3, 
+                                                lengths=lengths_microns)
+                    return f, ax, v, x, y
+                else:
+                    styles.plot_3panels(x, y, top=top, centered=centered, 
+                                        styles3=styles3, figaxis3=figaxis3,
+                                        lengths=lengths_microns)
+                    return v, x, y
             except(TypeError):
                 print
                 print 'TypeError: problem in plot_3panels()'

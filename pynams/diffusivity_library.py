@@ -21,6 +21,8 @@ with their own marker styles set up.
 import numpy as np
 from uncertainties import ufloat
 import diffusion
+import pynams
+import styles as st
 from diffusion import Diffusivities
 
 GAS_CONSTANT = 0.00831 # kJ/mol K
@@ -532,3 +534,34 @@ Li_cpx_effective.basestyle = {'color' : 'darkorchid', 'marker' : '+',
                                  'markersize' : 10, 'alpha' : 1.}
 
 
+def fast_vs_slow(celsius, sample, minutes):
+    """Input temperature, pynams.Sample, and time in minutes
+    Output two lists of diffusivities: Kohlstedt and Mackwell 1998 
+    fast and slow mechanisms for H diffusion in San Carlos olivine"""    
+    a, b, c = pynams.get_3thick(sample)
+
+    print 'slow mechanism D down x, y, z'
+    D_slow = [KM98_slow.whatIsD(celsius, orient='x'), 
+              KM98_slow.whatIsD(celsius, orient='y'),          
+              KM98_slow.whatIsD(celsius, orient='z')]
+    
+    print
+    print 'fast mechanism D down x, y, z'
+    D_fast = [KM98_fast.whatIsD(celsius, orient='x'), 
+              KM98_fast.whatIsD(celsius, orient='y'),          
+              KM98_fast.whatIsD(celsius, orient='z')]
+    
+    fig, axes, v, x, y = diffusion.diffusion3Dnpi(lengths_microns=[a, b, c],
+                                                  log10Ds_m2s=D_slow, 
+                                                  time_seconds=minutes*60., 
+                                                  initial=1., final=0.,
+                                                  plot3=True, centered=False)
+
+    v2, x2, y2 = diffusion.diffusion3Dnpi(lengths_microns=[a, b, c], 
+                                          styles3=[st.style_1]*3,
+                                          log10Ds_m2s=D_fast, figaxis3=axes,
+                                          time_seconds=minutes*60., 
+                                          initial=1., final=0., plot3=True, 
+                                          centered=False)
+                             
+    return fig, axes

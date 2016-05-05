@@ -363,9 +363,9 @@ class Spectrum():
             p2 = np.polyfit(x, y, 2)
             base_abs = np.polyval(p2, self.base_wn)
         elif linetype == 'spline':
-            idx_max = self.wn.argmax()
+            idx_max = self.wn_full.argmax()
             xinterp = np.concatenate((self.wn_full[0:index_lo], 
-                                      self.wn_full[index_hi:idx_max]))
+                                      self.wn_full[index_hi:idx_max]))                                      
             yinterp = np.concatenate((self.abs_full_cm[0:index_lo], 
                                       self.abs_full_cm[index_hi:idx_max]))
             f = interp.interp1d(xinterp, yinterp, kind = 'cubic')
@@ -430,15 +430,16 @@ class Spectrum():
 
         # plotting
         if show_plot is True:
-            fig, ax = self.plot_spectrum_outline()
-            plt.plot(self.wn_full, self.abs_full_cm, **styles.style_spectrum) 
-            ax.plot(self.base_wn, base_abs, **styles.style_baseline)
-            if min(base_abs) > 0:
-                ylow = 0
-            else:
-                ylow = min(base_abs) + 0.1*min(base_abs)
-            plt.ylim(ylow, yhigh)
-            plt.show(fig)
+            self.plot_showbaseline()
+#            fig, ax = self.plot_spectrum_outline()
+#            plt.plot(self.wn_full, self.abs_full_cm, **styles.style_spectrum) 
+#            ax.plot(self.base_wn, base_abs, **styles.style_baseline)
+#            if min(base_abs) > 0:
+#                ylow = 0
+#            else:
+#                ylow = min(base_abs) + 0.1*min(base_abs)
+#            plt.ylim(ylow, yhigh)
+#            plt.show(fig)
             
         return abs_nobase_cm
 
@@ -478,10 +479,7 @@ class Spectrum():
     def water(self, phase_name='cpx', calibration='Bell', numformat='{:.1f}',
               show_plot=True, show_water=True, printout_area=False,
               shiftline=None, linetype='line'):
-        """Produce water estimate without error for a single FTIR spectrum. 
-        Use water_from_spectra() for errors, lists, and 
-        non-Bell calibrations."""
-        # determine area
+        """Produce water estimate without error for a single FTIR spectrum."""
         area = self.area_under_curve(linetype, show_plot, shiftline, 
                                      printout_area)
         w = area2water(area, phase=phase_name, calibration=calibration)
@@ -2424,7 +2422,7 @@ class TimeSeries(Profile):
     
         if figaxis is None:
             fig = plt.figure()
-            fig.set_size_inches(3, 3)
+            fig.set_size_inches(3.2, 3.2)
             ax = fig.add_subplot(111)
             fig.autofmt_xdate()
         else:
@@ -3477,7 +3475,7 @@ class WholeBlock():
                     f, ax = spec.plot_showbaseline()
                     newfig = 'baseline{:d}.png'.format(pic_counter)
                     pic_counter = pic_counter + 1
-                    f.savefig(newfig, dpi=exceldpi)
+                    f.savefig(newfig, dpi=exceldpi, format='png')
                     worksheet.insert_image(row, col2, newfig, 
                                            {'x_scale' : 0.5, 'y_scale' : 0.5})
     
@@ -3485,7 +3483,7 @@ class WholeBlock():
                     f, ax = spec.plot_peakfit()
                     newfig = 'peakfit{:d}.png'.format(pic_counter)
                     pic_counter = pic_counter + 1
-                    f.savefig(newfig, dpi=exceldpi)
+                    f.savefig(newfig, dpi=exceldpi, format='png')
                     worksheet.insert_image(row, col2pt5, newfig, 
                                            {'x_scale' : 0.5, 'y_scale' : 0.5})
     
@@ -3516,7 +3514,7 @@ class WholeBlock():
 
         # 3 panel averaged spectra in 3rd column
         f, ax = self.plot_3panels_ave_spectra(top=top)
-        f.savefig('panel3.png', dpi=exceldpi)
+        f.savefig('panel3.png', dpi=exceldpi, format='png')
         worksheet.insert_image(0, col3, 'panel3.png', {'x_scale' : 0.5, 
                                'y_scale' : 0.5})
             
@@ -3549,12 +3547,12 @@ class WholeBlock():
                                 'Errors typically plot in or near symbols')
         
         f, ax = self.plot_areas_3panels(wholeblock=False)
-        f.savefig('bulk_areas.png', dpi=exceldpi)
+        f.savefig('bulk_areas.png', dpi=exceldpi, format='png')
         worksheet.insert_image(15, col3, 'bulk_areas.png', {'x_scale' : 0.5, 
                                'y_scale' : 0.5})
         
         f, ax = self.plot_areas_3panels(wholeblock=True)
-        f.savefig('wbbulk.png', dpi=exceldpi)
+        f.savefig('wbbulk.png', dpi=exceldpi, format='png')
         worksheet.insert_image(15, col4, 'wbbulk.png', {'x_scale' : 0.5, 
                                'y_scale' : 0.5})
                        
@@ -3563,13 +3561,13 @@ class WholeBlock():
 #                                            bestfitlines=bestfitlines_on_areas, 
                                             peak_idx=peak_idx)
             newfig = 'area{:d}.png'.format(peak_idx)
-            f.savefig(newfig, dpi=exceldpi)
+            f.savefig(newfig, dpi=exceldpi, format='png')
             worksheet.insert_image(29+(14*peak_idx), col3, newfig, 
                                    {'x_scale' : 0.5, 'y_scale' : 0.5})            
 
             f, ax = self.plot_areas_3panels(peak_idx=peak_idx, wholeblock=True)
             newfig = 'wbareas{:d}.png'.format(peak_idx)
-            f.savefig(newfig, dpi=exceldpi)
+            f.savefig(newfig, dpi=exceldpi, format='png')
             worksheet.insert_image(29+(14*peak_idx), col4, newfig, 
                                    {'x_scale' : 0.5, 'y_scale' : 0.5})
                    
@@ -3578,7 +3576,7 @@ class WholeBlock():
                                             peak_idx=peak_idx, 
                                             heights_instead=True)
             newfig = 'height{:d}.png'.format(peak_idx)
-            f.savefig(newfig, dpi=exceldpi)
+            f.savefig(newfig, dpi=exceldpi, format='png')
             worksheet.insert_image(29+(14*peak_idx), col_heights, newfig, 
                                    {'x_scale' : 0.5, 'y_scale' : 0.5})            
 
@@ -3586,7 +3584,7 @@ class WholeBlock():
                                             heights_instead=True,
                                             wholeblock=True)
             newfig = 'wbheights{:d}.png'.format(peak_idx)
-            f.savefig(newfig, dpi=exceldpi)
+            f.savefig(newfig, dpi=exceldpi, format='png')
             worksheet.insert_image(29+(14*peak_idx), col_wb_heights, newfig, 
                                    {'x_scale' : 0.5, 'y_scale' : 0.5})
 
