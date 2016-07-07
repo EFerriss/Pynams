@@ -448,6 +448,9 @@ def pressure_design(capsule_material = 'copper',
     elif capsule_material == 'platinum':
         style_capsule['label'] = 'platinum'
         style_capsule['facecolor'] = 'lightblue'
+    elif capsule_material == 'nickel':
+        style_capsule['label'] = 'nickel'
+        style_capsule['facecolor'] = 'lightsage'
     else:
         print 'unknown capsule material'
         style_capsule['label'] = 'capsule'        

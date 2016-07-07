@@ -447,7 +447,7 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
 
         if centered is True:
             for idx in xrange(3):
-                x[idx] = x[idx] - lengths_microns[idx]        
+                x[idx] = x[idx] - (lengths_microns[idx] / 2.)
 
         if plot3 is True:
             try:

@@ -109,9 +109,9 @@ def area2water(area_cm2, phase='cpx', calibration='Bell'):
 # Define classes and functions related to FTIR spectra        
 class Spectrum():
     def __init__(self, fname=None, sample=None, filename=None,
-                 thick_microns=None, 
+                 thick_microns=None, raypath=None,
                  base_low_wn=3200, base_high_wn=3700,
-                 base_mid_wn=3450, polar=None, other_name=None,
+                 base_mid_wn=3550, polar=None, other_name=None,
                  folder=default_folder, filetype='.CSV'):
         self.fname = fname
         self.sample = sample
@@ -124,17 +124,17 @@ class Spectrum():
         self.other_name = other_name
         self.folder = folder
         self.filetype = filetype
+        self.raypath = raypath
         
         if self.filename is None and self.fname is not None:
             self.filename = self.folder + self.fname + self.filetype
 
     # full range of measured wavenumber and absorbances
     wn_full = None
+    abs_raw = None
     abs_full_cm = None
 
     # other metadata with a few defaults
-    raypath = None
-    polar = None
     position_microns_a = None
     position_microns_b = None
     position_microns_c = None
@@ -198,6 +198,69 @@ class Spectrum():
         self.thick_microns = th
         return th
 
+    def thickness_from_SiO(self, show_plot=False, printout=False):
+        """Estimates the sample thickness based on area of the Si-O overtones
+           Using Eq 1 of Matveev and Stachel 2007"""
+
+        # make temporary baseline under Si-O overtone peaks
+        if self.base_abs is not None:
+            self.save_baseline(bline_file_ending='baseline-temp.CSV')
+            retrieveBaseline = True
+        else:
+            retrieveBaseline = False           
+
+        self.make_baseline(wn_low=1625, wn_high=2150)
+        SiOarea = self.area_under_curve(show_plot=False, printout=printout)
+        thickness_microns = SiOarea / 0.6366        
+        
+        if show_plot is True:    
+            fig, ax = self.orientation()
+            self.plot_showbaseline(figaxis=ax)
+
+        if printout is True:
+            print 'Thickness based on Eq 1 of Matveev and Stachel 2007'
+
+
+        if retrieveBaseline is True:
+            self.get_baseline(bline_file_ending='baseline-temp.CSV')
+        else:
+            self.base_abs = None
+
+        self.thick_microns = thickness_microns
+        return thickness_microns
+
+    def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
+                                        wn_mid_range_low=3300.,
+                                        relative=True):
+        """Take a spectrum and wavenumber range (default 3300-3500 cm-1)
+        and returns the wavenumber with the lowest absorbance within that range."""
+        self.start_at_zero()
+    
+        ## find minimum relative to a linear baseline
+        if relative is True:            
+            self.make_baseline(linetype='line', show_plot=False)
+            idx_mid_high = (np.abs(self.base_wn-wn_mid_range_high)).argmin()
+            idx_mid_low = (np.abs(self.base_wn-wn_mid_range_low)).argmin()
+        
+            abs_nobase = self.subtract_baseline()
+            mid_abs_range = abs_nobase[idx_mid_low:idx_mid_high]
+            
+            mid_wn_range = self.base_wn[idx_mid_low:idx_mid_high]
+            idx_abs_mid = mid_abs_range.argmin()
+            WN_MID = mid_wn_range[idx_abs_mid]
+
+        else:        
+            ## finds absolute minimum over range
+            idx_mid_high = (np.abs(self.wn_full-wn_mid_range_high)).argmin()
+            idx_mid_low = (np.abs(self.wn_full-wn_mid_range_low)).argmin()
+            mid_abs_range = self.abs_full_cm[idx_mid_low:idx_mid_high]
+            mid_wn_range = self.wn_full[idx_mid_low:idx_mid_high]
+            idx_abs_mid = mid_abs_range.argmin()
+            WN_MID = mid_wn_range[idx_abs_mid]
+
+        return WN_MID
+    
+
     def find_peaks(self, widths=np.arange(1,40), 
                    linetype='line', shiftline=0.):
         """Locate wavenumbers of npeaks number of most prominent peaks
@@ -246,18 +309,8 @@ class Spectrum():
         self.abs_full_cm = ave_abs
         self.start_at_zero()
     
-    def divide_by_thickness(self, folder=default_folder):
-        """Divide raw absorbance by thickness"""
-        if self.thick_microns is None:
-            check = self.set_thick()
-            if check is False:
-                return False
-                
-        if self.fname is None:
-            print 'Need .fname to know what to call saved file'
-            return False
-            
-        # Get the data from the file
+    def get_data(self, folder=default_folder):
+        """Get the data from file"""
         if self.filename is None:
             self.filename = folder + self.fname + self.filetype
 
@@ -278,12 +331,27 @@ class Spectrum():
             print 'You may need to run pynams.make_filenames(folder=)'
             print 'filename =', self.filename
             return False
-
+        
         # sort signal by wavenumber
         signal = signal[signal[:,0].argsort()]
-
         self.wn_full = signal[:, 0]
         self.abs_raw = signal[:, 1]
+    
+    def divide_by_thickness(self, folder=default_folder):
+        """Divide raw absorbance by thickness"""
+        if self.thick_microns is None:
+            check = self.set_thick()
+            if check is False:
+                return False
+                
+        if self.fname is None:
+            print 'Need .fname to know what to call saved file'
+            return False
+            
+        # Get the data from the file
+        if self.wn_full is None or self.abs_raw is None:
+            self.get_data()
+
         # Convert from numpy.float64 to regular python float
         # or else element-wise division doesn't work.
         if isinstance(self.thick_microns, float) is True:
@@ -320,55 +388,99 @@ class Spectrum():
     def make_baseline(self, linetype='line', shiftline=0.02, 
                       show_fit_values=False, show_plot=False,
                       size_inches=(3., 2.5), wn_low=None, wn_high=None,
-                      folder=default_folder):
+                      folder=default_folder, wn_mid=None, 
+                      splinetype='quadratic', abs_high=None, abs_low=None,
+                      abs_smear_high=0, abs_smear_low=0):
         """Make baseline that is a spline (linetype='spline'; default),
         a line (linetype='line'), 
         or quadratic baseline (linetype='quadratic' with 
         argmument shiftline determining extent of curvature) 
         and return baseline absorption curve. Shiftline value determines
         how much quadratic deviates from linearity"""
-        if self.abs_full_cm is None:
-            check = self.start_at_zero(folder=folder)
-            if check is False:
-                return False
-        
+        if self.thick_microns is not None:
+            if self.abs_full_cm is None:
+                check = self.start_at_zero(folder=folder)
+                if check is False:
+                    return False
+            absorbance = self.abs_full_cm
+        else: 
+            if self.abs_raw is None:
+                self.get_data()
+            absorbance = self.abs_raw
+
         if wn_low is not None:
             self.base_low_wn = wn_low
         
         if wn_high is not None:
             self.base_high_wn = wn_high
         
-        if shiftline is not None:
-            yshift = shiftline
-        else:
-            yshift = self.base_mid_yshift
-            
         index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
         index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()        
         self.base_wn = self.wn_full[index_lo:index_hi]
+
+        # Smearing start and stop over a range of wavenumbers
+        abs_smear_high=int(abs_smear_high)
+        abs_smear_low=int(abs_smear_low)
         
+        if abs_high is None:
+            if abs_smear_high > 0:
+                gulp_hi_x = range(index_hi-abs_smear_high, 
+                                  index_hi+abs_smear_high)
+                gulp_hi_y = absorbance[gulp_hi_x]
+                yhigh = np.mean(gulp_hi_y)
+            else:
+                yhigh = absorbance[index_hi]
+        else:
+            yhigh = abs_high
+            
+        if abs_low is None:
+            if abs_smear_low > 0:
+                gulp_lo_x = range(index_lo-abs_smear_low, index_lo+abs_smear_low)
+                gulp_lo_y = absorbance[gulp_lo_x]
+                ylow = np.mean(gulp_lo_y)
+            else:
+                ylow = absorbance[index_lo]
+        else: 
+            ylow = abs_low
+
         x = np.array([self.wn_full[index_hi], self.wn_full[index_lo]])
-        y = np.array([self.abs_full_cm[index_hi], self.abs_full_cm[index_lo]])
+        y = np.array([yhigh, ylow])
         p = np.polyfit(x, y, 1)
         
         if linetype == 'line':
             base_abs = np.polyval(p, self.base_wn)
-        elif linetype == 'quadratic':
+
+        elif linetype == 'quadratic':            
+            # add in a point to fit curve to
+            if wn_mid is not None:      
+                self.base_mid_wn = wn_mid
+                index_mid = (np.abs(self.wn_full-self.base_mid_wn)).argmin()
+                abs_at_wn_mid = absorbance[index_mid]
+                yadd = abs_at_wn_mid
+            elif shiftline is not None:
+                print 'mid wn', self.base_mid_wn
+                yshift = shiftline
+                yadd = np.polyval(p, self.base_mid_wn) - yshift
+            else:
+                yshift = self.base_mid_yshift
+                yadd = np.polyval(p, self.base_mid_wn) - yshift
+                
             x = np.insert(x, 1, self.base_mid_wn)
-            yadd = np.polyval(p, self.base_mid_wn) - yshift
             y = np.insert(y, 1, yadd)
+            p2 = np.polyfit(x, y, 2)
+            base_abs = np.polyval(p2, self.base_wn)
+
             if show_fit_values == True:
                 print 'fitting x values:', x
                 print 'fitting y values:', y
-            p2 = np.polyfit(x, y, 2)
-            base_abs = np.polyval(p2, self.base_wn)
+
         elif linetype == 'spline':
             idx_max = self.wn_full.argmax()
             xinterp = np.concatenate((self.wn_full[0:index_lo], 
                                       self.wn_full[index_hi:idx_max]))                                      
-            yinterp = np.concatenate((self.abs_full_cm[0:index_lo], 
-                                      self.abs_full_cm[index_hi:idx_max]))
-            f = interp.interp1d(xinterp, yinterp, kind = 'cubic')
+            yinterp = np.concatenate((absorbance[0:index_lo], 
+                                      absorbance[index_hi:idx_max]))
+            f = interp.interp1d(xinterp, yinterp, kind=splinetype)
             base_abs = f(self.base_wn)
         else:
             print "linetype must be 'line', 'quadratic', or 'spline'"
@@ -377,9 +489,27 @@ class Spectrum():
         self.base_abs = base_abs
         
         if show_plot is True:
-            self.plot_showbaseline(size_inches=size_inches)
-            
-        return base_abs
+            fig, ax = self.plot_showbaseline(size_inches=size_inches)
+            if show_fit_values is True:
+                if abs_smear_high > 0:
+                    ax.plot(self.wn_full[gulp_hi_x], 
+                            absorbance[gulp_hi_x], '-y', alpha=0.9)
+                    
+                if abs_smear_low > 0:
+                    ax.plot(self.wn_full[gulp_lo_x], 
+                            absorbance[gulp_lo_x], '-y', alpha=0.9)
+                    
+                if linetype == 'spline':
+                    ax.plot(self.wn_full[0:index_lo], 
+                            absorbance[0:index_lo], '-r')
+                    ax.plot(self.wn_full[index_hi:idx_max], 
+                            absorbance[index_hi:idx_max], '-r')
+                else:
+                    ax.plot(x, y, 'ro', alpha=0.4)
+                    
+            return fig, ax
+        else:
+            return base_abs
 
     def subtract_baseline(self, linetype='line', bline=None, 
                           show_plot=False, shiftline=0.02, yhigh=0.1,
@@ -388,7 +518,7 @@ class Spectrum():
         Preferred baseline used is (1) input bline, (2) self.base_abs, 
         (3) created based on linetype information"""
         if self.wn_full is None:
-            self.start_at_zero()
+            self.get_data()
         
         if wn_low is not None:
             self.base_low_wn = wn_low
@@ -408,7 +538,8 @@ class Spectrum():
         index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
         index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()
 #            
-        humps = self.abs_full_cm[index_lo:index_hi]
+        absorbance = self.absorbance_picker()
+        humps = absorbance[index_lo:index_hi]
 
         # length check
         if len(humps) > len(base_abs):
@@ -428,19 +559,9 @@ class Spectrum():
             
         abs_nobase_cm = humps - base_abs
 
-        # plotting
         if show_plot is True:
             self.plot_showbaseline()
-#            fig, ax = self.plot_spectrum_outline()
-#            plt.plot(self.wn_full, self.abs_full_cm, **styles.style_spectrum) 
-#            ax.plot(self.base_wn, base_abs, **styles.style_baseline)
-#            if min(base_abs) > 0:
-#                ylow = 0
-#            else:
-#                ylow = min(base_abs) + 0.1*min(base_abs)
-#            plt.ylim(ylow, yhigh)
-#            plt.show(fig)
-            
+
         return abs_nobase_cm
 
     def area_under_curve(self, linetype='line', show_plot=True, shiftline=0.02,
@@ -627,21 +748,25 @@ class Spectrum():
             summed_spectrum += peakfitcurves[k]            
         return peakfitcurves, summed_spectrum
     
-    def ylim_picker(self, wn_xlim_left, wn_xlim_right, pad_top=0.1, 
-                    pad_bot=0.):
+    def ylim_picker(self, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
+                    pad_bot=0., raw_data=False):
         """Returns reasonable min and max values for y-axis of
         plots based on the absorbance values for the specified wavenumber
         range and padded top and bottom with pad variable"""
         if self.wn_full is None:
-            self.start_at_zero()
+            self.get_data()
+            
+        if self.thick_microns is None:
+            absorbance = self.abs_raw           
+        else:
+            self.start_at_zero(wn_xlim_left=wn_xlim_left,
+                               wn_xlim_right=wn_xlim_right)
+            absorbance = self.abs_full_cm
             
         idx_lo = (np.abs(self.wn_full-wn_xlim_right)).argmin()
         idx_hi = (np.abs(self.wn_full-wn_xlim_left)).argmin()
         
-        if self.abs_full_cm is None:
-            self.start_at_zero(wn_xlim_left=wn_xlim_left,
-                               wn_xlim_right=wn_xlim_right)
-        y = self.abs_full_cm[idx_lo:idx_hi]
+        y = absorbance[idx_lo:idx_hi]
 
         bottom = min(y) 
         top = max(y)
@@ -653,7 +778,7 @@ class Spectrum():
     def plot_spectrum_outline(self, size_inches=(3., 2.5), shrinker=0.15,
                               figaxis=None, wn_xlim_left=4000., 
                               wn_xlim_right=3000., pad_top=0.1, 
-                              pad_bot=0.):
+                              pad_bot=0., raw_data=False):
         """Make standard figure outline for plotting FTIR spectra"""
         if figaxis is None:
             f, ax = plt.subplots(figsize=size_inches)
@@ -664,10 +789,14 @@ class Spectrum():
         ax.set_title(self.fname)
         ax.set_xlim(wn_xlim_left, wn_xlim_right)
         ax.grid()
+        
+        if self.thick_microns is None:
+            raw_data = True
 
         ylow, yhigh = self.ylim_picker(wn_xlim_left=wn_xlim_left,
                                        wn_xlim_right=wn_xlim_right, 
-                                       pad_top=pad_top, pad_bot=pad_bot)
+                                       pad_top=pad_top, pad_bot=pad_bot,
+                                       raw_data=raw_data)
         ax.set_ylim(ylow, yhigh)
         
         box = ax.get_position()
@@ -684,13 +813,20 @@ class Spectrum():
     def plot_spectrum(self, style=styles.style_1, figaxis=None, wn=None,
                       size_inches=(3., 2.5), label=None, offset=0., 
                       wn_xlim_left=4000., wn_xlim_right=3000., 
-                      pad_top=0.1, pad_bot=0.):
+                      pad_top=0.1, pad_bot=0., plot_raw=False):
         """Plot the raw spectrum divided by thickness"""
         if self.wn_full is None:
+            self.get_data()
+
+        if self.thick_microns is not None:
             check = self.start_at_zero()
             if check is False:
                 return
-
+            absorbance = self.abs_full_cm
+        else:
+            absorbance = self.abs_raw
+            plot_raw = True
+                
         if figaxis is None:
             fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
                                                  wn_xlim_left=wn_xlim_left,
@@ -699,13 +835,16 @@ class Spectrum():
             fig = None
             ax = figaxis
 
+        if plot_raw is True:
+            ax.set_ylabel('raw absorbance')
+
         if label is None:
             label = self.fname
             
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
         
-        ax.plot(self.wn_full, self.abs_full_cm + offset, **style_to_use)
+        ax.plot(self.wn_full, absorbance + offset, **style_to_use)
         
         ax.set_xlim(wn_xlim_left, wn_xlim_right)
         
@@ -715,19 +854,37 @@ class Spectrum():
         ax.set_ylim(ylow, yhigh)
 
         return fig, ax
+
+    def orientation(self):
+        """guess orientation based on Si-O overtones in FTIR spectrum"""
+        print '\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.'
+        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
+                                     wn_xlim_right=1200)
+        fig.set_size_inches(6, 6)
+                                                    
+        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
+        labels = ['E || a', 'E || b', 'E || c']
+        for idx, wn in enumerate([2035, 1670, 1785,]):
+            ax.plot([wn, wn], ax.get_ylim(), '-r')
+            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
+                    va='center', ha='center', fontsize=12)
+            
+        return fig, ax
     
-    def plot_peakfit(self, style=styles.style_spectrum, stylesum=styles.style_summed, 
+    def plot_peakfit(self, style=styles.style_spectrum, 
+                     stylesum=styles.style_summed, 
                      stylepeaks=styles.style_fitpeak, top=None, legloc=1):
         """Plot peaks fit in MATLAB using peakfit.m"""
         # Take baseline-subtracted spectrum from saved file every time 
         # to avoid any possible funny business from playing with baselines
+        reload(styles)
         gaussian, summed_spectrum = self.get_peakfit()
         if gaussian is False:
             return
         
         wn, observed = self.get_baseline()
 
-        fig, ax = self.plot_subtractbaseline(style=style) # just plot setup
+        fig, ax = self.plot_subtractbaseline(style=style, label='') 
         ax.plot(wn, observed, label='observed', **style)
         ax.plot(wn, gaussian[0], label='fit bands', **stylepeaks)
         ax.plot(self.base_wn, summed_spectrum, label='peak sum', **stylesum)
@@ -738,15 +895,27 @@ class Spectrum():
             top = topnat + topnat*0.75
             
         ax.set_ylim(0., top)        
-        
+
         for k in range(len(self.peakpos)):
             ax.plot(self.base_wn, gaussian[k], **stylepeaks)
 
         return fig, ax
+
+    def absorbance_picker(self):
+        if self.thick_microns is None:
+            if self.abs_raw is None:
+                self.get_data()
+            absorbance = self.abs_raw
+        else:
+            if self.abs_full_cm is None:
+                self.start_at_zero()
+            absorbance = self.abs_full_cm
+        return absorbance            
         
     def plot_showbaseline(self, linetype='line', shiftline=None,
                           wn_baseline=None, abs_baseline=None, 
-                          style=styles.style_spectrum, style_base=styles.style_baseline,
+                          style=styles.style_spectrum, 
+                          style_base=styles.style_baseline,
                           figaxis=None, label=None, size_inches=(3., 2.5),
                           offset=0.0, wn_xlim_left=4000, wn_xlim_right=3000.):
         """Plot FTIR spectrum and show baseline. 
@@ -781,8 +950,11 @@ class Spectrum():
             
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
-            
-        ax.plot(self.wn_full, self.abs_full_cm + offset, **style_to_use)
+        style_base['label'] = 'baseline'
+
+        absorbance = self.absorbance_picker()
+
+        ax.plot(self.wn_full, absorbance + offset, **style_to_use)
         ax.plot(wn_baseline, abs_baseline + offset, **style_base)
         return fig, ax
 
@@ -810,6 +982,42 @@ class Spectrum():
         ax.plot(self.base_wn, abs_nobase_cm+offset, **style_to_use)
         return fig, ax
 
+    def plot_peakfit_and_baseline(self, style=styles.style_spectrum, 
+                                  stylesum=styles.style_summed, 
+                                  stylepeaks=styles.style_fitpeak, 
+                                  style_base=styles.style_baseline,
+                                  top=None, bottom=0., legloc=1, 
+                                  label_spectrum='observed'):
+        """Plot spectrum with baseline and peakfit information together"""
+        # Take baseline-subtracted spectrum from saved file every time 
+        # to avoid any possible funny business from playing with baselines
+        gaussian, summed_spectrum = self.get_peakfit()
+        if gaussian is False:
+            return
+        
+        wn, observed = self.get_baseline()
+
+        stylepeaks['zorder'] = 1 # otherwise peaks show up above baseline
+        
+        fig, ax = self.plot_spectrum(style=style, label=label_spectrum)
+        ax.plot(self.base_wn, self.base_abs, label='baseline', **style_base) 
+        ax.plot(wn, gaussian[0]+self.base_abs, label='fit bands', **stylepeaks)
+        ax.plot(self.base_wn, summed_spectrum+self.base_abs, label='peak sum', 
+                **stylesum)
+                
+        ax.legend(loc=legloc)
+        
+        if top is None:
+            topnat = ax.get_ylim()[1]
+            top = topnat + topnat*0.75
+            
+        ax.set_ylim(bottom, top)
+
+        for k in range(len(self.peakpos)):
+            ax.plot(self.base_wn, gaussian[k]+self.base_abs, **stylepeaks)
+
+        return fig, ax
+        
 
 def make_filenames(classname=Spectrum, folder=default_folder, 
                    file_ending='.CSV'):
@@ -967,7 +1175,7 @@ class Profile():
                  sample=None, direction=None, raypath=None, short_name=None,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
                  diffusivity_log10m2s=None, diff_error=None,
-                 peak_diffusivities=[], peak_diff_error=[]):
+                 peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
         """fname_list = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
         info contained in sample's twoA_list, twoB_list, and twoC_list.
@@ -989,6 +1197,9 @@ class Profile():
         self.diff_error = diff_error
         self.peak_diffusivities = peak_diffusivities
         self.peak_diff_error = peak_diff_error
+        self.thick_microns = thick_microns
+        
+        self.make_spectra_list()
 
 #        if (self.fname_list is not None) and (self.sample is not None):
         if base_low_wn is not None:
@@ -1000,7 +1211,7 @@ class Profile():
                 spectrum.base_low_wn = base_high_wn
 
 
-#        self.make_spectra_list()
+        self.make_spectra_list()
 
     short_name = None # short string for saving diffusivities, etc.
     
@@ -1014,7 +1225,6 @@ class Profile():
     avespec = None # averaged spectra made by self.average_spectra()
     iavespec = None # initial averaged spectra
     len_microns = None # length, but I usually use set_len() directly each time
-    thick_microns = None # thickness
     waters_list = []
     waters_errors = []
     areas_list = []
@@ -1077,6 +1287,10 @@ class Profile():
     D_peakarea_wb_error = None
     D_height_wb_error = None
     
+    def set_all_thicknesses_from_SiO(self):
+        """Individually set thicknesses for all spectra based on the area
+        under their Si-O overtone peaks"""
+        self.make_spectra_list()
 
     def set_len(self):
         """Set profile.len_microns from profile.direction and 
@@ -1084,7 +1298,7 @@ class Profile():
 
         if self.sample is None:
             print '\n', self.profile_name
-            print 'Need to specify thickness or profile sample\n'
+            print 'Need to specify profile sample\n'
             return False
         else:
             s = self.sample
@@ -1131,22 +1345,12 @@ class Profile():
                           my_module='my_spectra'):
         """Set profile length and generate spectra_list 
         with key attributes"""
-        if self.thick_microns is None and self.sample is None:
-            print 'profile_name', self.profile_name
-            print 'make_spectra_list needs thick_microns or sample attribute'
-            return False
-        
         try:
             if (self.raypath is not None) and (self.raypath == self.direction):
                 print "raypath cannot be the same as profile direction"
                 return False
         except AttributeError:
             self.raypath = None
-
-        if self.thick_microns is None:
-            check = self.set_thick()
-            if check is False:
-                return False
 
         if class_from_module is not None:
             classToUse = class_from_module
@@ -1173,7 +1377,10 @@ class Profile():
             for spec in self.spectra_list:
                 spec.sample = self.sample
                 spec.raypath = self.raypath
-                spec.thick_microns = self.thick_microns
+                if self.thick_microns is not None:
+                    spec.thick_microns = self.thick_microns
+                else:
+                    spec.thickness_from_SiO()
                 
         return
 
@@ -1268,9 +1475,9 @@ class Profile():
                 spectrum.base_mid_yshift = shift
 
     def make_baselines(self, linetype='line', shiftline=None, 
-                       wn_high=3700., wn_low=3200., 
+                       wn_high=3700., wn_low=3200., wn_mid=None,
                        show_fit_values=False, show_plot=False,
-                       size_inches=(3., 2.5)):
+                       size_inches=(3., 2.5), abs_high=None):
         """Make baselines for all final and initial spectra in profile"""
         if len(self.spectra_list) < 1:
             self.make_spectra_list()
@@ -1279,7 +1486,7 @@ class Profile():
             spectrum.base_low_wn = wn_low
             spectrum.make_baseline(linetype=linetype, shiftline=shiftline,
                                     show_fit_values=show_fit_values,
-                                    show_plot=show_plot, 
+                                    show_plot=show_plot, wn_mid=wn_mid,
                                     size_inches=size_inches)
 
     def get_baselines(self, initial_too=False):
@@ -1291,7 +1498,7 @@ class Profile():
             for spectrum in self.initial_profile.spectra_list:
                 spectrum.get_baseline()
 
-    def print_names4matlab(self):
+    def matlab(self):
         """Print out spectra fnames for FTIR_peakfit_loop.m"""
         string = "{"
         for spec in self.spectra_list:
@@ -2860,7 +3067,7 @@ class WholeBlock():
     def __init__(self,profiles=[], name='', peakfit=False, 
                  make_wb_areas=False, time_seconds=None, worksheetname=None,
                  style_base = None, temperature_celsius=None,
-                 diffusivities_log10_m2s=None,
+                 diffusivities_log10_m2s=None, get_baselines=False,
                  diffusivity_errors=None):
         self.profiles = profiles
         self.name = name
@@ -2870,9 +3077,10 @@ class WholeBlock():
         self.temperature_celsius = temperature_celsius
         
         if len(self.profiles) > 0:
-            self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas)
+            self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas,
+                         get_baselines=get_baselines)
                 
-    def setupWB(self, peakfit=False, make_wb_areas=False):
+    def setupWB(self, peakfit=False, make_wb_areas=False, get_baselines=False):
         """Sets up and checks WholeBlock instance
         - Check that profiles list contains a list of three (3) profiles
         - Generate list of initial profiles
@@ -2924,7 +3132,8 @@ class WholeBlock():
             for prof in self.profiles:
                 prof.get_peakfit()
 
-        self.get_baselines()
+        if get_baselines is True:        
+            self.get_baselines()
             
         return True
 
@@ -3100,11 +3309,12 @@ class WholeBlock():
                            styles3=[None, None, None],
                            use_area_profile_styles=True,
                            heights_instead=False, wholeblock=True,
-                           show_line_at_1=True,
+                           show_line_at_1=True, get_saved_baseline=True,
                            show_errorbars=True):
         """Plot whole-block ratio of Area/Initial Area (default) 
         OR just areas (set wholeblock=False) on three panels"""
-        self.get_baselines()    
+        if get_saved_baseline is True:
+            self.get_baselines()
 
         if wholeblock is True:
             if ((self.directions is None) or (self.raypaths is None) or
@@ -3209,14 +3419,15 @@ class WholeBlock():
 
     def make_baselines(self, initial_too=False, linetype='line', 
                        wn_high=3700., wn_low=3200., shiftline=None, 
-                       show_fit_values=False, show_plot=False): 
+                       show_fit_values=False, show_plot=False,
+                       wn_mid=None): 
         """Make spectra baselines for all spectra in all profiles in 
         whole-block"""        
         profile_list = self.make_profile_list(initial_too)        
         for prof in profile_list:
             prof.make_baselines(linetype=linetype, shiftline=shiftline, 
                                 show_fit_values=show_fit_values, 
-                                show_plot=show_plot, 
+                                show_plot=show_plot, wn_mid=wn_mid,
                                 wn_high=wn_high, wn_low=wn_low) 
 
     def save_baselines(self, initial_too=True):
@@ -3226,7 +3437,7 @@ class WholeBlock():
             for spectrum in prof.spectra_list:
                 spectrum.save_baseline()
 
-    def print_spectra4matlab(self, initial_too=False):
+    def matlab(self, initial_too=False):
         """Print out a list of spectra names in a matlab-friendly way"""        
         print '\nFor use in FTIR_peakfit_loop.m\n'        
         
