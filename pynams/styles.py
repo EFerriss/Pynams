@@ -7,8 +7,8 @@ Created on Fri May 29 10:43:49 2015
 import matplotlib.pyplot as plt
 import numpy as np
 
-style_points = {'color' : 'k', 'marker' : 'o', 'markersize' : 6,
-                'fillstyle' : 'none', 'linestyle' : 'none',}
+style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
+                'fillstyle' : 'full', 'linestyle' : 'none',}
 style_points_crosses = {'color' : 'blue', 'marker' : '+', 'markersize' : 10,
                         'linestyle' : 'none'}
 style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3,
@@ -50,6 +50,14 @@ style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 9,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
 
+style_list_points = [style_points0,
+                     style_points1,
+                     style_points2,
+                     style_points3,
+                     style_points4,
+                     style_points5,
+                     style_points6,
+                     style_points7,]
 
 
 #                'markerfacecolor' : 'w'}
@@ -75,6 +83,14 @@ style_4 = {'color':'red', 'linewidth':3.5, 'linestyle' : '-.'}
 style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
 style_5 = {'color':'sage', 'linewidth':2., 'linestyle' : '--'}
 style_6 = {'color':'darkorchid', 'linewidth':2., 'linestyle' : '--'}
+
+style_list = [style_initial, 
+              style_1,
+              style_2,
+              style_3,
+              style_4,
+              style_5,
+              style_6,]
 
 style_unoriented = {'fillstyle' : 'none'}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}

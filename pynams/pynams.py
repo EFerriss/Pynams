@@ -35,28 +35,7 @@ import json
 from scipy import signal as scipysignal
 import scipy.interpolate as interp
 
-#%%
-# Set default folder where to find and/or save files for use with 
-# functions like save_spectrum and save_baseline. 
-default_folder = 'C:\\Users\\Ferriss\\Documents\\FTIR\\'
-#default_folder = 'FTIR_CSV_FILES\\'
-
-def make_line_style(direction, style_marker):
-    """Take direction and marker style and return line style dictionary
-    that reflects the direction (x, y, z, or u for unoriented) with the 
-    color of the base style"""
-    if direction == 'x':
-        d = styles.style_Dx_line
-    if direction == 'y':
-        d = styles.style_Dy_line
-    if direction == 'z':
-        d = styles.style_Dz_line
-    if direction == 'u':
-        d = styles.style_unoriented_line        
-    d.update({'linewidth' : 2})
-    return d
-    
-# Define classes, attributes, and functions related to samples
+#%% Define classes, attributes, and functions related to samples
 class Sample():    
     def __init__(self, thickness_microns=None, IGSN=None, 
                  mineral_name=None, initial_water=None, twoA_list = [],
@@ -81,10 +60,9 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
 
-def area2water(area_cm2, phase='cpx', calibration='Bell'):
-    """Takes area in cm-2, multiplies by absorption coefficient, 
-    return water concentration in ppm H2O"""
-    # Bell et al. 1995
+def absorption_coefficients(phase, calibration, peak_idx=None):
+    """Input phase, calibration, and peak 
+    Returns absorption coefficient"""
     if (calibration == 'Bell') and (phase=='cpx'):
         absorption_coeff = 1.0 / ufloat(7.09, 0.32)
 
@@ -102,18 +80,27 @@ def area2water(area_cm2, phase='cpx', calibration='Bell'):
         print '   Bell et al. 2003 for olivine'
         print '   Withers et al. 2012 for olivine'
         return
-        
+
+    return absorption_coeff        
+    
+def area2water(area_cm2, phase='cpx', calibration='Bell', peak_idx=None):
+    """Takes area in cm-2, multiplies by absorption coefficient, 
+    return water concentration in ppm H2O"""
+    absorption_coeff = absorption_coefficients(phase=phase, 
+                                               calibration=calibration,
+                                               peak_idx=peak_idx)
     w = absorption_coeff * area_cm2
     return w
         
-# Define classes and functions related to FTIR spectra        
+#%% Define classes and functions related to FTIR spectra        
 class Spectrum():
-    def __init__(self, fname=None, sample=None, filename=None,
+    def __init__(self, fname, folder='', sample=None, filename=None,
                  thick_microns=None, raypath=None,
                  base_low_wn=3200, base_high_wn=3700,
                  base_mid_wn=3550, polar=None, other_name=None,
-                 folder=default_folder, filetype='.CSV'):
+                 filetype='.CSV'):
         self.fname = fname
+        self.folder = folder
         self.sample = sample
         self.filename = filename
         self.thick_microns = thick_microns
@@ -198,9 +185,14 @@ class Spectrum():
         self.thick_microns = th
         return th
 
-    def thickness_from_SiO(self, show_plot=False, printout=False):
+    def thickness_from_SiO(self, show_plot=False, printout=False,
+                           size_inches=(3, 2.5)):
         """Estimates the sample thickness based on area of the Si-O overtones
            Using Eq 1 of Matveev and Stachel 2007"""
+        if self.wn_full is None:
+            check = self.get_data()
+            if check is False:
+                return False
 
         # make temporary baseline under Si-O overtone peaks
         if self.base_abs is not None:
@@ -209,24 +201,29 @@ class Spectrum():
         else:
             retrieveBaseline = False           
 
-        self.make_baseline(wn_low=1625, wn_high=2150)
+        self.make_baseline(wn_low=1625, wn_high=2150, show_plot=False)
         SiOarea = self.area_under_curve(show_plot=False, printout=printout)
-        thickness_microns = SiOarea / 0.6366        
-        
+        thickness_microns = SiOarea / 0.6366
+
         if show_plot is True:    
-            fig, ax = self.orientation()
-            self.plot_showbaseline(figaxis=ax)
-
-        if printout is True:
-            print 'Thickness based on Eq 1 of Matveev and Stachel 2007'
-
+            fig, ax = self.plot_showbaseline(size_inches=(6, 6), #pad_top=10.,
+                                             wn_xlim_left=2200., 
+                                             wn_xlim_right=1200)
+                                                         
+            ax.set_title(''.join((self.fname, '\n',
+                                    '{:.0f}'.format(thickness_microns),
+                                    ' $\mu$m thick')))
 
         if retrieveBaseline is True:
             self.get_baseline(bline_file_ending='baseline-temp.CSV')
         else:
             self.base_abs = None
 
+        # This has to come after the plotting or else the baseline will be offset
         self.thick_microns = thickness_microns
+
+        if show_plot is True:
+            return fig, ax
         return thickness_microns
 
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
@@ -283,13 +280,16 @@ class Spectrum():
             ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)
         
 
-    def make_average_spectra(self, spectra_list, folder=default_folder):
+    def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""
         list_abs_to_average = []
         list_wn = []
         for sp in spectra_list:
-            sp.filename = folder + sp.fname + '.CSV'
+            if folder is not None:
+                sp.filename = folder + sp.fname + '.CSV'
+            else:
+                sp.filename = self.folder + sp.fname + '.CSV'
             if os.path.isfile(sp.filename) is False:
                 print sp.filename
                 print 'File not found'
@@ -309,10 +309,10 @@ class Spectrum():
         self.abs_full_cm = ave_abs
         self.start_at_zero()
     
-    def get_data(self, folder=default_folder):
+    def get_data(self):
         """Get the data from file"""
         if self.filename is None:
-            self.filename = folder + self.fname + self.filetype
+            self.filename = self.folder + self.fname + self.filetype
 
         if os.path.isfile(self.filename):
             if self.filetype == '.CSV':
@@ -336,8 +336,9 @@ class Spectrum():
         signal = signal[signal[:,0].argsort()]
         self.wn_full = signal[:, 0]
         self.abs_raw = signal[:, 1]
+        return True
     
-    def divide_by_thickness(self, folder=default_folder):
+    def divide_by_thickness(self):
         """Divide raw absorbance by thickness"""
         if self.thick_microns is None:
             check = self.set_thick()
@@ -361,13 +362,12 @@ class Spectrum():
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
 
-    def start_at_zero(self, folder=default_folder,
-                      wn_xlim_left=4000., wn_xlim_right=3000.):
+    def start_at_zero(self, wn_xlim_left=4000., wn_xlim_right=3000.):
         """Divide raw absorbance by thickness and
         shift minimum to 0 within specified wavenumber range specified
         by wn_xlim_left and _right"""
         if self.abs_full_cm is None:
-            check = self.divide_by_thickness(folder=folder)
+            check = self.divide_by_thickness()
             if check is False:
                 return False
 
@@ -388,7 +388,7 @@ class Spectrum():
     def make_baseline(self, linetype='line', shiftline=0.02, 
                       show_fit_values=False, show_plot=False,
                       size_inches=(3., 2.5), wn_low=None, wn_high=None,
-                      folder=default_folder, wn_mid=None, 
+                      wn_mid=None, 
                       splinetype='quadratic', abs_high=None, abs_low=None,
                       abs_smear_high=0, abs_smear_low=0):
         """Make baseline that is a spline (linetype='spline'; default),
@@ -399,7 +399,7 @@ class Spectrum():
         how much quadratic deviates from linearity"""
         if self.thick_microns is not None:
             if self.abs_full_cm is None:
-                check = self.start_at_zero(folder=folder)
+                check = self.start_at_zero()
                 if check is False:
                     return False
             absorbance = self.abs_full_cm
@@ -613,8 +613,8 @@ class Spectrum():
                     numformat.format(w*3.), ' ppm H2O'))
         return area, w*3
 
-    def save_spectrum(self, folder=default_folder, delim='\t',
-                      file_ending='-per-cm.txt'):
+    def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
+                      folder=None):
         """Save entire spectrum divided by thickness to file with headings.
         1st column: wavenumber /cm; 2nd column: absorbance /cm.
         Formatted for upload to PULI"""
@@ -623,6 +623,9 @@ class Spectrum():
             return
         if self.abs_full_cm is None:
             self.divide_by_thickness(folder=folder)
+
+        if folder is None:
+            folder = self.folder
             
         abs_filename = folder + self.fname + file_ending
         print 'Saving:'
@@ -636,13 +639,16 @@ class Spectrum():
         with open(abs_filename, 'w') as abs_file:
             np.savetxt(abs_file, a, delimiter=delim)
         
-    def save_baseline(self, folder=default_folder, 
+    def save_baseline(self, folder=None, 
                  bline_file_ending='-baseline.CSV', linetype='line', 
                  shiftline=0.02, basel=None, delim=',', showplots=False):
         """Save baseline with baseline-subtracted spectrum 
         (-baseline) to file. These can be retrieved using get_baseline(). 
         Use save_spectrum() to save full wavenumber and -per-cm absorbances.
         """
+        if folder is None:
+            folder = self.folder
+            
         if self.fname is None:
             print 'Need .fname to know what to call saved file'
             return
@@ -673,12 +679,14 @@ class Spectrum():
         with open(base_filename, 'a') as base_file:
             np.savetxt(base_file, a, delimiter=delim)
 
-    def get_baseline(self, folder=default_folder, delim=',', 
+    def get_baseline(self, folder=None, delim=',', 
                 bline_file_ending='-baseline.CSV'):
         """Get baseline and -subtracted spectrum saved using save_baseline().
         Same data that goes into MATLAB FTIR_peakfit_loop.m
         Returns baseline absorbances and baseline-subtracted absorbances. 
         For wavenumber range, it sets spectrum's base_wn attribute"""
+        if folder is None:
+            folder = self.folder
         filename = folder + self.fname + bline_file_ending
         if os.path.isfile(filename) is False:
 #            print ' '
@@ -696,7 +704,7 @@ class Spectrum():
         self.base_low_wn = min(data[:, 0])
         return self.base_abs, self.abs_nobase_cm
         
-    def get_3baselines(self, folder=default_folder, delim=',', 
+    def get_3baselines(self, folder=None, delim=',', 
                 bline_file_ending='-3baselines.CSV'):
         """Returns block of baseline data saved by water_from_spectra()
         d[:,0] = baseline wavenumbers, d[:,1:4] = baselines, 
@@ -711,11 +719,13 @@ class Spectrum():
                              skip_header=1)
         return data                            
                 
-    def get_peakfit(self, folder=default_folder, delim=',', 
+    def get_peakfit(self, folder=None, delim=',', 
                     file_ending='-peakfit.CSV'):
         """Get individual peaks for spectrum from fname-peakfit.CSV generated
         in MATLAB using FTIR_peakfit_afterpython.m and savefit.m
         Return curves (assumes Gaussians) and summation"""
+        if folder is None:
+            folder = self.folder
         filename = folder + self.fname + file_ending
         if os.path.isfile(filename) is True:
             previous_fit = np.loadtxt(filename, delimiter=delim)
@@ -956,15 +966,19 @@ class Spectrum():
 
         ax.plot(self.wn_full, absorbance + offset, **style_to_use)
         ax.plot(wn_baseline, abs_baseline + offset, **style_base)
+        
+        if self.thick_microns is None:
+            ax.set_ylabel('Raw absorbance')
         return fig, ax
 
     def plot_subtractbaseline(self, polyorder=1, style=styles.style_spectrum, 
-                              figaxis=None, label=None, offset=0.):
+                              figaxis=None, label=None, offset=0.,
+                              size_inches=(3, 2.5)):
         """Make and plot baseline-subtracted spectrum"""
         abs_nobase_cm = self.subtract_baseline(polyorder)
         
         if figaxis is None:
-            fig, ax = self.plot_spectrum_outline()
+            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
         else:
             fig = None
             ax = figaxis
@@ -1019,8 +1033,7 @@ class Spectrum():
         return fig, ax
         
 
-def make_filenames(classname=Spectrum, folder=default_folder, 
-                   file_ending='.CSV'):
+def make_filenames(folder, classname=Spectrum, file_ending='.CSV'):
     """ Set filename attribute based on folder and fname attribute
     for all Spectra() with fname but no filename."""
     for obj in gc.get_objects():
@@ -1031,11 +1044,10 @@ def make_filenames(classname=Spectrum, folder=default_folder,
             except AttributeError:
                 print 'just chill, ok?'
 
-def water_from_spectra(list3, phase='cpx',
+def water_from_spectra(list3, folder, phase='cpx', 
                        proper3=False, numformat='{:.0f}',
                        savebaselines=False, show_plots=True, 
-                       bline_file_ending='-3baselines.CSV', 
-                       folder=default_folder, delim=',', 
+                       bline_file_ending='-3baselines.CSV', delim=',', 
                        calibration='Bell', main_yshift=None,
                        window_large=None, window_small=None, yhigh=1.):
     """Produce water estimate from list of FTIR spectra; 
@@ -1170,11 +1182,12 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    def __init__(self, profile_name=None, time_seconds=None, spectra_list = [],
+    def __init__(self, profile_name=None, time_seconds=None, 
                  fname_list=[], positions_microns = np.array([]),
                  sample=None, direction=None, raypath=None, short_name=None,
+                 spectra_list=[], set_thickness=True,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
-                 diffusivity_log10m2s=None, diff_error=None,
+                 diffusivity_log10m2s=None, diff_error=None, length_microns=None,
                  peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
         """fname_list = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
@@ -1188,6 +1201,7 @@ class Profile():
         self.fname_list = fname_list
         self.positions_microns = positions_microns
         self.sample = sample
+        self.length_microns = length_microns
         self.direction = direction
         self.raypath = raypath
         self.initial_profile = initial_profile
@@ -1199,8 +1213,6 @@ class Profile():
         self.peak_diff_error = peak_diff_error
         self.thick_microns = thick_microns
         
-        self.make_spectra_list()
-
 #        if (self.fname_list is not None) and (self.sample is not None):
         if base_low_wn is not None:
             for spectrum in self.spectra_list:
@@ -1211,9 +1223,11 @@ class Profile():
                 spectrum.base_low_wn = base_high_wn
 
 
-        self.make_spectra_list()
+        self.make_spectra_list(set_thickness=set_thickness)
 
     short_name = None # short string for saving diffusivities, etc.
+    thick_microns_list = None
+
     
     # for constructing whole-block profiles
 
@@ -1224,7 +1238,7 @@ class Profile():
     spectrum_class_name = None 
     avespec = None # averaged spectra made by self.average_spectra()
     iavespec = None # initial averaged spectra
-    len_microns = None # length, but I usually use set_len() directly each time
+    length_microns = None # length, but I usually use set_len() directly each time
     waters_list = []
     waters_errors = []
     areas_list = []
@@ -1293,7 +1307,7 @@ class Profile():
         self.make_spectra_list()
 
     def set_len(self):
-        """Set profile.len_microns from profile.direction and 
+        """Set profile.length_microns from profile.direction and 
         profile.sample.thick_microns""" 
 
         if self.sample is None:
@@ -1307,16 +1321,15 @@ class Profile():
             s.thickness_microns = get_3thick(s)                
         
         if self.direction == 'a':
-           self.len_microns = s.thickness_microns[0]
+           self.length_microns = s.thickness_microns[0]
         elif self.direction == 'b':
-            self.len_microns = s.thickness_microns[1]
+            self.length_microns = s.thickness_microns[1]
         elif self.direction == 'c':
-            self.len_microns = s.thickness_microns[2]
+            self.length_microns = s.thickness_microns[2]
         else:
             print 'Set direction of profile to a, b, or c'
 
-        return self.len_microns
-
+        return self.length_microns
     def set_thick(self):
         """Set profile.thick_microns from profile.raypath and
         profile.sample.thick_microns"""
@@ -1341,8 +1354,18 @@ class Profile():
             
         return self.thick_microns
 
+    def plot_thicknesses(self):
+        """Plot thickness across profile"""
+        fig, ax, ax_right = self.plot_area_profile_outline(centered=False)
+        ax.plot(self.positions_microns, self.thick_microns_list, 'o')
+        ax.set_ylabel('thickness ($\mu$m)')
+        ax.set_title(self.profile_name)
+        ax.set_ylim(min(self.thick_microns_list)-0.05*min(self.thick_microns_list), 
+                    max(self.thick_microns_list)+0.05*max(self.thick_microns_list))
+        return fig, ax            
+
     def make_spectra_list(self, class_from_module=None, 
-                          my_module='my_spectra'):
+                          my_module='my_spectra', set_thickness=True):
         """Set profile length and generate spectra_list 
         with key attributes"""
         try:
@@ -1359,6 +1382,7 @@ class Profile():
         else:
             classToUse = Spectrum    
 
+        # construct each spectrum from fnames
         if len(self.spectra_list) == 0:
             if len(self.fname_list) == 0:
                 print 'Need fnames'
@@ -1367,22 +1391,32 @@ class Profile():
             for x in self.fname_list:
                 newspec = classToUse()
                 newspec.fname = x
-                newspec.sample = self.sample
-                newspec.raypath = self.raypath
                 newspec.thick_microns = self.thick_microns
                 fspectra_list.append(newspec)
             self.spectra_list = fspectra_list
-            
-        else:
-            for spec in self.spectra_list:
-                spec.sample = self.sample
-                spec.raypath = self.raypath
-                if self.thick_microns is not None:
-                    spec.thick_microns = self.thick_microns
-                else:
-                    spec.thickness_from_SiO()
-                
+
+        # set sample, raypath for all
+        for spec in self.spectra_list:
+            spec.sample = self.sample
+            spec.raypath = self.raypath
+
+        if set_thickness is True:
+            self.set_thicknesses()
         return
+
+    def set_thicknesses(self):
+        """Sets thickness for each spectrum and makes list of thickness for profile"""
+        if self.thick_microns_list is None:
+            self.thick_microns_list = []
+        for spec in self.spectra_list:
+           if len(self.thick_microns_list) < len(self.positions_microns):
+                if self.thick_microns is not None:            
+                    spec.thick_microns = self.thick_microns
+                elif spec.thick_microns is None:
+                    spec.thickness_from_SiO()
+                self.thick_microns_list.append(spec.thick_microns)   
+        if self.length_microns is None:
+            self.length_microns = max(self.thick_microns_list) + 50.
 
     def average_spectra(self):
         """Creates and returns averaged spectrum and stores it in
@@ -1848,7 +1882,7 @@ class Profile():
         return style
         
     def plot_area_profile_outline(self, centered=True, peakwn=None,
-                                  figsize=(6.5, 2.5), top=1.2, 
+                                  set_size=(6.5, 4), top=1.2, 
                                   wholeblock=False, heights_instead=False,
                                   show_water_ppm=True):
         """Set up area profile outline and style defaults. 
@@ -1857,12 +1891,12 @@ class Profile():
             self.style_base = styles.style_profile
         self.make_style_subtypes()
         
-        if self.len_microns is None:
+        if self.length_microns is None:
             leng = self.set_len()
         else:
-            leng = self.len_microns
+            leng = self.length_microns
 
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=set_size)
         ax = SubplotHost(fig, 1,1,1)
         fig.add_subplot(ax)
 
@@ -1910,11 +1944,11 @@ class Profile():
                           show_FTIR=False, show_water_ppm=True,
                           show_values=False, set_class=None,
                           peakwn=None, peak_idx=None,
-                          style=None, show_initial_areas=False,
-                          error_percent=2., wholeblock=False,
+                          style=styles.style_points, show_initial_areas=False,
+                          error_percent=0, wholeblock=False,
                           label=None, initial_style=None,
                           initial_label=None, phase='olivine',
-                          calibration='Bell'):
+                          calibration='Bell', orientation_factor=3.):
         """Plot area profile. Centered=True puts 0 in the middle of the x-axis.
         figaxis sets whether to create a new figure or plot on an existing axis.
         bestfitline=True draws a best-fit line through the data.
@@ -1989,13 +2023,13 @@ class Profile():
             ax = figaxis
 
         # Set length
-        if self.len_microns is None:
+        if self.length_microns is None:
             leng = self.set_len()
-            if self.len_microns is None:
+            if self.length_microns is None:
                 print 'Need some information about profile length'
                 return
         else:
-            leng = self.len_microns
+            leng = self.length_microns
 
         # Set up plotting styles
         if style_bestfitline is None:
@@ -2058,7 +2092,21 @@ class Profile():
             tit = ' '.join(('Peak at', str(peakwn) ,'/cm'))
         ax.set_title(tit)
 
-#        if show_water_ppm is True:
+        if show_water_ppm is True:
+            ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
+                                       ' calibration *', str(orientation_factor))))
+            parasite_tick_locations = np.linspace(ax.get_ylim()[0],
+                                                  ax.get_ylim()[1], 5)
+            abs_coeff = absorption_coefficients(phase=phase, 
+                                                calibration=calibration, 
+                                                peak_idx=peak_idx)
+#            ppm_labels = parasite_tick_locations * abs_coeff * orientation_factor
+            ppm_labels = parasite_tick_locations * abs_coeff.n * orientation_factor
+
+            ax_ppm.set_yticks(parasite_tick_locations)
+#            ax_ppm.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
+            np.set_printoptions(precision=1)
+            ax_ppm.set_yticklabels(['{:.1f}'.format(i) for i in ppm_labels])
 #    parasite_tick_locations = 1e4/(celsius_labels + 273.15)
 #    ax_celsius.set_xticks(parasite_tick_locations)
 #    ax_celsius.set_xticklabels(celsius_labels)
@@ -2233,8 +2281,8 @@ class Profile():
                                          peak_idx=peak_idx, 
                                          heights_instead=heights_instead)
                                                        
-        if self.len_microns is not None:
-            microns = self.len_microns
+        if self.length_microns is not None:
+            microns = self.length_microns
         elif self.sample.thickness_microns is not None:
             microns = self.set_len()
         else:
@@ -2417,9 +2465,12 @@ class Profile():
         
         return best_D, best_init, RSS
 
-    def save_diffusivities(self, folder=default_folder, 
+    def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
         """Save diffusivities for profile to a file"""
+        if folder is None:
+            folder = self.folder
+            
         if self.short_name is None:
             print 'Need profile short_name attribute to label file'
             return
@@ -2453,9 +2504,12 @@ class Profile():
             diff_file.write(json.dumps(a))
 
 
-    def get_diffusivities(self, folder=default_folder, 
+    def get_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
         """Get saved diffusivities for profile from a file"""
+        if folder is None:
+            folder = self.folder
+        
         # Look into json format        
         if self.short_name is None:
             print 'Need profile short_name attribute to label file'
@@ -2581,15 +2635,14 @@ class Profile():
 #                print string
 #            peakstrings.append(string)
 #
-    def start_at_arbitrary(self, wn_matchup=3000, offset=0.,
-                           folder=default_folder):
+    def start_at_arbitrary(self, wn_matchup=3000, offset=0.):
         """For each spectrum in profile, divide raw absorbance by thickness 
         and set spectra abs_full_cm such that they overlap at the specified 
         wavenumber wn_matchup with specified offset up from zero"""
         for x in self.spectra_list:
             # Divide by thickness if not done already
             if x.abs_full_cm is None:
-                check = x.divide_by_thickness(folder=folder)
+                check = x.divide_by_thickness(folder=self.folder)
                 if check is False:
                     return False
             # print 'Setting to zero at wn_matchup'
@@ -2886,12 +2939,12 @@ def make_3DWB_area_profile(final_profile,
         if len(fin.positions_microns) == 0:
             print 'Need position information'
             return False
-        if fin.len_microns is None:
+        if fin.length_microns is None:
             check = fin.set_len()
             if check is False:
                 print 'Need more info to set profile length'
                 return False
-        if fin.len_microns is None:
+        if fin.length_microns is None:
             fin.set_len()
         if len(fin.areas_list) == 0:
             print 'making area list for profile'
@@ -2902,7 +2955,7 @@ def make_3DWB_area_profile(final_profile,
         if fin.initial_profile is not None:
             
             init = fin.initial_profile
-            if init.len_microns != fin.len_microns:
+            if init.length_microns != fin.length_microns:
                 print 'initial and final lengths must be the same!'
                 return False
             # Make sure area lists are populated
@@ -2956,7 +3009,7 @@ def make_3DWB_area_profile(final_profile,
         if len(A0) == 1:
             print 'Using single point to generate initial line'
             A0.extend([A0[0], A0[0]])
-            positions0.extend([0, fin.len_microns])
+            positions0.extend([0, fin.length_microns])
             
         # Use best-fit line through initial values to normalize final data
         p = np.polyfit(positions0-(leng/2.), A0, 1)
@@ -3048,8 +3101,8 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
         ax_water.axis["right"].major_ticklabels.set_visible(True)
         ax_areas.grid()
         ax_areas.set_ylim(0, 1.2)
-        if fin.len_microns is not None:
-            leng = fin.len_microns
+        if fin.length_microns is not None:
+            leng = fin.length_microns
         else:
             leng = fin.set_len()
         ax_areas.set_xlim(-leng/2.0, leng/2.0)
@@ -4049,17 +4102,19 @@ class WholeBlock():
         print prof.D_peakarea_wb
         print prof.peak_D_area_wb_error
 
-    def save_diffusivities(self, folder=default_folder, 
+    def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
         """Save diffusivities for all profiles in whole-block instance
         to files"""
         for prof in self.profiles:
             prof.save_diffusivities(folder, file_ending)
             
-    def get_diffusivities(self, folder=default_folder, 
+    def get_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
         """Gets diffusivities for all profiles in whole-block instance
         from previously saved files"""
+        if folder is None:
+            folder = self.folder
         for prof in self.profiles:
             prof.get_diffusivities(folder, file_ending)
 
@@ -4283,3 +4338,19 @@ class WholeBlock():
         Default plot showing residuals for how well results match the whole-block
         observations."""
         pass
+
+def make_line_style(direction, style_marker):
+    """Take direction and marker style and return line style dictionary
+    that reflects the direction (x, y, z, or u for unoriented) with the 
+    color of the base style"""
+    if direction == 'x':
+        d = styles.style_Dx_line
+    if direction == 'y':
+        d = styles.style_Dy_line
+    if direction == 'z':
+        d = styles.style_Dz_line
+    if direction == 'u':
+        d = styles.style_unoriented_line        
+    d.update({'linewidth' : 2})
+    return d
+    
