@@ -297,7 +297,7 @@ class Spectrum():
                 return False
                                   
             if sp.abs_full_cm is None:
-                check = sp.divide_by_thickness(folder=folder)
+                check = sp.divide_by_thickness()
                 if check is False:
                     return False
             abs_to_append = sp.abs_full_cm
@@ -328,7 +328,7 @@ class Spectrum():
                 print 'check filetype'
         else:
             print 'There is a problem finding the file.'
-            print 'You may need to run pynams.make_filenames(folder=)'
+#            print 'You may need to run pynams.make_filenames(folder=)'
             print 'filename =', self.filename
             return False
         
@@ -1182,10 +1182,10 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    def __init__(self, profile_name=None, time_seconds=None, 
+    def __init__(self, profile_name=None, time_seconds=None, folder='',
                  fname_list=[], positions_microns = np.array([]),
                  sample=None, direction=None, raypath=None, short_name=None,
-                 spectra_list=[], set_thickness=True,
+                 spectra_list=[], set_thickness=False,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
                  diffusivity_log10m2s=None, diff_error=None, length_microns=None,
                  peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
@@ -1198,6 +1198,7 @@ class Profile():
         """
         self.profile_name = profile_name
         self.spectra_list = spectra_list
+        self.folder = folder
         self.fname_list = fname_list
         self.positions_microns = positions_microns
         self.sample = sample
@@ -1364,8 +1365,7 @@ class Profile():
                     max(self.thick_microns_list)+0.05*max(self.thick_microns_list))
         return fig, ax            
 
-    def make_spectra_list(self, class_from_module=None, 
-                          my_module='my_spectra', set_thickness=True):
+    def make_spectra_list(self, set_thickness=True):
         """Set profile length and generate spectra_list 
         with key attributes"""
         try:
@@ -1375,13 +1375,6 @@ class Profile():
         except AttributeError:
             self.raypath = None
 
-        if class_from_module is not None:
-            classToUse = class_from_module
-        elif self.spectrum_class_name is not None:
-            classToUse = self.spectrum_class_name
-        else:
-            classToUse = Spectrum    
-
         # construct each spectrum from fnames
         if len(self.spectra_list) == 0:
             if len(self.fname_list) == 0:
@@ -1389,7 +1382,7 @@ class Profile():
                 return False                
             fspectra_list = []
             for x in self.fname_list:
-                newspec = classToUse()
+                newspec = Spectrum(fname=x, folder=self.folder)
                 newspec.fname = x
                 newspec.thick_microns = self.thick_microns
                 fspectra_list.append(newspec)
@@ -1409,12 +1402,14 @@ class Profile():
         if self.thick_microns_list is None:
             self.thick_microns_list = []
         for spec in self.spectra_list:
-           if len(self.thick_microns_list) < len(self.positions_microns):
+           if len(self.thick_microns_list) < len(self.spectra_list):
                 if self.thick_microns is not None:            
                     spec.thick_microns = self.thick_microns
                 elif spec.thick_microns is None:
                     spec.thickness_from_SiO()
                 self.thick_microns_list.append(spec.thick_microns)   
+
+    def set_length(self):
         if self.length_microns is None:
             self.length_microns = max(self.thick_microns_list) + 50.
 
@@ -2166,8 +2161,9 @@ class Profile():
                 else:
                     y = self.peak_wb_heights[peak_idx]
         else:
-            print 'only wholeblock=True for now, sorry'
-            return
+            if self.areas_list is None:
+                self.make_area_list()
+            y = self.areas_list
         return y
 
     def D_picker(self, wholeblock=True, heights_instead=False, peak_idx=None):
@@ -2268,8 +2264,8 @@ class Profile():
 
     def plot_diffusion(self, log10D_m2s=None, time_seconds=None, 
                        peak_idx=None, top=1.2, wholeblock=False,
-                       maximum_value=None, style=None,
-                       heights_instead=False, 
+                       maximum_value=None, style=None, centered=False,
+                       heights_instead=False, points=200., symmetric=True,
                        labelD=True, labelDx=None, labelDy=None,
                        initial_unit_value=1., final_unit_value=0.):
         """Plot diffusion curve with profile data."""
@@ -2277,8 +2273,11 @@ class Profile():
             print 'Need to specify an initial profile'
             return False, False
         
+        if symmetric is False:
+            centered = False
+            
         fig, ax = self.plot_area_profile(wholeblock=wholeblock, 
-                                         peak_idx=peak_idx, 
+                                         peak_idx=peak_idx, centered=centered,
                                          heights_instead=heights_instead)
                                                        
         if self.length_microns is not None:
@@ -2306,7 +2305,6 @@ class Profile():
             print '\nNeed to set profile bulk or peak diffusivity'
             return False, False, False
 
-
         if peak_idx is not None and self.peakpos is None:
             self.get_peakfit()
 
@@ -2318,18 +2316,36 @@ class Profile():
         print '\nScaling to {:.2f} maximum value'.format(scaling_factor)
         print 'You can set maximum_value to scale diffusion curve'
        
-        # Setup and plot diffusion curves            
-        params = diffusion.params_setup1D(microns, log10D_m2s, time_seconds,
-                                          init=initial_unit_value, 
-                                          fin=final_unit_value)
-                                          
-        x_diffusion, y_diffusion = diffusion.diffusion1D_params(params)        
-        ax.plot(x_diffusion, y_diffusion*scaling_factor)
+        # Setup and plot diffusion curves
+        if symmetric is True:
+            params = diffusion.params_setup1D(microns, log10D_m2s, time_seconds,
+                                              init=initial_unit_value, 
+                                              fin=final_unit_value)
+            x_diffusion, y_diffusion = diffusion.diffusion1D_params(params, 
+                                                                    points=points)        
+            if centered is False:
+                x_diffusion = x_diffusion + (self.length_microns/2.)
+            ax.plot(x_diffusion, y_diffusion*scaling_factor)
+
+        else:
+            params = diffusion.params_setup1D(microns*2, log10D_m2s, 
+                                              time_seconds,
+                                              init=initial_unit_value, 
+                                              fin=final_unit_value)
+            x_diffusion, y_diffusion = diffusion.diffusion1D_params(params, 
+                                                                points=points)        
+            x_diffusion = x_diffusion[int(points/2):]
+            y_diffusion = y_diffusion[int(points/2):]
+            ax.plot(x_diffusion, y_diffusion*scaling_factor)
+            
             
         # label diffusivity on plot
         if labelD is True:
             if labelDx is None:
-                labelDx = -microns/2.
+                if centered is True:
+                    labelDx = -microns/2.
+                else:
+                    labelDx = self.length_microns * 0.05
             if labelDy is None:
                 top = ax.get_ylim()[1]
                 labelDy = top-0.1*top
@@ -2390,16 +2406,23 @@ class Profile():
                                         maximum_value=maximum_value)
         return resid, RSS
             
-    def fitDiffusivity(self, initial_unit_value=1., vary_initial=False,
+    def fitDiffusivity(self, time_seconds=None, points=200, 
+                       initial_unit_value=1., vary_initial=True,
                        varyD=True, guess=-13., peak_idx=None, top=1.2, 
-                       peakwn=None, wholeblock=True,
+                       peakwn=None, wholeblock=True, centered=False,
                        show_plot=True, polyorder=1, heights_instead=False,
                        final_unit_value=0., vary_final=False, 
-                       max_water=1., min_water=0.):
+                       maximum_value=None, min_water=0., symmetric=False):
         """Fits 1D diffusion curve to profile data.
         I still need to add almost all of the diffusion_1D keywords."""
-        if self.time_seconds is None:        
-            print 'Need to set profile time_seconds attribute'
+        if self.time_seconds is None and time_seconds is None:
+            print 'Need time_seconds'
+            return
+        elif time_seconds is None:
+            time_seconds = self.time_seconds            
+
+        if self.length_microns is None:
+            print 'Need to set profile attribute length_microns'
             return
             
         if self.positions_microns is None:
@@ -2411,59 +2434,68 @@ class Profile():
         
         # Set up x data and other parameters
         x = self.positions_microns
-        L = self.set_len()
-        t = self.time_seconds
+        L = self.length_microns
+        t = time_seconds
         D0 = guess
         init = initial_unit_value
         fin = final_unit_value
         params = diffusion.params_setup1D(L, D0, t, init, fin, vD=varyD, 
                                           vinit=vary_initial, vfin=vary_final)
 
+        dict_fitting = {'points' : points, 
+#                        'symmetric' : symmetric,
+#                        'centered' : centered
+                        }
+
         # minimization
-        lmfit.minimize(diffusion.diffusion1D_params, params, args=(x, y))
+        lmfit.minimize(diffusion.diffusion1D_params, params, args=(x, y), 
+                       kws=dict_fitting)
         best_D = ufloat(params['log10D_m2s'].value, 
-                         params['log10D_m2s'].stderr)
+                        params['log10D_m2s'].stderr)
         best_init = ufloat(params['initial_unit_value'].value, 
                          params['initial_unit_value'].stderr)   
-
-        # save results as attributes
-        # Use save_diffusivities to save to a file
-        if wholeblock is True:
-            if peak_idx is not None:
-                if heights_instead is False:
-                    self.D_peakarea_wb[peak_idx] = best_D.n
-                    self.D_peakarea_wb_error[peak_idx] = best_D.s
-                    self.peak_maximum_areas_wb[peak_idx] = best_init.n
-                else:
-                    self.D_height_wb[peak_idx] = best_D.n
-                    self.D_height_wb_error[peak_idx] = best_D.s
-                    self.peak_maximum_heights_wb[peak_idx] = best_init.n
-
-            else:
-                self.D_area_wb = best_D.n
-                self.D_area_wb_error = best_D.s
-                self.maximum_wb_area = best_init.n
-        
-        resid, RSS = self.diffusion_residuals(best_D.n, wholeblock, 
-                          heights_instead, peak_idx, best_init.n, 
-                          final_unit_value, show_plot=False, 
-                          maximum_value=best_init.n)
-
-        # report results
-        print '\ntime in hours:', params['time_seconds'].value / 3600.
-        print 'initial unit value:', '{:.2f}'.format(best_init)
-        print 'bestfit log10D in m2/s:', '{:.2f}'.format(best_D)
-        print 'residual sum of squares', '{:.2f}'.format(RSS)
-        if show_plot is True:
-            fig, ax = self.plot_diffusion(peak_idx=peak_idx, top=top, 
-                                          wholeblock=wholeblock,
-                                          heights_instead=heights_instead, 
-                                          maximum_value=best_init.n)
-
-
-
-        
-        return best_D, best_init, RSS
+        print best_D, best_init
+#
+#        # save results as attributes
+#        # Use save_diffusivities to save to a file
+#        if wholeblock is True:
+#            if peak_idx is not None:
+#                if heights_instead is False:
+#                    self.D_peakarea_wb[peak_idx] = best_D.n
+#                    self.D_peakarea_wb_error[peak_idx] = best_D.s
+#                    self.peak_maximum_areas_wb[peak_idx] = best_init.n
+#                else:
+#                    self.D_height_wb[peak_idx] = best_D.n
+#                    self.D_height_wb_error[peak_idx] = best_D.s
+#                    self.peak_maximum_heights_wb[peak_idx] = best_init.n
+#
+#            else:
+#                self.D_area_wb = best_D.n
+#                self.D_area_wb_error = best_D.s
+#                self.maximum_wb_area = best_init.n
+#        
+#        resid, RSS = self.diffusion_residuals(best_D.n, wholeblock, 
+#                          heights_instead, peak_idx, best_init.n, 
+#                          final_unit_value, show_plot=False, 
+#                          maximum_value=best_init.n)
+#
+#        # report results
+#        print '\ntime in hours:', params['time_seconds'].value / 3600.
+#        print 'initial unit value:', '{:.2f}'.format(best_init)
+#        print 'bestfit log10D in m2/s:', '{:.2f}'.format(best_D)
+##        print 'residual sum of squares', '{:.2f}'.format(RSS)
+#        if show_plot is True:
+#            fig, ax = self.plot_diffusion(time_seconds=time_seconds,
+#                                          log10D_m2s=best_D.n,
+#                                          peak_idx=peak_idx, top=top, 
+#                                          wholeblock=wholeblock,
+#                                          centered=centered,
+#                                          heights_instead=heights_instead, 
+#                                          maximum_value=best_init.n)
+#            return fig, ax
+#        else:
+#            return 1, 2
+##        return best_D, best_init, RSS
 
     def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
@@ -2656,13 +2688,14 @@ class Profile():
 #
 
 class TimeSeries(Profile):
-    def __init__(self, sample=None, fname_list=[], time_hours=[],
+    def __init__(self, sample=None, fname_list=[], time_hours=[], folder='',
                  thick_microns=None, style_base=styles.style_points):
         self.sample = sample
         self.thick_microns = thick_microns
         self.fname_list = fname_list
         self.times_hours = time_hours
         self.style_base = style_base        
+        self.folder = folder
         self.make_spectra_list()
     
     def plot_timeseries(self, y=None, peak_idx=None, tit=None, D_list=[], 
@@ -3117,12 +3150,13 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
                 
 #%% Group profiles together as whole-block unit
 class WholeBlock():
-    def __init__(self,profiles=[], name='', peakfit=False, 
+    def __init__(self,profiles=[], name='', peakfit=False, folder='',
                  make_wb_areas=False, time_seconds=None, worksheetname=None,
                  style_base = None, temperature_celsius=None,
                  diffusivities_log10_m2s=None, get_baselines=False,
                  diffusivity_errors=None):
         self.profiles = profiles
+        self.folder = folder
         self.name = name
         self.time_seconds = time_seconds
         self.worksheetname = worksheetname
