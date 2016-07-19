@@ -1,0 +1,12 @@
+setup.py
+pynams/__init__.py
+pynams/diffusion.py
+pynams/diffusivity_library.py
+pynams/experiments.py
+pynams/pynams.py
+pynams/styles.py
+pynams/wholeblock.py
+pynams.egg-info/PKG-INFO
+pynams.egg-info/SOURCES.txt
+pynams.egg-info/dependency_links.txt
+pynams.egg-info/top_level.txt

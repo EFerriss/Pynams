@@ -14,7 +14,7 @@ Simplest function call is diffusion1D(length, diffusivity, time)
             (Here is where you set what to vary when fitting)
     Step 2. Pass these parameters into diffusion1D_params(params)
     Step 3. Plot with plot_diffusion1D
-With profiles in styles, use profile.plot_diffusion() and fitDiffusivity()
+With profiles in styles, use profile.plot_diffusion() and fitD()
 
 ### 3-dimensional diffusion without path integration: 3Dnpi ###
 Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
@@ -658,7 +658,7 @@ def solve_Ea_D0(log10D_list, celsius_list):
     y = np.array(log10D_list)
 
     if (len(x) < 2) or (len(y) < 2):
-        print 'You need more than one point to fit a line'
+        print 'Warning: fitting to only one point'
         return None, None
     
     # If I don't add in a very low weighted extra number, the covariance
@@ -812,7 +812,7 @@ class Diffusivities():
 
         if (len(logD) < 2) or (len(celsius) < 2):
             print
-            print 'You need more than one point to fit a line'
+            print 'Only one point for orientation', orient
             print 'logD:', logD
             print 'celsius:', celsius
             print
@@ -821,14 +821,31 @@ class Diffusivities():
         Ea, D0 = solve_Ea_D0(logD, celsius)
         return Ea, D0
 
-    def whatIsD(self, celsius, orient, printout=True):
+    def whatIsD(self, celsius, orient='ALL', printout=True):
         """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
         """
-        Ea_and_D0 = self.solve_Ea_D0(orient=orient)
-        if Ea_and_D0 is None:
-            print 'Problem with self.solve_Ea_D0()'
-            return None
-        D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius)
+        D = []  
+        if orient == 'ALL':
+            for idx, direction in enumerate(['x', 'y', 'z', 'u']):
+                if len(self.logD[idx]) > 0:
+                    Ea_and_D0 = self.solve_Ea_D0(orient=direction)
+                    if Ea_and_D0 is not None:
+                        xD = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, 
+                                     celsius, printout=False)
+                        D.append(xD)
+                else:
+                    D.append(None)
+#                        D = D.append(whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, 
+#                                             celsius, printout=False))
+#                print D
+                    
+        else:
+            Ea_and_D0 = self.solve_Ea_D0(orient=orient)
+            if Ea_and_D0 is None:
+                print 'Problem with self.solve_Ea_D0()'
+                return None
+            D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius)
+            
         return D
         
     def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False,

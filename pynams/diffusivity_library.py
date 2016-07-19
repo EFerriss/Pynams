@@ -7,9 +7,8 @@ Created on Mon Mar 23 10:49:59 2015
 Library of diffusivities, both data and fit lines
 With focus on hydrogen diffusion in minerals
 
-First set up Diffusivities as a class with functions plotD (for all
-orientations), plotDx, plotDy, plotDz, and plotDu that take the figure axis 
-handle and plot the data onto it.
+First set up Diffusivities as a class with function plotD (for all
+orientations) take the figure axis handle and plot the data onto it.
 
 Also has function add_to_legend to add that information to a list of 
 legend handles. 
