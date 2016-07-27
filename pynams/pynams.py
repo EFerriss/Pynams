@@ -362,8 +362,11 @@ class Spectrum():
         # or else element-wise division doesn't work.
         if isinstance(self.thick_microns, float) is True:
             th = self.thick_microns
+        elif isinstance(self.thick_microns, int) is True:
+            th = float(self.thick_microns)
         else:
             th = np.asscalar(self.thick_microns)
+            
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
 
