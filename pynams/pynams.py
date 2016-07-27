@@ -231,13 +231,17 @@ class Spectrum():
                                         relative=True):
         """Take a spectrum and wavenumber range (default 3300-3500 cm-1)
         and returns the wavenumber with the lowest absorbance within that range."""
-        self.start_at_zero()
+        if self.abs_full_cm is None:
+            self.start_at_zero()
     
         ## find minimum relative to a linear baseline
         if relative is True:            
             self.make_baseline(linetype='line', show_plot=False)
             idx_mid_high = (np.abs(self.base_wn-wn_mid_range_high)).argmin()
             idx_mid_low = (np.abs(self.base_wn-wn_mid_range_low)).argmin()
+            if idx_mid_high == idx_mid_low:
+                print 'basenumber range not established. Check wavenumber range'
+                return False
         
             abs_nobase = self.subtract_baseline()
             mid_abs_range = abs_nobase[idx_mid_low:idx_mid_high]
@@ -286,16 +290,17 @@ class Spectrum():
         list_abs_to_average = []
         list_wn = []
         for sp in spectra_list:
-            if folder is not None:
-                sp.filename = folder + sp.fname + '.CSV'
-            else:
-                sp.filename = self.folder + sp.fname + '.CSV'
-            if os.path.isfile(sp.filename) is False:
-                print sp.filename
-                print 'File not found'
-                print
-                return False
-                                  
+            if sp.filename is None:
+                if folder is not None:
+                    sp.filename = folder + sp.fname + '.CSV'
+                else:
+                    sp.filename = sp.folder + sp.fname + '.CSV'
+                if os.path.isfile(sp.filename) is False:
+                    print sp.filename
+                    print 'File not found'
+                    print
+                    return False
+                                      
             if sp.abs_full_cm is None:
                 check = sp.divide_by_thickness()
                 if check is False:
@@ -865,19 +870,26 @@ class Spectrum():
 
         return fig, ax
 
-    def orientation(self):
+    def orientation(self, top=None):
         """guess orientation based on Si-O overtones in FTIR spectrum"""
         print '\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.'
         fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
                                      wn_xlim_right=1200)
         fig.set_size_inches(6, 6)
                                                     
+        if top is not None:
+            ax.set_ylim(0, top)
+        else:
+            ctop = ax.get_ylim()[1]
+            ax.set_ylim(0, ctop + 0.5*ctop)
+
         ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
         labels = ['E || a', 'E || b', 'E || c']
         for idx, wn in enumerate([2035, 1670, 1785,]):
             ax.plot([wn, wn], ax.get_ylim(), '-r')
             ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
                     va='center', ha='center', fontsize=12)
+        
             
         return fig, ax
     
@@ -1405,7 +1417,7 @@ class Profile():
             self.thick_microns_list = []
         for spec in self.spectra_list:
            if len(self.thick_microns_list) < len(self.spectra_list):
-                if self.thick_microns is not None:            
+                if self.thick_microns is not None:      
                     spec.thick_microns = self.thick_microns
                 elif spec.thick_microns is None:
                     spec.thickness_from_SiO()
@@ -1419,7 +1431,7 @@ class Profile():
         """Creates and returns averaged spectrum and stores it in
         attribute avespec"""
         spec_list = self.spectra_list
-        avespec = Spectrum()
+        avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list)
         
         if self.profile_name is not None:
@@ -3294,22 +3306,37 @@ class WholeBlock():
                   initial_and_final_together=initial_and_final_together,
                   style=style, stylei=stylei, wn=None)
 
-    def plot_3panels_ave_spectra(self, peak_idx=None, peakwn=None, top=1.,
+    def plot_3panels_ave_spectra(self, peak_idx=None, peakwn=None, 
+                                 top=1., high=4000, low=3000,
                                 style=styles.style_spectrum_red, 
-                                stylei=styles.style_initial,
-                                figsize=(6., 2.5), show_initial=True,
-                                legloc=5):
+                                stylei=styles.style_initial, show_raypaths=False,
+                                figsize=(6., 4), show_initial=True,
+                                legloc=5, label='Final', figax3=None):
         """Three suplots showing average initial and final spectra in each
         direction"""
         if self.initial_profiles is None:
             self.setupWB()
 
-        f, ax3 = plt.subplots(1,3)
-        f.set_size_inches(figsize)
+        if figax3 is None:
+            f, ax3 = plt.subplots(1,3)
+            f.set_size_inches(figsize)
+            for idx, ax in enumerate(ax3[:3]):
+                ax.set_xlim(high, low)
+                ax.set_ylim(0., top)
+                if show_raypaths is True:
+                    raypathstring = ''.join(('profile || ', self.profiles[idx].direction, 
+                                             '\nray path || ', self.profiles[idx].raypath))
+                    ax.text(3500, top-top*0.22, raypathstring, 
+                            backgroundcolor='w', horizontalalignment='center')
+            
+        else:
+            ax3 = figax3
+            
         for k in range(3):
             prof = self.profiles[k]
             avespec = prof.average_spectra()
-            ax3[k].plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
+            ax3[k].plot(avespec.wn_full, avespec.abs_full_cm, label=label, 
+                        **style)
 
             if peak_idx is not None:
                 if self.profiles[k].peakpos is None:
@@ -3324,31 +3351,26 @@ class WholeBlock():
                     initspec = iprof.average_spectra()
                     ax3[k].plot(initspec.wn_full, initspec.abs_full_cm, 
                             **stylei)
-
-            ax3[k].set_xlim(4000., 3000.)
-            ax3[k].set_ylim(0., top)
             
-            raypathstring = 'profile || ' + self.profiles[k].direction + \
-                            '\nray path || ' + self.profiles[k].raypath
-            ax3[k].text(3500, top-top*0.22, raypathstring, 
-                        backgroundcolor='w', horizontalalignment='center')
-
         plt.setp(ax3[1].get_yticklabels(), visible=False)
         plt.setp(ax3[2].get_yticklabels(), visible=False)
         ax3[1].set_xlabel('wavenumber (cm$^{-1}$)')
-        ax3[0].set_ylabel('absorbance m$^{-1}$)')
+        ax3[0].set_ylabel('absorbance (cm$^{-1}$)')
         
-        tit = ' '.join(('Averaged profiles for', self.name))
-        if peak_idx is not None:
-            tit = str.join(tit, ', peak at ', str(peakpos[peak_idx]), '/cm')
-        ax3[1].text(3500, top+0.07*top, tit, horizontalalignment='center')
 
         if show_initial is True:
             ax3[1].legend(loc=legloc)
-        plt.tight_layout()
-        f.autofmt_xdate()
+        if figax3 is None:
+            plt.tight_layout()
+            plt.gcf().autofmt_xdate()
+            tit = ' '.join(('Averaged profiles for', self.name))
+            if peak_idx is not None:
+                tit = str.join(tit, ', peak at ', str(peakpos[peak_idx]), '/cm')
+            ax3[1].set_title(tit, zorder=100) # must come after tight_layout
+
         plt.subplots_adjust(top=0.85, bottom=0.25)
-        return f, ax3
+        if figax3 is None:
+            return f, ax3
 
     def xy_picker(self, peak_idx=None, wholeblock=True, heights_instead=False,
                   centered=True):

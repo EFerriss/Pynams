@@ -75,14 +75,17 @@ style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}
 style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
-style_2 = {'color':'green', 'linewidth': 1.5}
+style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
 style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
-style_3 = {'color':'blue', 'linewidth': 1.}
+style_3 = {'color':'orange', 'linewidth': 2., 'linestyle' : '--'}
 style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
-style_4 = {'color':'red', 'linewidth':3.5, 'linestyle' : '-.'}
+style_4 = {'color':'yellow', 'linewidth':2.5, 'linestyle' : '-'}
 style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
-style_5 = {'color':'sage', 'linewidth':2., 'linestyle' : '--'}
-style_6 = {'color':'darkorchid', 'linewidth':2., 'linestyle' : '--'}
+style_5 = {'color':'green', 'linewidth':2.5, 'linestyle' : '-.'}
+style_6 = {'color':'blue', 'linewidth':2., 'linestyle' : '--'}
+style_7 = {'color':'indigo', 'linewidth':3., 'linestyle' : '-.'}
+style_8 = {'color':'violet', 'linewidth':2., 'linestyle' : '-'}
+style_grey = {'color' : 'grey', 'linewidth':4, 'linestyle' : '-'}
 
 style_list = [style_initial, 
               style_1,
