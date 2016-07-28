@@ -1370,11 +1370,14 @@ class Profile():
             
         return self.thick_microns
 
-    def plot_thicknesses(self):
+    def plot_thicknesses(self, figaxis=None):
         """Plot thickness across profile"""
         if self.length_microns is None:
             self.length_microns = max(self.positions_microns)+1.
-        fig, ax, ax_right = self.plot_area_profile_outline(centered=False)
+        if figaxis is not None:
+            ax = figaxis
+        else:
+            fig, ax, ax_right = self.plot_area_profile_outline(centered=False)
         ax.plot(self.positions_microns, self.thick_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
         ax.set_title(self.profile_name)
