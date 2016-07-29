@@ -2036,6 +2036,7 @@ class Profile():
                            show_water_ppm=show_water_ppm)
         else:
             ax = figaxis
+            show_water_ppm = False
 
         # Set length
         if self.length_microns is None:
