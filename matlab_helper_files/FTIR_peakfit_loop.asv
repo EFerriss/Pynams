@@ -7,11 +7,10 @@
 clear all; close all; 
 
 %% User input section 
-fname_list = {'SC1-2-hyd-Ea-a05'};
+fname_list = {'SC1-1-Ea'};
 
 %default_peakpos = [3645 3617 3540 3460 3443 3355 3305 3250]; % diopsides
 %default_peakpos = [3620 3550 3460 3355]; % PMR-53
-default_peakpos = [3363.3 3413.4 3527.2 3571.5 3598.6]; % San Carlos olivine
 
 for r=1:length(fname_list)
     
@@ -208,8 +207,7 @@ w = 900; h = 520; % figure pixel dimensions
 close all;
 
 % gcfpos = [25 100 w h];
-%gcfpos = [25 500 900 h];
-gcfpos = [25 25 900 h];
+gcfpos = [25 500 900 h];
 
 set(gca,'FontSize',numbersize,'Nextplot','add',...
         'Box','on','XGrid','off','YGrid','on',...

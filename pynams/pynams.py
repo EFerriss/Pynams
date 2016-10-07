@@ -157,9 +157,9 @@ class Spectrum():
     def set_thick(self):
         """Set spectrum thick_microns from raypath and sample.thick_microns.
         Similar utility exists for Profiles"""
-        if self.sample is None:
-            print 'Need to specify sample or thickness'
-            return False
+        if self.sample is None and self.thick_microns is None:
+            print 'Estimating sample thickness from SiO overtones'
+            self.thick_microns = self.thickness_from_SiO()
         else:
             s = self.sample
         
@@ -286,22 +286,21 @@ class Spectrum():
 
     def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)
-        to the new spectrum (self)"""
+        to the new spectrum (self)"""       
         list_abs_to_average = []
         list_wn = []
         for sp in spectra_list:
-            if sp.filename is None:
+            if sp.abs_full_cm is None:
                 if folder is not None:
-                    sp.filename = folder + sp.fname + '.CSV'
+                    sp.filename = ''.join((folder, sp.fname, '.CSV'))
                 else:
-                    sp.filename = sp.folder + sp.fname + '.CSV'
+                    sp.filename = ''.join((sp.fname, '.CSV'))
                 if os.path.isfile(sp.filename) is False:
                     print sp.filename
                     print 'File not found'
                     print
                     return False
-                                      
-            if sp.abs_full_cm is None:
+                sp.get_data()
                 check = sp.divide_by_thickness()
                 if check is False:
                     return False
@@ -310,6 +309,7 @@ class Spectrum():
             list_wn.append(sp.wn_full)
         ave_abs = np.mean(list_abs_to_average, axis=0)
         waven = np.mean(list_wn, axis=0)
+        self.thick_microns = 1. # dummy placeholder to show this is not raw data
         self.wn_full = waven
         self.abs_full_cm = ave_abs
         self.start_at_zero()
@@ -414,6 +414,9 @@ class Spectrum():
         else: 
             if self.abs_raw is None:
                 self.get_data()
+                check = self.start_at_zero()
+                if check is False:
+                    return False
             absorbance = self.abs_raw
 
         if wn_low is not None:
@@ -466,7 +469,6 @@ class Spectrum():
                 abs_at_wn_mid = absorbance[index_mid]
                 yadd = abs_at_wn_mid
             elif shiftline is not None:
-                print 'mid wn', self.base_mid_wn
                 yshift = shiftline
                 yadd = np.polyval(p, self.base_mid_wn) - yshift
             else:
@@ -1197,7 +1199,7 @@ def list_with_attribute(classname, attributename, attributevalue):
 #
 
 class Profile():
-    def __init__(self, profile_name=None, time_seconds=None, folder='',
+    def __init__(self, profile_name=None, time_seconds=None, folder=None,
                  fname_list=[], positions_microns = np.array([]),
                  sample=None, direction=None, raypath=None, short_name=None,
                  spectra_list=[], set_thickness=False,
@@ -1438,7 +1440,7 @@ class Profile():
         attribute avespec"""
         spec_list = self.spectra_list
         avespec = Spectrum(folder=None, fname=None)
-        avespec.make_average_spectra(spec_list)
+        avespec.make_average_spectra(spec_list, folder=self.folder)
         
         if self.profile_name is not None:
             avespec.fname = (self.profile_name + '\naverage profile')
@@ -1457,63 +1459,65 @@ class Profile():
                      stylei=styles.style_initial, wn=None,
                      figsize=(3.2, 3.2)):
         """Plot averaged spectrum across profile. Returns figure and axis."""
-        if self.spectra_list is None or len(self.spectra_list) < 1:
-            self.make_spectra_list()
-
-        if show_initial_ave is True or initial_and_final_together is True:
-            if self.initial_profile is None:
-                print 'No initial_profile attribute specified'
-                show_initial_ave = False
-                initial_and_final_together = False
-        
-        f = None
-        ax = None
-        
-        if plot_all is True:
-            for spec in self.spectra_list:
-                if show_baseline is True:
-                    spec.plot_showbaseline(style=style)
-                else:
-                    spec.plot_spectrum(style=style, wn=wn)
-            if show_initial_ave is True:
-                for spec in self.initial_profile.spectra_list:
-                    if show_baseline is True:
-                        spec.plot_showbaseline(style=stylei)
-                    else:
-                        spec.plot_spectrum(style=stylei, wn=wn)
-                        
-        if show_final_ave is True or initial_and_final_together is True:
-            avespec = self.average_spectra()
-        
-        if show_initial_ave is True or initial_and_final_together is True:
-            initspec = self.initial_profile.average_spectra()
-            
-        # Plot initial average
-        if show_initial_ave is True:
-            if show_baseline is True:
-                initspec.plot_showbaseline(style=stylei)
-            else:
-                initspec.plot_spectrum(style=stylei, wn=wn)
-
-        # Plot final average
-        if show_final_ave is True:
-            if show_baseline is True:
-                f, ax = avespec.plot_showbaseline(style=style)
-            else:            
-                f, ax = avespec.plot_spectrum(style=style, wn=wn)
-        
-        # Plot average spectra together
-        if initial_and_final_together is True:
-            f, ax = avespec.plot_spectrum_outline()
-            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
-            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
-            ax.legend()
-            tit = self.profile_name + '\nAverage profiles'
-            ax.set_title(tit)
-            if wn is not None:
-                ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], 
-                        color='r')
-        return f, ax
+        for spec in self.spectra_list:
+            spec.plot_spectrum()
+#        if self.spectra_list is None or len(self.spectra_list) < 1:
+#            self.make_spectra_list()
+#
+#        if show_initial_ave is True or initial_and_final_together is True:
+#            if self.initial_profile is None:
+#                print 'No initial_profile attribute specified'
+#                show_initial_ave = False
+#                initial_and_final_together = False
+#        
+#        f = None
+#        ax = None
+#        
+#        if plot_all is True:
+#            for spec in self.spectra_list:
+#                if show_baseline is True:
+#                    spec.plot_showbaseline(style=style)
+#                else:
+#                    spec.plot_spectrum(style=style, wn=wn)
+#            if show_initial_ave is True:
+#                for spec in self.initial_profile.spectra_list:
+#                    if show_baseline is True:
+#                        spec.plot_showbaseline(style=stylei)
+#                    else:
+#                        spec.plot_spectrum(style=stylei, wn=wn)
+#                        
+#        if show_final_ave is True or initial_and_final_together is True:
+#            avespec = self.average_spectra()
+#        
+#        if show_initial_ave is True or initial_and_final_together is True:
+#            initspec = self.initial_profile.average_spectra()
+#            
+#        # Plot initial average
+#        if show_initial_ave is True:
+#            if show_baseline is True:
+#                initspec.plot_showbaseline(style=stylei)
+#            else:
+#                initspec.plot_spectrum(style=stylei, wn=wn)
+#
+#        # Plot final average
+#        if show_final_ave is True:
+#            if show_baseline is True:
+#                f, ax = avespec.plot_showbaseline(style=style)
+#            else:            
+#                f, ax = avespec.plot_spectrum(style=style, wn=wn)
+#        
+#        # Plot average spectra together
+#        if initial_and_final_together is True:
+#            f, ax = avespec.plot_spectrum_outline()
+#            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
+#            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
+#            ax.legend()
+#            tit = self.profile_name + '\nAverage profiles'
+#            ax.set_title(tit)
+#            if wn is not None:
+#                ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], 
+#                        color='r')
+#        return f, ax
 
     def change_baseline(self, highwn=3800, lowwn=3000, shift=None):
         """Change baseline parameters for all spectra, final and initial"""
@@ -1577,19 +1581,23 @@ class Profile():
               
         areas = []
         if peak is None:
-            if self.areas_list is None:
+            if self.areas_list is not None:
+                print 'Overwriting previous areas list'
+                            
+            if self.spectra_list[0].area is None:                
                 print 'generating bulk areas under curves...'
-                for x in self.spectra_list:
-                    if x.abs_nobase_cm is None:
-                        x.get_baseline()
-                    
-                    a = x.area_under_curve(polyorder, show_plot, shiftline, 
+                for spec in self.spectra_list:
+                    a = spec.area_under_curve(polyorder, show_plot, shiftline, 
                                            printout_area, 
                                            require_saved_baseline=False)
                     areas.append(a)            
                 self.areas_list = np.array(areas)
             else:
-                areas = self.areas_list
+                for spec in self.spectra_list:
+                    areas.append(spec.area)
+                
+            self.areas_list = areas
+            
         else:
             peaklist = list(self.spectra_list[0].peakpos)
             print 'peak at', peak
@@ -1730,7 +1738,7 @@ class Profile():
             init = self.initial_profile
             fin = self
             for prof in [init, fin]:
-                if len(prof.areas_list) < 1:
+                if prof.areas_list is None:
                     check = prof.make_area_list(1, show_plot=False)
                     if check is False:
                         return False
@@ -3188,7 +3196,7 @@ class WholeBlock():
                  make_wb_areas=False, time_seconds=None, worksheetname=None,
                  style_base = None, temperature_celsius=None,
                  diffusivities_log10_m2s=None, get_baselines=False,
-                 diffusivity_errors=None):
+                 diffusivity_errors=None, sample=None):
         self.profiles = profiles
         self.folder = folder
         self.name = name
@@ -3196,6 +3204,7 @@ class WholeBlock():
         self.worksheetname = worksheetname
         self.style_base = style_base
         self.temperature_celsius = temperature_celsius
+        self.sample = sample
         
         if len(self.profiles) > 0:
             self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas,
@@ -3225,9 +3234,15 @@ class WholeBlock():
             d.append(prof.direction)
             r.append(prof.raypath)
             L.append(prof.set_len())
-            
             prof.time_seconds = self.time_seconds
 
+            if prof.sample is None and self.sample is not None:
+                prof.sample = self.sample
+            elif prof.sample is not None and self.sample is None:
+                self.sample = prof.sample
+            elif prof.sample != self.sample:
+                print 'Warning: profile sample does not match wb sample'
+                
             if prof.positions_microns is None:
                 print 'profile', prof.profile_name
                 print 'Needs positions_microns attribute'
@@ -3237,12 +3252,25 @@ class WholeBlock():
 #                print 'Assuming these are initial profiles...'
                 prof.initial_profile = prof
             ip.append(prof.initial_profile)
-
             
             if make_wb_areas is True:
                 check = prof.make_wholeblock(peakfit=peakfit)
                 if check is False:
                     return False
+
+            if prof.spectra_list is None:
+                prof.make_spectra_list()
+                
+            for spec in prof.spectra_list:
+                if spec.thick_microns is None and self.sample is not None:
+                    if prof.raypath == 'a':
+                        spec.thick_microns = np.mean(self.sample.twoA_list)
+                    elif prof.raypath == 'b':
+                        spec.thick_microns = np.mean(self.sample.twoB_list)
+                    elif prof.raypath == 'c':
+                        spec.thick_microns = np.mean(self.sample.twoC_list)
+                    else:
+                        print 'Need wb.direction to assign thickness'
 
         self.directions = d
         self.raypaths = r
@@ -3255,7 +3283,7 @@ class WholeBlock():
 
         if get_baselines is True:        
             self.get_baselines()
-            
+
         return True
 
     def get_peakfit(self):
@@ -3344,7 +3372,7 @@ class WholeBlock():
             avespec = prof.average_spectra()
             ax3[k].plot(avespec.wn_full, avespec.abs_full_cm, label=label, 
                         **style)
-
+        
             if peak_idx is not None:
                 if self.profiles[k].peakpos is None:
                     self.profiles[k].get_peakfit()
@@ -3358,7 +3386,7 @@ class WholeBlock():
                     initspec = iprof.average_spectra()
                     ax3[k].plot(initspec.wn_full, initspec.abs_full_cm, 
                             **stylei)
-            
+
         plt.setp(ax3[1].get_yticklabels(), visible=False)
         plt.setp(ax3[2].get_yticklabels(), visible=False)
         ax3[1].set_xlabel('wavenumber (cm$^{-1}$)')
@@ -3403,7 +3431,7 @@ class WholeBlock():
                 
                 # absolute areas
                 else:
-                    if len(prof.areas_list) < 1:
+                    if prof.areas_list is None:
                         prof.make_area_list()
                     y_to_add = prof.areas_list
 
@@ -3435,8 +3463,8 @@ class WholeBlock():
 
     def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, centered=True,
                            top=1.2, wn=None, figsize=(6.5, 2.5), 
-                           show_spectra=True, percent_error=3., 
-                           xerror=50., yerror=None, 
+                           show_spectra=True, percent_error=0., 
+                           xerror=0., yerror=None, 
                            styles3=[None, None, None],
                            use_area_profile_styles=True,
                            heights_instead=False, wholeblock=True,

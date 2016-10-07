@@ -533,11 +533,16 @@ Li_cpx_effective.basestyle = {'color' : 'darkorchid', 'marker' : '+',
                                  'markersize' : 10, 'alpha' : 1.}
 
 
-def fast_vs_slow(celsius, sample, minutes):
-    """Input temperature, pynams.Sample, and time in minutes
-    Output two lists of diffusivities: Kohlstedt and Mackwell 1998 
+def fast_vs_slow(celsius, minutes, abc=[2000., 2000., 2000.], sample=None):
+    """Required input: (1) temperature in celsius, (2) time in minutes,
+    (3) either sample, an instance of pynams.Samples (gets taken first) or
+    dimensions in microns using keyword abc (defaults to 2x2x2 mm)
+    Output: two lists of diffusivities: Kohlstedt and Mackwell 1998 
     fast and slow mechanisms for H diffusion in San Carlos olivine"""    
-    a, b, c = pynams.get_3thick(sample)
+    if sample is not None:
+        a, b, c = pynams.get_3thick(sample)
+    else:
+        a, b, c = abc
 
     print 'slow mechanism D down x, y, z'
     D_slow = [KM98_slow.whatIsD(celsius, orient='x'), 
