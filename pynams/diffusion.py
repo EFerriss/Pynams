@@ -392,7 +392,7 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         v = np.ones((points, points, points)) - v
         v = v + np.ones_like(v)*minimum_value
 
-    mid = points/2.
+    mid = int(points/2.)
     
     aslice = v[:, mid][:, mid]
     bslice = v[mid][:, mid]
@@ -844,7 +844,8 @@ class Diffusivities():
             if Ea_and_D0 is None:
                 print 'Problem with self.solve_Ea_D0()'
                 return None
-            D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius)
+            D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius, 
+                        printout=printout)
             
         return D
         

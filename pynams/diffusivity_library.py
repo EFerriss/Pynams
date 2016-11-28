@@ -24,6 +24,8 @@ import pynams
 import styles as st
 from diffusion import Diffusivities
 
+reload(diffusion)
+
 GAS_CONSTANT = 0.00831 # kJ/mol K
 
 # plotting detail defaults
@@ -533,7 +535,8 @@ Li_cpx_effective.basestyle = {'color' : 'darkorchid', 'marker' : '+',
                                  'markersize' : 10, 'alpha' : 1.}
 
 
-def fast_vs_slow(celsius, minutes, abc=[2000., 2000., 2000.], sample=None):
+def fast_vs_slow(celsius, minutes, abc=[2000., 2000., 2000.], sample=None, 
+                 printout=False):
     """Required input: (1) temperature in celsius, (2) time in minutes,
     (3) either sample, an instance of pynams.Samples (gets taken first) or
     dimensions in microns using keyword abc (defaults to 2x2x2 mm)
@@ -544,16 +547,19 @@ def fast_vs_slow(celsius, minutes, abc=[2000., 2000., 2000.], sample=None):
     else:
         a, b, c = abc
 
-    print 'slow mechanism D down x, y, z'
-    D_slow = [KM98_slow.whatIsD(celsius, orient='x'), 
-              KM98_slow.whatIsD(celsius, orient='y'),          
-              KM98_slow.whatIsD(celsius, orient='z')]
+    if printout is True:
+        print 'slower proton-vacancy pv mechanism diffusivities'
+    D_slow = [KM98_slow.whatIsD(celsius, orient='x', printout=printout), 
+              KM98_slow.whatIsD(celsius, orient='y', printout=printout),          
+              KM98_slow.whatIsD(celsius, orient='z', printout=printout)]
     
-    print
-    print 'fast mechanism D down x, y, z'
-    D_fast = [KM98_fast.whatIsD(celsius, orient='x'), 
-              KM98_fast.whatIsD(celsius, orient='y'),          
-              KM98_fast.whatIsD(celsius, orient='z')]
+
+    if printout is True:
+        print
+        print 'faster proton-polaron pp mechanism diffusivites'
+    D_fast = [KM98_fast.whatIsD(celsius, orient='x', printout=printout), 
+              KM98_fast.whatIsD(celsius, orient='y', printout=printout),          
+              KM98_fast.whatIsD(celsius, orient='z', printout=printout)]
     
     fig, axes, v, x, y = diffusion.diffusion3Dnpi(lengths_microns=[a, b, c],
                                                   log10Ds_m2s=D_slow, 

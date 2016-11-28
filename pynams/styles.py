@@ -9,7 +9,7 @@ import numpy as np
 
 style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
                 'fillstyle' : 'full', 'linestyle' : 'none',}
-style_points_crosses = {'color' : 'blue', 'marker' : '+', 'markersize' : 10,
+style_points_crosses = {'color' : 'k', 'marker' : '+', 'markersize' : 10,
                         'linestyle' : 'none'}
 style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3,
                             'fillstyle' : 'none', 'linestyle' : 'none', 
@@ -21,7 +21,7 @@ style_profile_default = {'markeredgecolor' : 'blue', 'linestyle' : 'none',
 style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
                      'fillstyle' : 'none', 'linestyle' : 'none', 
                      'linewidth' : 1, 'alpha' : 1}
-style_points0 = {'color' : 'black', 'marker' : '.', 'markersize' : 1,
+style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 10,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
                  'markerfacecolor' : 'w'}
@@ -46,7 +46,7 @@ style_points5 = {'color' : 'darkgoldenrod', 'marker' : 'D', 'markersize' : 4,
 style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 9,
+style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 7,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
 
@@ -57,7 +57,8 @@ style_list_points = [style_points0,
                      style_points4,
                      style_points5,
                      style_points6,
-                     style_points7,]
+                     style_points7,
+                     style_points]
 
 
 #                'markerfacecolor' : 'w'}
@@ -73,8 +74,8 @@ style_initial_point = {'color' : 'grey', 'label' : 'initial', 'linestyle' : 'non
                        'marker' : 'o', 'alpha' : 0.5}
 style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
 style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
-style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
+style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
 style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
 style_3 = {'color':'orange', 'linewidth': 2., 'linestyle' : '--'}
@@ -82,18 +83,30 @@ style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
 style_4 = {'color':'yellow', 'linewidth':2.5, 'linestyle' : '-'}
 style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
 style_5 = {'color':'green', 'linewidth':2.5, 'linestyle' : '-.'}
-style_6 = {'color':'blue', 'linewidth':2., 'linestyle' : '--'}
-style_7 = {'color':'indigo', 'linewidth':3., 'linestyle' : '-.'}
+style_6 = {'color':'cyan', 'linewidth':2., 'linestyle' : '--'}
+style_7 = {'color':'steelblue', 'linewidth':3., 'linestyle' : '-.'}
 style_8 = {'color':'violet', 'linewidth':2., 'linestyle' : '-'}
 style_grey = {'color' : 'grey', 'linewidth':4, 'linestyle' : '-'}
 
 style_list = [style_initial, 
-              style_1,
               style_2,
               style_3,
               style_4,
               style_5,
-              style_6,]
+              style_6,
+              style_7,
+              style_8,
+              style_1]
+
+style_list2 = [style_1, 
+               style_grey, 
+               style_2, 
+               style_3, 
+               style_4,
+               style_5, 
+               style_6, 
+               style_7, 
+               style_8]
 
 style_unoriented = {'fillstyle' : 'none'}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
@@ -190,6 +203,7 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
 def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], top=1.2, figaxis3=None, 
                  show_line_at_1=True, init=1., 
+                 label4legend=[None, None, None],
                  centered=True, 
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
@@ -223,10 +237,8 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         
         if centered is True:
             axis3[k].set_xlim(-a, a)
-
         else:
             axis3[k].set_xlim(0., lengths[k])            
-
 
         if show_line_at_1 is True:
             axis3[k].plot([-a, lengths[k]], [init, init], '--k')
@@ -248,6 +260,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                          verticalalignment='center')
 
         else:
+            styles3[k]['label'] = label4legend[k]
             if use_errorbar is True:
                 if yerror is None:
                     yerrorplot = np.array(y) * percent_error/100.

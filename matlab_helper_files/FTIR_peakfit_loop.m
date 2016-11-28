@@ -7,17 +7,31 @@
 clear all; close all; 
 
 %% User input section 
-fname_list = {'SC1-2-hyd-Ea-a05'};
+
+% where the files are stored
+spectraLocation = 'C://Users/Ferriss/Documents/Code/olivine/FTIR/';
+saveFigureLocation = spectraLocation;
+
+% ending of file where FTIR baseline is stored
+baseline_ending = '-baseline-low.CSV';
+
+% ending of file where peakfit information will be saved
+file_ending = '-peakfit-low.CSV';
+
+fname_list = {'SC1-2-800C-7hr-a01'}
 
 %default_peakpos = [3645 3617 3540 3460 3443 3355 3305 3250]; % diopsides
 %default_peakpos = [3620 3550 3460 3355]; % PMR-53
-default_peakpos = [3363.3 3413.4 3527.2 3571.5 3598.6]; % San Carlos olivine
+default_peakpos = [3572 3525 3482.8 3600. 3542 3566.0]; % San Carlos olivine h
+%  3325 3355 
+
+default_peakpos = sort(default_peakpos);
 
 for r=1:length(fname_list)
     
     disp(' ')
     fname = char(fname_list(r))
-    use_previous_fit = 0;
+    use_previous_fit = 0; % 1 not working right now
 
     set_peakpos = 0; % = 1 to set peak positions manually
         changePeak = 1:6;
@@ -37,11 +51,6 @@ for r=1:length(fname_list)
     % 17 = fixed-position Lorentzian
     peakshape = 16;
     
-    % file folders and names
-    spectraLocation = 'C://Users/Ferriss/Documents/Code/olivine/FTIR/';
-    saveFigureLocation = 'C://Users/Ferriss/Documents/Code/olivine/FTIR/';
-    baseline_ending = '-baseline-high.CSV';
- 
     set_title = 0;
         manual_title = '';
     
@@ -49,12 +58,12 @@ for r=1:length(fname_list)
 % -----------------------------------------------------------------
 % End user input section
 % -----------------------------------------------------------------
-
     pek_outputfile = [spectraLocation, fname, baseline_ending];
     if exist(pek_outputfile) == 0
        disp('You have to subtract off a baseline in python');
-       disp('and save with self.save_baseline()');
-       disp('to make fname-baseline.CSV');
+       disp('and save with self.save_baseline() to make');
+       disp([fname, baseline_ending])
+       
        return
     else
        previous = xlsread(pek_outputfile);
@@ -66,7 +75,7 @@ for r=1:length(fname_list)
     end
 
     if use_previous_fit == 1
-        peakfitfile = [spectraLocation, fname, '-peakfit.CSV'];
+        peakfitfile = [spectraLocation, fname, file_ending];
        if exist(peakfitfile) == 0
            disp('Fit peaks, then use savefit.m to save fname-peakfit.CSV');
            return
@@ -195,6 +204,11 @@ jcolor(3,:) = [0 0.5 1];
 jcolor(4,:) = [0 0.6 0];
 jcolor(5,:) = [1 0.5 0];
 jcolor(6,:) = [1 0 1];
+jcolor(7,:) = [1 1 0];
+jcolor(8,:) = [0 1 0.5];
+jcolor(9,:) = [0.5 0 0];
+jcolor(10,:) = [0.5 0 1];
+jcolor(11,:) = [1 0 0];
 
 labeltextformat.fontsize = legendtext;
 labeltextformat.rotation = 90;
@@ -209,7 +223,7 @@ close all;
 
 % gcfpos = [25 100 w h];
 %gcfpos = [25 500 900 h];
-gcfpos = [25 25 900 h];
+gcfpos = [25 35 900 h];
 
 set(gca,'FontSize',numbersize,'Nextplot','add',...
         'Box','on','XGrid','off','YGrid','on',...
@@ -298,9 +312,9 @@ hleg=legend('observed',str2,str1);
 set(hleg,'LineWidth',linesize,'FontSize',legendtext,...
         'Location','Northeast');
 
-Fig=[saveFigureLocation, fname,'-peakfit'];
+%Fig=[saveFigureLocation, fname, file_ending, '.jpg'];
 %export_fig(Fig, '-jpeg',resolution,'-painters');
 
-savefit
-disp('fit saved')
+savefit(output, spectraLocation, fname, file_ending, default_numPeaks)
+    
 end % end loop through all spectra in fname_list
