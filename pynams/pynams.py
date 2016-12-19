@@ -25,9 +25,10 @@ This software was developed using Python 2.7.
 
 from .uncertainties import ufloat
 
-print 'If you see this message and a +/- number, my test worked!'
-x = ufloat('4.6(7)')
-print x
+print '\nIf you see this message and a +/- number, my test worked!'
+y = ufloat(3, 0.5)
+print y
+
 #%%
 #import os.path
 #from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
