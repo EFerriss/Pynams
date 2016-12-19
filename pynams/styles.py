@@ -163,7 +163,7 @@ style_peak5 = {'marker' : 'd', 'fillstyle' : 'full', 'linestyle' : 'none',
 
 def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,
-                         wholeblock=True):
+                         wholeblock=True, unit='microns'):
     """Outline setup for 3 subplots for 3D profiles"""
     if style is None:
         style = style_lightgreen
@@ -193,9 +193,14 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
         else:
             axis3[0].set_ylabel('Height (cm$^{-1}$)')
         
-    axis3[0].set_xlabel('|| a')
-    axis3[1].set_xlabel('position ($\mu$m) || b')
-    axis3[2].set_xlabel('|| c')
+    axis3[0].set_xlabel('|| x')
+    if unit == 'microns':
+        axis3[1].set_xlabel('position ($\mu$m) || y')
+    elif unit == 'mm':
+        axis3[1].set_xlabel('position (mm) || y')
+    else:
+        print 'unit must = microns or mm'
+    axis3[2].set_xlabel('|| z')
     plt.setp(axis3[1].get_yticklabels(), visible=False)
     plt.setp(axis3[2].get_yticklabels(), visible=False)
     return fig, axis3
@@ -204,7 +209,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], top=1.2, figaxis3=None, 
                  show_line_at_1=True, init=1., 
                  label4legend=[None, None, None],
-                 centered=True, 
+                 centered=True, unit='microns',
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
                  use_errorbar=False):
@@ -214,17 +219,20 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
     """
     if figaxis3 is None:
         fig, axis3 = plot_3panels_outline(top=top, wholeblock=wholeblock,
-                                          heights_instead=heights_instead)
+                                          heights_instead=heights_instead,
+                                          unit=unit)
     else:
         axis3 = figaxis3
 
     if lengths is None:
         lengths = np.ones(3)
-        for k in range(3):
+        for k in xrange(3):
             lengths[k] = max(positions_microns[k] - min(positions_microns[k]))
 
     for k in xrange(3): 
         x = positions_microns[k]
+        if unit == 'mm':
+            x = np.array(x) / 1000.
         y = area_profiles[k]
                 
         if len(x) != len(y):

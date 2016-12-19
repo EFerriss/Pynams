@@ -721,7 +721,7 @@ class Diffusivities():
                  logD0 = [None, None, None, None], 
                  Fe2=None, Fe3=None, Mg=None, Al=None, Ti=None,
                  color=None,
-                 marker=None, markersize=12, mew=1., alpha=1., error=[]):
+                 marker=None, markersize=None, mew=1., alpha=1., error=[]):
 
         """All logarithms of diffusivities, logD, are base 10 and m2/s.
         Order is || x, || y, ||z, not oriented or isotropic"""
@@ -899,14 +899,14 @@ class Diffusivities():
         style = self.basestyle.copy()
         style['linestyle'] = 'None'
 
-        if orient is None:
-            style['fillstyle'] = 'full'
-            style_line = styles.style_orient_lines[3].copy()
-            style_line['linestyle'] = '-'
-            
-        else:
-            style['fillstyle'] = styles.style_orient[iorient]['fillstyle']
-            style_line = styles.style_orient_lines[iorient].copy()
+#        if orient is None:
+        style['fillstyle'] = 'full'
+#            style_line = styles.style_orient_lines[3].copy()
+#            style_line['linestyle'] = '-'
+#            
+#        else:
+#        style['fillstyle'] = styles.style_orient[iorient]['fillstyle']
+        style_line = styles.style_orient_lines[iorient].copy()
 
         style_line['color'] = style['color']
         
@@ -934,8 +934,8 @@ class Diffusivities():
 
             if orient == 'ALL':
                 label = None
-                style = None
-                style_line = None
+#                style = None
+#                style_line = None
                 
             if label is None:
                 if iorient == 0:
@@ -949,10 +949,10 @@ class Diffusivities():
 
             if style is None:
                 style, _ = self.make_styles(iorient)
-    
+#    
             if (style_line is None) and (plotline is True):
                 _, style_line = self.make_styles(iorient)
-                
+#                
             if legend_add is True and legend_handle is None:
                 print self.description
                 print 'Need legend_handle for legend'
@@ -1004,7 +1004,7 @@ class Diffusivities():
                     fig_axis.plot(T,np.polyval(p, T), **style_line)
                    
             fig_axis.plot(x, logD, label=legendlabel, **style)
-
+            
             if legend_add is True:
                 self.add_to_legend(fig_axis, legend_handle, style=style,
                                    style_line=style_line, plotline=plotline,

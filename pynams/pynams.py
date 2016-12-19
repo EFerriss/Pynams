@@ -48,6 +48,13 @@ class Sample():
         self.twoA_list = twoA_list
         self.twoB_list = twoB_list
         self.twoC_list = twoC_list
+        
+    def get_thicknesses(self):
+        twoA = np.mean(self.twoA_list)
+        twoB = np.mean(self.twoB_list)
+        twoC = np.mean(self.twoC_list)
+        self.thickness_microns = [twoA, twoB, twoC]
+        return [twoA, twoB, twoC]
 
 def get_3thick(sample_name):
     """Average thickness measurements in 3 directions and return a list"""
@@ -771,7 +778,11 @@ class Spectrum():
     def get_peakcurves(self, folder=None, delim=',', 
                        peak_ending='-peakfit.CSV', 
                        baseline_ending='-baseline.CSV'):
-        """Generates Gaussian curves from peakfitting info"""
+        """Generates Gaussian curves from peakfitting info. 
+        Requires peak_ending and baseline_ending to find the 
+        right files.
+        Returns (1) peakfitcurves, all of the individual gaussians,
+        and (2) summed_spectrum, the sum of all the peakfitcurvesb"""
         if self.peakpos is None:
             self.get_peakfit(peak_ending=peak_ending,
                              baseline_ending=baseline_ending)
@@ -950,7 +961,7 @@ class Spectrum():
                      baseline_ending='-baseline.CSV',
                      style=styles.style_spectrum, 
                      stylesum=styles.style_summed, 
-                     fig_ax = None,
+                     fig_ax = None, legend=True,
                      stylepeaks=styles.style_fitpeak, top=None, legloc=1):
         """Single spectrum: Plot peaks fit in MATLAB using peakfit.m
         REQUIRES the peak_ending and baseline_ending so that it can
@@ -977,7 +988,8 @@ class Spectrum():
         ax.plot(self.base_wn, summed_spectrum, label='peak sum', **stylesum)
         
         if fig_ax is None:
-            ax.legend(loc=legloc)
+            if legend is True:
+                ax.legend(loc=legloc)
             ax.set_ylim(0., top)        
         
         if top is None:
@@ -1115,15 +1127,23 @@ class Spectrum():
                                   stylepeaks=styles.style_fitpeak, 
                                   style_base=styles.style_baseline,
                                   top=None, bottom=0., legloc=1, 
-                                  label_spectrum='observed'):
+                                  label_spectrum='observed', 
+                                  peak_ending='-peakfit.CSV',
+                                  baseline_ending='-baseline.CSV'):
         """Plot spectrum with baseline and peakfit information together"""
         # Take baseline-subtracted spectrum from saved file every time 
         # to avoid any possible funny business from playing with baselines
-        gaussian, summed_spectrum = self.get_peakfit()
-        if gaussian is False:
+        if self.peakpos is None:
+            print 'need to run get_peakfit first'
+            return
+        if self.base_wn is None:
+            print 'need to run get_baseline() first'
             return
         
-        wn, observed = self.get_baseline()
+        gaussian, summed_spectrum = self.get_peakcurves(peak_ending=peak_ending, 
+                                              baseline_ending=baseline_ending)
+            
+        wn = self.base_wn
 
         stylepeaks['zorder'] = 1 # otherwise peaks show up above baseline
         
@@ -3557,7 +3577,7 @@ class WholeBlock():
             return f, ax3
 
     def xy_picker(self, peak_idx=None, wholeblock=True, heights_instead=False,
-                  centered=True):
+                  centered=True, unit='microns'):
         """Picks out and returns appropriate x and y-data for 3D"""
         positions = []
         y = []
@@ -3622,7 +3642,7 @@ class WholeBlock():
                            xerror=0., yerror=None, pie=True,
                            label4legend=[None, None, None],
                            styles3=[styles.style_points]*3,
-                           use_area_profile_styles=True,
+                           use_area_profile_styles=True, unit='microns',
                            heights_instead=False, wholeblock=True,
                            show_line_at_1=True, get_saved_baseline=True,
                            show_errorbars=True, peak_group=None):
@@ -3653,7 +3673,8 @@ class WholeBlock():
             positions, y_placeholder = self.xy_picker(peak_idx=peak_idx, 
                                                       wholeblock=wholeblock,
                                                       heights_instead=heights_instead, 
-                                                      centered=centered)
+                                                      centered=centered, 
+                                                      unit=unit)
             y = np.zeros_like(y_placeholder)
             tit = 'Sum of peaks'
 
@@ -3661,7 +3682,7 @@ class WholeBlock():
                 positions, y_add = self.xy_picker(peak_idx=peak_group_idx, 
                                                   wholeblock=wholeblock,
                                                   heights_instead=heights_instead, 
-                                                  centered=centered)
+                                                  centered=centered, unit=unit)
                 y = y + y_add
                 tit = ' '.join((tit, str(peak_group_idx)))
             
@@ -3669,8 +3690,8 @@ class WholeBlock():
             
             positions, y = self.xy_picker(peak_idx=peak_idx, wholeblock=wholeblock,
                                           heights_instead=heights_instead, 
-                                          centered=centered)        
-
+                                          centered=centered, unit=unit)
+            
             # Change title if peak-specific rather than bulk
             if peak_idx is not None:
                 tit = ' '.join(('Peak at', str(peakpos[peak_idx]), '/cm'))
@@ -3687,20 +3708,28 @@ class WholeBlock():
                 styles3[k] = self.profiles[k].choose_marker_style()
                 styles3[k]['markersize'] = 10
         
+        if unit == 'microns':
+            lengths = self.lengths
+        elif unit == 'mm':
+            lengths = np.array(self.lengths) / 1000.
+        else:
+            print 'unit must be microns (default) or mm'
+            return
+                
         # Sent positions and areas to plotting command
         if fig_ax3 is not None:
-            styles.plot_3panels(positions, y, self.lengths, figaxis3=fig_ax3,
+            styles.plot_3panels(positions, y, lengths, figaxis3=fig_ax3,
                                 styles3=styles3, top=top, wholeblock=wholeblock,
                                 show_line_at_1=show_line_at_1,
                                 heights_instead=heights_instead,
                                 label4legend=label4legend,
                                 use_errorbar=show_errorbars,
-                                yerror=yerror,
+                                yerror=yerror, unit=unit,
                                 percent_error=percent_error,
                                 xerror=xerror, centered=centered)
             fig_ax3[1].set_title(tit)                                
         else:
-            fig, ax = styles.plot_3panels(positions, y, self.lengths,
+            fig, ax = styles.plot_3panels(positions, y, lengths,
                                           styles3=styles3, top=top, 
                                           wholeblock=wholeblock,
                                           show_line_at_1=show_line_at_1,
@@ -3708,7 +3737,7 @@ class WholeBlock():
                                           heights_instead=heights_instead,
                                           use_errorbar=show_errorbars,
                                           percent_error=percent_error,
-                                          yerror=yerror,
+                                          yerror=yerror, unit=unit,
                                           xerror=xerror, centered=centered)
             ax[1].set_title(tit)
             fig.set_size_inches(figsize)

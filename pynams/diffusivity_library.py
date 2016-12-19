@@ -87,7 +87,9 @@ DM03 = Diffusivities(
 # [Ti]: 3525 peak, [Mg]: 3220 peak
 pnav_Si = Diffusivities(description = 'forsterite, [Si]', 
           celsius_unoriented = [1000, 1100, 1200],
-          logD_unoriented = [-15.66, -14.17, -13.02],)
+          logD_unoriented = [-15.66, -14.17, -13.02],
+          basestyle={'color':'cornflowerblue', 'marker':'o', 'fillstyle':'full',
+                     'markersize':10})
 
 pnav_SiTi = Diffusivities(description = 'forsterite, [Si-Ti]',
             celsius_unoriented = [1000, 900, 800],
@@ -95,7 +97,9 @@ pnav_SiTi = Diffusivities(description = 'forsterite, [Si-Ti]',
 
 pnav_Ti = Diffusivities(description = 'forsterite, [Ti]',
           celsius_unoriented = [1000, 900, 800],
-          logD_unoriented = [-13.16, -14.1, -15.26],)
+          logD_unoriented = [-13.16, -14.1, -15.26],
+          basestyle={'color':'orange', 'marker':'s', 'fillstyle':'full',
+                     'markersize':10})
                         
 pnav_Mg = Diffusivities(description = 'forsterite, [Mg]',
           celsius_unoriented = [1000, 900, 800],
@@ -120,8 +124,8 @@ KM98_fast = Diffusivities(description = 'fast mech., KM98',
             logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306],
             logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140],
             Fe3=0.003, Fe2=0.174, Mg=1.821, Ti=0., Al=0.,
-            basestyle = {'marker' : 'd', 'color' : 'navy', 'alpha' : 0.5,
-                        'markersize' :  markersizefloat})
+            basestyle = {'marker' : 'd', 'color' : 'grey', 'alpha' : 0.5,
+                        'markersize' :  10})
 
 # Demouchy&Mackwell 2006 - 1 hr for all "fast"
 DM06_fast = Diffusivities(description = 'fast mech., DM06', 
@@ -135,7 +139,7 @@ KM98_slow = Diffusivities(description = 'slow mech., KM98',
             celsius_all = [900, 1000], logDx = [-13.994, -12.783],
             logDy = [-14.17, -13.171], logDz = [-12.885, -11.776],
             basestyle = {'marker' : 'D', 'color' : 'green', 'alpha' : 0.5,
-                      'markersize' :  markersizefloat+3})
+                      'markersize' :  10})
 
 #% Demouchy & Mackwell 2006 - 20 hour and 5 hour - "slow"
 DM06_slow = Diffusivities(description = 'slow mech., DM06', celsius_x = [900],

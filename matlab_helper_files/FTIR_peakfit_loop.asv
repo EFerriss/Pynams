@@ -15,10 +15,10 @@ saveFigureLocation = spectraLocation;
 % ending of file where FTIR baseline is stored
 baseline_ending = '-baseline-low.CSV';
 
-% ending of file where peakfit information will be saved
+% ending of file where peakfit informaton will be saved
 file_ending = '-peakfit-low.CSV';
 
-fname_list = {'SC1-2-800C-3hr-a2'}
+fname_list = {'SC1-2-800C-7hr-a01'}
 
 %default_peakpos = [3645 3617 3540 3460 3443 3355 3305 3250]; % diopsides
 %default_peakpos = [3620 3550 3460 3355]; % PMR-53
@@ -61,8 +61,9 @@ for r=1:length(fname_list)
     pek_outputfile = [spectraLocation, fname, baseline_ending];
     if exist(pek_outputfile) == 0
        disp('You have to subtract off a baseline in python');
-       disp('and save with self.save_baseline()');
-       disp('to make fname-baseline.CSV');
+       disp('and save with self.save_baseline() to make');
+       disp([fname, baseline_ending])
+       
        return
     else
        previous = xlsread(pek_outputfile);
