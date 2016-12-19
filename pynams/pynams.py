@@ -16,18 +16,18 @@ Copyright (c) 2015 Elizabeth Ferriss
 This software was developed using Python 2.7.
 
 """
-#from __future__ import absolute_import
 #import styles
 #import diffusion
 #import gc
 #import numpy as np
 #import matplotlib.pyplot as plt
 #import matplotlib.lines as mlines
-from uncertainties import ufloat
-x = ufloat(2, 0.3)
+
+from .uncertainties import ufloat
+
+print 'If you see this message and a +/- number, my test worked!'
+x = ufloat('4.6(7)')
 print x
-
-
 #%%
 #import os.path
 #from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
