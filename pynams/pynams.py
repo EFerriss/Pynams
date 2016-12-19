@@ -16,13 +16,19 @@ Copyright (c) 2015 Elizabeth Ferriss
 This software was developed using Python 2.7.
 
 """
+#from __future__ import absolute_import
 #import styles
 #import diffusion
 #import gc
 #import numpy as np
 #import matplotlib.pyplot as plt
 #import matplotlib.lines as mlines
-#from uncertainties import ufloat
+from uncertainties import ufloat
+x = ufloat(2, 0.3)
+print x
+
+
+#%%
 #import os.path
 #from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #import matplotlib.gridspec as gridspec
@@ -37,14 +43,6 @@ This software was developed using Python 2.7.
 #import scipy.interpolate as interp
 
 
-#
-#def get_3thick(sample_name):
-#    """Average thickness measurements in 3 directions and return a list"""
-#    twoA = np.mean(sample_name.length_a_microns)
-#    twoB = np.mean(sample_name.length_b_microns)
-#    twoC = np.mean(sample_name.length_c_microns)
-#    return [twoA, twoB, twoC]
-#
 #def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
 #    """Make and return Gaussian curve over specified range"""
 #    y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
@@ -53,6 +51,8 @@ This software was developed using Python 2.7.
 #def absorption_coefficients(phase, calibration, peak_idx=None):
 #    """Input phase, calibration, and peak 
 #    Returns absorption coefficient"""
+#    x = ufloat(5, 0.2)
+#    print x
 #    if (calibration == 'Bell') and (phase=='cpx'):
 #        absorption_coeff = 1.0 / ufloat(7.09, 0.32)
 #

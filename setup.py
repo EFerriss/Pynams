@@ -9,6 +9,7 @@ pynams setup file
 from setuptools import setup
 setup(
     name = "pynams",
-    version = "0.1.0",
-    packages = ['pynams',]
+    version = "0.2.0",
+    package_dir = {'pynams' : 'pynams'},
+    packages = ['pynams', 'pynams.uncertainties']
 )

@@ -4,9 +4,12 @@ pynams/diffusion.py
 pynams/diffusivity_library.py
 pynams/experiments.py
 pynams/pynams.py
+pynams/samples.py
 pynams/styles.py
 pynams/wholeblock.py
 pynams.egg-info/PKG-INFO
 pynams.egg-info/SOURCES.txt
 pynams.egg-info/dependency_links.txt
 pynams.egg-info/top_level.txt
+pynams/uncertainties/__init__.py
+pynams/uncertainties/umath.py
