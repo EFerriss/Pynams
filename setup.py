@@ -8,8 +8,11 @@ pynams setup file
 """
 from setuptools import setup
 setup(
-    name = "pynams",
+    description = "python for water in nominally anhydrous minerals",
+    author = 'Elizabeth Ferriss',
+    author_email = 'elizabeth.ferriss@gmail.com',
+    url = 'https://github.com/EFerriss/pynams',
     version = "0.2.0",
-    package_dir = {'pynams' : 'pynams'},
-    packages = ['pynams', 'pynams.uncertainties']
+    packages = ['pynams', 'pynams.uncertainties'],
+    name = "pynams",
 )
