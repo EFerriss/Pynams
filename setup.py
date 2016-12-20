@@ -11,8 +11,8 @@ setup(
     description = "python for water in nominally anhydrous minerals",
     author = 'Elizabeth Ferriss',
     author_email = 'elizabeth.ferriss@gmail.com',
-    url = 'https://github.com/EFerriss/pynams',
+    url = 'https://github.com/EFerriss/Pynams',
     version = "0.2.0",
-    packages = ['pynamsy', 'pynamsy.uncertainties'],
-    name = "pynamsy",
+    packages = ['pynams', 'pynams.uncertainties'],
+    name = "pynams",
 )
