@@ -7,6 +7,11 @@ Define attributes and functions related to physical samples
 @author: Ferriss
 """
 import numpy as np
+from .uncertainties import ufloat
+
+print '\nIf you see this message and a +/- number, my test worked!'
+y = ufloat(3, 0.5)
+print y
 
 class Sample():
     """

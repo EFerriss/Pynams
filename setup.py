@@ -13,6 +13,6 @@ setup(
     author_email = 'elizabeth.ferriss@gmail.com',
     url = 'https://github.com/EFerriss/pynams',
     version = "0.2.0",
-    packages = ['pynams', 'pynams.uncertainties'],
-    name = "pynams",
+    packages = ['pynamsy', 'pynamsy.uncertainties'],
+    name = "pynamsy",
 )
