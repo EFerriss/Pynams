@@ -16,14 +16,15 @@ This software was developed using Python 2.7.
 from __future__ import print_function, division, absolute_import
 from future.builtins import range
 
+import numpy as np
+import os
+
 #import styles
 #import diffusion
 #import gc
-import numpy as np
 #import matplotlib.pyplot as plt
 #import matplotlib.lines as mlines
 #from .uncertainties import ufloat
-#import os.path
 #from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #import matplotlib.gridspec as gridspec
 #from matplotlib.ticker import MultipleLocator
@@ -54,10 +55,13 @@ class Spectrum():
     The filetype defaults to .CSV, and that's the filetype this code handles
     best, although it's done ok with .txt. 
     
-    The folder defaults to the present working directory.
+    The folder defaults to the present working directory, but you'll 
+    probably need to set the folder explicitly using a string like this one:
+    'C:\\Users\\Ferriss\\Documents\\Code\\olivine\\'
     
-    The method get_data() will open the filename and read in the wavenumbers
-    and absorbances. 
+    Once you make your Spectrum, it will automatically open the file and read 
+    in the wavenumbers and absorbances. There is a test file test.CSV in 
+    the pynams folder.
     
     The sample thickness can be input in the following ways: 
         1. By specifying a sample, a pynams Sample object, 
@@ -96,12 +100,9 @@ class Spectrum():
         self.raypath = raypath        
         self.filename = self.folder + self.fname + self.filetype
 
-    def get_data(self):
-        """Get the wavenumber and absorbance data from the FTIR file"""
-        if self.filename is None:
-            self.filename = self.folder + self.fname + self.filetype
-
+        ### Get the wavenumber and absorbance data from the FTIR file
         if os.path.isfile(self.filename):
+            # read in the signal
             if self.filetype == '.CSV':
                 signal = np.loadtxt(self.filename, delimiter=',')
             elif self.filetype == '.txt':
@@ -109,22 +110,21 @@ class Spectrum():
                     signal = np.loadtxt(self.filename, delimiter='\t', 
                                         dtype=None) 
                 except ValueError:
-                    print('\nProblem reading this file format')
-                    return False
+                    print('\nProblem reading this file format. Try .CSV')
             else:
-                print('check filetype')
+                print('For now only CSV and txt files work.')
+            # sort signal by wavenumber
+            signal = signal[signal[:,0].argsort()]
+            self.wn_full = signal[:, 0]
+            self.abs_raw = signal[:, 1]    
+            print('Yay. The test worked.')
+            print('Try printing your_spectrum.wn_full for wavenumbers')
+            print('and your_spectrum.abs_raw for the absorbances.')
         else:
             print('There is a problem finding the file.')
-#            print 'You may need to run pynams.make_filenames(folder=)'
             print('filename =', self.filename)
-            return False
-        
-        # sort signal by wavenumber
-        signal = signal[signal[:,0].argsort()]
-        self.wn_full = signal[:, 0]
-        self.abs_raw = signal[:, 1]
-        return True
-    
+            print('current working directory = ', os.getcwd())
+            print('Maybe check the folder name')
 
 #    # full range of measured wavenumber and absorbances
 #    wn_full = None
