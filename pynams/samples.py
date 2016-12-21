@@ -96,6 +96,10 @@ class Sample():
         self.thickness_microns = [twoA, twoB, twoC, thinness]
         
     def get_MgNumber(self):
+        """ 
+        Takes the Fe (or Fe2 + Fe3 if Fe=0) and Mg of a sample assumed to be 
+        in atoms per formula unit (apfu) and calculates the Mg#
+        """
         if self.Fe == 0:
             self.Fe = self.Fe2 + self.Fe3
         if self.Fe == 0 and self.Mg == 0:
