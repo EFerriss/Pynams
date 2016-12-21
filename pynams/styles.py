@@ -3,12 +3,18 @@
 Created on Fri May 29 10:43:49 2015
 
 @author: Ferriss
+
+Contains my most commonly used plotting style dictionaries (e.g., blue dots)
+and some frequently used plotting setups, e.g., 3 subplots
+
 """
-#import matplotlib.pyplot as plt
-#import numpy as np
+import matplotlib.pyplot as plt
+import numpy as np
 
 style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
                 'fillstyle' : 'full', 'linestyle' : 'none',}
+style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
+
 #style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
 #                     'fillstyle' : 'none', 'linestyle' : 'none', 
 #                     'linewidth' : 1, 'alpha' : 1}
@@ -78,7 +84,7 @@ style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
 #style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
 #style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
 #style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
-#style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
+style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 #style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
 #style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
 #style_3 = {'color':'orange', 'linewidth': 2., 'linestyle' : '--'}
@@ -112,7 +118,6 @@ style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
 #               style_8]
 #
 #style_unoriented = {'fillstyle' : 'none'}
-#style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 #
 #style_diffusioncurve = {'color' : 'grey', 'linewidth' : 4, 
 #                        'linestyle' : '-', 'alpha' : 0.5}
@@ -164,123 +169,123 @@ style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
 #              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'violet',
 #              'alpha' : 0.5, 'label' : '3350 cm$^{-1}$'}
 #
-#def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
-#                         shrinker=0.1, heights_instead=False,
-#                         wholeblock=True, unit='microns'):
-#    """Outline setup for 3 subplots for 3D profiles"""
-#    if style is None:
-#        style = style_lightgreen
-#
-#    fig, axis3 = plt.subplots(nrows=1, ncols=3)
-#    fig.set_size_inches(figsize)
-#
-#    for k in range(3):
-#        axis3[k].set_ylim(0, top)
-##        axis3[k].grid()
-#        box = axis3[k].get_position()
-#        plt.setp(axis3[k].xaxis.get_majorticklabels(), rotation=45)
-#        axis3[k].set_position([box.x0 + box.width*shrinker, 
-#                               box.y0 + box.height*shrinker, 
-#                               box.width*(1.0-shrinker), 
-#                               box.height*(1.0-shrinker)])
-#                               
-#    if wholeblock is True:
-#        if heights_instead is False:
-#            axis3[0].set_ylabel('Area/Area$_0$')
-#        else:
-#            axis3[0].set_ylabel('Height/Height$_0$')
-#            
-#    else:
-#        if heights_instead is False:
-#            axis3[0].set_ylabel('Area (cm$^{-2}$)')
-#        else:
-#            axis3[0].set_ylabel('Height (cm$^{-1}$)')
-#        
-#    axis3[0].set_xlabel('|| x')
-#    if unit == 'microns':
-#        axis3[1].set_xlabel('position ($\mu$m) || y')
-#    elif unit == 'mm':
-#        axis3[1].set_xlabel('position (mm) || y')
-#    else:
-#        print 'unit must = microns or mm'
-#    axis3[2].set_xlabel('|| z')
-#    plt.setp(axis3[1].get_yticklabels(), visible=False)
-#    plt.setp(axis3[2].get_yticklabels(), visible=False)
-#    return fig, axis3
-#    
-#def plot_3panels(positions_microns, area_profiles, lengths=None,
-#                 styles3=[None, None, None], top=1.2, figaxis3=None, 
-#                 show_line_at_1=True, init=1., 
-#                 label4legend=[None, None, None],
-#                 centered=True, unit='microns',
-#                 percent_error=3., xerror=50., yerror=None,
-#                 heights_instead=False, wholeblock=True,
-#                 use_errorbar=False):
-#    """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
-#    are passed in lists of three lists for a, b, and c.
-#    Positions are assumed to start at 0 and then are centered.
-#    """
-#    if figaxis3 is None:
-#        fig, axis3 = plot_3panels_outline(top=top, wholeblock=wholeblock,
-#                                          heights_instead=heights_instead,
-#                                          unit=unit)
-#    else:
-#        axis3 = figaxis3
-#
-#    if lengths is None:
-#        lengths = np.ones(3)
-#        for k in xrange(3):
-#            lengths[k] = max(positions_microns[k] - min(positions_microns[k]))
-#
-#    for k in xrange(3): 
-#        x = positions_microns[k]
-#        if unit == 'mm':
-#            x = np.array(x) / 1000.
-#        y = area_profiles[k]
-#                
-#        if len(x) != len(y):
-#            print 'Problem in plot_3panels'
-#            print 'len(x):', len(x)
-#            print 'len(y):', len(y)
-#
-#        a = lengths[k] / 2.
-#        pos = x 
-#        
-#        if centered is True:
-#            axis3[k].set_xlim(-a, a)
-#        else:
-#            axis3[k].set_xlim(0., lengths[k])            
-#
-#        if show_line_at_1 is True:
-#            axis3[k].plot([-a, lengths[k]], [init, init], '--k')
-#            
-#        if styles3[k] is None:
-#            styles3[k] = style_lightgreen
-#            
-#        if np.isnan(y).any():
-#            axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
-#                         'nan values!\n\nProbably the\ninitial area was 0',
-#                         horizontalalignment='center', backgroundcolor='w',
-#                         verticalalignment='center')
-#                         
-#        elif np.isinf(y).any():
-#            infstring = ''.join(('inf values!\n\nProbably the',
-#                                '\ninitial area was 0\nand a peak grew'))
-#            axis3[k].text(0, axis3[k].get_ylim()[1]/2., infstring,
-#                         horizontalalignment='center', backgroundcolor='w',
-#                         verticalalignment='center')
-#
-#        else:
-#            styles3[k]['label'] = label4legend[k]
-#            if use_errorbar is True:
-#                if yerror is None:
-#                    yerrorplot = np.array(y) * percent_error/100.
-#                else:
-#                    yerrorplot = np.ones_like(pos) * yerror
-#                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
-#                                **styles3[k])
-#            else:
-#                axis3[k].plot(pos, y, **styles3[k])
-#
-#    if figaxis3 is None:
-#        return fig, axis3   
+def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
+                         shrinker=0.1, heights_instead=False,
+                         wholeblock=True, unit='microns'):
+    """Outline setup for 3 subplots for 3D profiles"""
+    if style is None:
+        style = style_lightgreen
+
+    fig, axis3 = plt.subplots(nrows=1, ncols=3)
+    fig.set_size_inches(figsize)
+
+    for k in range(3):
+        axis3[k].set_ylim(0, top)
+#        axis3[k].grid()
+        box = axis3[k].get_position()
+        plt.setp(axis3[k].xaxis.get_majorticklabels(), rotation=45)
+        axis3[k].set_position([box.x0 + box.width*shrinker, 
+                               box.y0 + box.height*shrinker, 
+                               box.width*(1.0-shrinker), 
+                               box.height*(1.0-shrinker)])
+                               
+    if wholeblock is True:
+        if heights_instead is False:
+            axis3[0].set_ylabel('Area/Area$_0$')
+        else:
+            axis3[0].set_ylabel('Height/Height$_0$')
+            
+    else:
+        if heights_instead is False:
+            axis3[0].set_ylabel('Area (cm$^{-2}$)')
+        else:
+            axis3[0].set_ylabel('Height (cm$^{-1}$)')
+        
+    axis3[0].set_xlabel('|| x')
+    if unit == 'microns':
+        axis3[1].set_xlabel('position ($\mu$m) || y')
+    elif unit == 'mm':
+        axis3[1].set_xlabel('position (mm) || y')
+    else:
+        print 'unit must = microns or mm'
+    axis3[2].set_xlabel('|| z')
+    plt.setp(axis3[1].get_yticklabels(), visible=False)
+    plt.setp(axis3[2].get_yticklabels(), visible=False)
+    return fig, axis3
+    
+def plot_3panels(positions_microns, area_profiles, lengths=None,
+                 styles3=[None, None, None], top=1.2, figaxis3=None, 
+                 show_line_at_1=True, init=1., 
+                 label4legend=[None, None, None],
+                 centered=True, unit='microns',
+                 percent_error=3., xerror=50., yerror=None,
+                 heights_instead=False, wholeblock=True,
+                 use_errorbar=False):
+    """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
+    are passed in lists of three lists for a, b, and c.
+    Positions are assumed to start at 0 and then are centered.
+    """
+    if figaxis3 is None:
+        fig, axis3 = plot_3panels_outline(top=top, wholeblock=wholeblock,
+                                          heights_instead=heights_instead,
+                                          unit=unit)
+    else:
+        axis3 = figaxis3
+
+    if lengths is None:
+        lengths = np.ones(3)
+        for k in xrange(3):
+            lengths[k] = max(positions_microns[k] - min(positions_microns[k]))
+
+    for k in xrange(3): 
+        x = positions_microns[k]
+        if unit == 'mm':
+            x = np.array(x) / 1000.
+        y = area_profiles[k]
+                
+        if len(x) != len(y):
+            print 'Problem in plot_3panels'
+            print 'len(x):', len(x)
+            print 'len(y):', len(y)
+
+        a = lengths[k] / 2.
+        pos = x 
+        
+        if centered is True:
+            axis3[k].set_xlim(-a, a)
+        else:
+            axis3[k].set_xlim(0., lengths[k])            
+
+        if show_line_at_1 is True:
+            axis3[k].plot([-a, lengths[k]], [init, init], '--k')
+            
+        if styles3[k] is None:
+            styles3[k] = style_lightgreen
+            
+        if np.isnan(y).any():
+            axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
+                         'nan values!\n\nProbably the\ninitial area was 0',
+                         horizontalalignment='center', backgroundcolor='w',
+                         verticalalignment='center')
+                         
+        elif np.isinf(y).any():
+            infstring = ''.join(('inf values!\n\nProbably the',
+                                '\ninitial area was 0\nand a peak grew'))
+            axis3[k].text(0, axis3[k].get_ylim()[1]/2., infstring,
+                         horizontalalignment='center', backgroundcolor='w',
+                         verticalalignment='center')
+
+        else:
+            styles3[k]['label'] = label4legend[k]
+            if use_errorbar is True:
+                if yerror is None:
+                    yerrorplot = np.array(y) * percent_error/100.
+                else:
+                    yerrorplot = np.ones_like(pos) * yerror
+                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
+                                **styles3[k])
+            else:
+                axis3[k].plot(pos, y, **styles3[k])
+
+    if figaxis3 is None:
+        return fig, axis3   

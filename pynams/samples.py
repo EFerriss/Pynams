@@ -36,10 +36,10 @@ class Sample():
     e.g., print my_block.thickness_microns produces
     [1000.0, 2016.0, 2405.0, None]
     
-    You can add the initial water in ppm H2O if you have a clue what it is.
-    
     Fe (total), Fe2+, Fe3_, Mg, Al, and Ti concentratrations can be added 
-    in as atoms per formula unit (apfu): Sample(Fe2=0.17)
+    in as atoms per formula unit (apfu), and initial water content can be
+    added in ppm H2O.
+    Sample(Fe2=0.17, initial_water_ppmH2O=5)
     
     You can have it determine the Mg# from the Fe and Mg
     by these using Sample.get_MgNum()
@@ -67,43 +67,31 @@ class Sample():
             self.Fe = Fe2 + Fe3
         else:
             self.Fe = Fe
-            
-        if isinstance(length_a_microns, float):
-            twoA = length_a_microns
-        elif isinstance(length_a_microns, int):
-            twoA = float(length_a_microns)
-        elif len(length_a_microns) > 0:
-            twoA = np.mean(self.length_a_microns)            
-        else:
-            twoA = None
 
-        if isinstance(length_b_microns, float):
-            twoB = length_b_microns
-        elif isinstance(length_b_microns, int):
-            twoB = float(length_b_microns)
-        elif len(length_b_microns) > 0:
-            twoB = np.mean(self.length_b_microns)
-        else:
-            twoB = None        
-            
-        if isinstance(length_c_microns, float):
-            twoC = length_c_microns            
-        elif isinstance(length_c_microns, int):
-            twoC = float(length_c_microns)
-        elif len(length_c_microns) > 0:
-            twoC = np.mean(self.length_c_microns)
-        else:
-            twoC = None
-            
-        if isinstance(thickness_thinslab_microns, float):
-            thinness = thickness_thinslab_microns
-        elif isinstance(thickness_thinslab_microns, int):
-            thinness = float(thickness_thinslab_microns)
-        if len(thickness_thinslab_microns) > 0:
-            thinness = np.mean(thickness_thinslab_microns)
-        else:
-            thinness = None
+        def floatify(lengthy):
+            """
+            Takes a length or list of lengths and makes it into a single 
+            floating point number for condensing down lists of thicknesses.
+            """
+            if lengthy is None:
+                floater = None
+            elif isinstance(lengthy, list) or isinstance(lengthy, np.ndarray):
+                if len(lengthy) > 0:
+                    floater = np.mean(lengthy)
+                else:
+                    floater = None
+            else:
+                try:
+                    floater = float(lengthy)
+                except TypeError:
+                    floater = lengthy
+                    print 'length should be integer, float, or list'
+            return floater
 
+        twoA = floatify(length_a_microns)
+        twoB = floatify(length_b_microns)
+        twoC = floatify(length_c_microns)
+        thinness = floatify(thickness_thinslab_microns)
         self.thickness_microns = [twoA, twoB, twoC, thinness]
         
     def get_MgNumber(self):
