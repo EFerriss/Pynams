@@ -170,6 +170,57 @@ style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 #              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'violet',
 #              'alpha' : 0.5, 'label' : '3350 cm$^{-1}$'}
 #
+def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
+                pad_bot=0., raw_data=False):
+    """Takes a Spectrum object and returns reasonable min and max values for 
+    y-axis of plots based on the absorbance values for the specified wavenumber
+    range and padded top and bottom with pad variable"""
+    if spectrum.thickness_microns is None:
+        absorbance = spectrum.abs_raw
+    else:
+        spectrum.start_at_zero(wn_xlim_left=wn_xlim_left,
+                           wn_xlim_right=wn_xlim_right)
+        absorbance = spectrum.abs_full_cm
+        
+    idx_lo = (np.abs(spectrum.wn_full-wn_xlim_right)).argmin()
+    idx_hi = (np.abs(spectrum.wn_full-wn_xlim_left)).argmin()
+    
+    y = absorbance[idx_lo:idx_hi]
+
+    bottom = min(y) 
+    top = max(y)
+    ylow = bottom - pad_bot
+    yhigh = top + pad_top
+
+    return ylow, yhigh
+          
+def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
+                          figaxis=None, wn_xlim_left=4000., 
+                          wn_xlim_right=3000., pad_top=0.1, 
+                          pad_bot=0., raw_data=False):
+    """
+    Makes a standard figure outline for plotting FTIR spectra.
+    Returns the figure and axis handles.
+    """
+    if figaxis is None:
+        f, ax = plt.subplots(figsize=size_inches)
+    else:
+        ax = figaxis
+    ax.set_xlabel('Wavenumber (cm$^{-1})$')
+    ax.set_ylabel('Absorbance (cm$^{-1})$')
+    ax.set_xlim(wn_xlim_left, wn_xlim_right)
+    ax.grid()    
+    box = ax.get_position()
+    ax.set_position([box.x0 + box.width*shrinker, 
+                     box.y0 + box.height*shrinker, 
+                     box.width*(1.0-shrinker), 
+                     box.height*(1.0-shrinker)])
+
+    plt.setp(ax.get_xticklabels(), rotation=45)
+    
+    if figaxis is None:
+        return f, ax
+
 def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,
                          wholeblock=True, unit='microns'):

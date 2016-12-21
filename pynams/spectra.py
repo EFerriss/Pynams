@@ -18,11 +18,11 @@ from future.builtins import range
 
 import numpy as np
 import os
+import matplotlib.pyplot as plt
+import pynams.styles as styles
 
-#import styles
 #import diffusion
 #import gc
-#import matplotlib.pyplot as plt
 #import matplotlib.lines as mlines
 #from .uncertainties import ufloat
 #from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
@@ -44,33 +44,36 @@ class Spectrum():
     
     Requires an fname, which is the first part of the FTIR filename, e.g.,
     if your raw FTIR spectrum is saved in C:my_folder as my_file.CSV,
-    the fname = 'my_file', the filetype='.CSV', and the folder should be 
+    the fname is 'my_file' and the filetype='.CSV'. The folder should be 
     set to 'C:my_folder'. The fname is critical both for locating your file
-    and importing your data and it is used as the default heading and label
-    for a lot of the plotting functions, so it is required. 
-    
+    and importing your data and because it is used as the default heading and 
+    label for a lot of the plotting functions, so it is required. 
     The simplest call would look like this:
-    my_spectrum = Spectrum('test_spectrum')
-    
-    The filetype defaults to .CSV, and that's the filetype this code handles
-    best, although it's done ok with .txt. 
+        my_spectrum = Spectrum('test_spectrum')
     
     The folder defaults to the present working directory, but you'll 
     probably need to set the folder explicitly using a string like this one:
-    'C:\\Users\\Ferriss\\Documents\\Code\\olivine\\'
-    
+        'C:\\Users\\Ferriss\\Documents\\Code\\olivine\\'
+
+    The filetype defaults to .CSV, and that's the filetype this code handles
+    best, although it's done ok with .txt. 
+        
     Once you make your Spectrum, it will automatically open the file and read 
     in the wavenumbers and absorbances. There is a test file test.CSV in 
     the pynams folder.
     
+    Use the bound method plot_spectrum() to plot the spectrum, e.g.,
+    my_spectrum.plot_spectrum()
+    
     The sample thickness can be input in the following ways: 
-        1. By specifying a sample, a pynams Sample object, 
+        1. You can set thickness in microns directly as a keyword when you
+           make the Spectrum, so Spectrum(fname, thickness_microns=x)
+        2. You can specify a sample, a pynams Sample object, 
            that has thickness information input as thickness_thinslab_microns.
-        2. By specifying a sample, a pynams Sample object, that has 
+        3. By specifying a sample, a pynams Sample object, that has 
            length information in at least one direction AND specifying the 
            raypath as 'a', 'b', or 'c'. The thickness is then set the as 
-           the length of the Sample parallel to the raypath.
-        3. You can set thickness_microns directly
+           the length of the Sample parallel to the raypath. 
         4. You can have it guess the thickness based on the Si-O overtones
            by first making the Spectrum object and then calling the 
            thickness_from_SiO() method.
@@ -126,6 +129,109 @@ class Spectrum():
             print('current working directory = ', os.getcwd())
             print('Maybe check the folder name')
 
+    def plot_spectrum(self, axes=None, style=styles.style_1, offset=0., 
+                      label=None, wn_xlim_left=4000., wn_xlim_right=3000., 
+                      pad_top=0.1, pad_bot=0., plot_raw=False):
+        """
+        Produces a plot of the FTIR spectrum, and returns the figure and axes 
+        handles. If you don't know what those are, check out this site: 
+            http://matplotlib.org/faq/usage_faq.html
+        
+        If you already have an axis that you want to add a plot onto, set 
+        axes=the handle for the pre-existing axes object, e.g.,
+            fig, ax = my_spectrum.plot_spectrum()
+            my_second_spectrum.plot_spectrum(axes=ax)
+        That should produce a single figure with both my_spectrum and 
+        my_second_spectrum plotted on top of each other.
+        
+        The style of the line can be changed using the keyword style and
+        passing in a dictionary. There are several preset style dictionaries
+        included in pynams.styles, so, for instance, try:
+            from pynams import styles
+            my_spectrum.plot_spectrum(style=styles.style_lightgreen)
+        Note that the axis takes on the x- and y-limits from the last 
+        spectrum plotted, and you can change those after plotting using
+        ax.set_xlim() and ax.set_ylim(). 
+        
+        If you want to move a spectrum up or down, use the offset keyword.
+        
+        If you add a legend to your axes object with ax.legend(), the label
+        given to your spectrum will default to the spectrum's fname. If you
+        want to use a different label, pass a 'string' for the label keyword.
+        
+        The x and y axis limits are set by the keywords wn_xlim_left,
+        wn_xlim_right, pad_top, and pad_bot, which default to showing the
+        4000-3000 cm-1 wavenumber range where O-H stretching peaks show
+        up in nominally anhydrous minerals and zoomed in on the spectrum.
+        
+        The keyword plot_raw clarifies whether or not to plot the raw
+        absorbance data or absobance data that has been divided by 
+        thickness and offset such that the lowest point between wavenumbers
+        4000 and 3000 cm-1 is set equal to 0. The default is plot_raw=False,
+        meaning that the thickness-divided-and-offset spectrum will be plotted,
+        but if not thickness data are available, then it will revert to
+        plotting just the raw absorbance data.
+        """
+        if self.thickness_microns is not None:
+            check = self.start_at_zero()
+            if check is False:
+                return
+            absorbance = self.abs_full_cm
+        else:
+            absorbance = self.abs_raw
+            plot_raw = True
+                
+        if axes is None:
+            fig, ax = styles.plot_spectrum_outline(size_inches=((3., 2.5)),
+                                                   wn_xlim_left=wn_xlim_left,
+                                                   wn_xlim_right=wn_xlim_right)
+        else:
+            fig = None
+            ax = axes
+#
+        if plot_raw is True:
+            ax.set_ylabel('raw absorbance')
+
+        if label is None:
+            label = self.fname
+            
+        style_to_use = style.copy()
+        style_to_use.update({'label' : label})
+        
+        ax.plot(self.wn_full, absorbance + offset, **style_to_use)
+        
+        ax.set_xlim(wn_xlim_left, wn_xlim_right)
+        
+        ylow, yhigh = styles.ylim_picker(self, wn_xlim_left=wn_xlim_left,
+                                         wn_xlim_right=wn_xlim_right, 
+                                         pad_top=pad_top, pad_bot=pad_bot)
+        ax.set_ylim(ylow, yhigh)
+        ax.set_title('This test worked!')
+        return fig, ax
+
+#    def orientation(self, top=None):
+#        """guess orientation based on Si-O overtones in FTIR spectrum"""
+#        print('\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.')
+#        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
+#                                     wn_xlim_right=1200)
+#        fig.set_size_inches(6, 6)
+#                                                    
+#        if top is not None:
+#            ax.set_ylim(0, top)
+#        else:
+#            ctop = ax.get_ylim()[1]
+#            ax.set_ylim(0, ctop + 0.5*ctop)
+#
+#        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
+#        labels = ['E || a', 'E || b', 'E || c']
+#        for idx, wn in enumerate([2035, 1670, 1785,]):
+#            ax.plot([wn, wn], ax.get_ylim(), '-r')
+#            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
+#                    va='center', ha='center', fontsize=12)
+#        
+#            
+#        return fig, ax
+#
 #    # full range of measured wavenumber and absorbances
 #    wn_full = None
 #    abs_raw = None
@@ -781,136 +887,6 @@ class Spectrum():
 #            area = dx * dy
 #            self.peak_areas[k] = area
 #    
-#    def ylim_picker(self, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
-#                    pad_bot=0., raw_data=False):
-#        """Returns reasonable min and max values for y-axis of
-#        plots based on the absorbance values for the specified wavenumber
-#        range and padded top and bottom with pad variable"""
-#        if self.wn_full is None:
-#            self.get_data()
-#            
-#        if self.thickness_microns is None:
-#            absorbance = self.abs_raw           
-#        else:
-#            self.start_at_zero(wn_xlim_left=wn_xlim_left,
-#                               wn_xlim_right=wn_xlim_right)
-#            absorbance = self.abs_full_cm
-#            
-#        idx_lo = (np.abs(self.wn_full-wn_xlim_right)).argmin()
-#        idx_hi = (np.abs(self.wn_full-wn_xlim_left)).argmin()
-#        
-#        y = absorbance[idx_lo:idx_hi]
-#
-#        bottom = min(y) 
-#        top = max(y)
-#        ylow = bottom - pad_bot
-#        yhigh = top + pad_top
-#
-#        return ylow, yhigh
-#          
-#    def plot_spectrum_outline(self, size_inches=(3., 2.5), shrinker=0.15,
-#                              figaxis=None, wn_xlim_left=4000., 
-#                              wn_xlim_right=3000., pad_top=0.1, 
-#                              pad_bot=0., raw_data=False):
-#        """Make standard figure outline for plotting FTIR spectra"""
-#        if figaxis is None:
-#            f, ax = plt.subplots(figsize=size_inches)
-#        else:
-#            ax = figaxis
-#        ax.set_xlabel('Wavenumber (cm$^{-1})$')
-#        ax.set_ylabel('Absorbance (cm$^{-1})$')
-#        ax.set_title(self.fname)
-#        ax.set_xlim(wn_xlim_left, wn_xlim_right)
-#        ax.grid()
-#        
-#        if self.thickness_microns is None:
-#            raw_data = True
-#
-#        ylow, yhigh = self.ylim_picker(wn_xlim_left=wn_xlim_left,
-#                                       wn_xlim_right=wn_xlim_right, 
-#                                       pad_top=pad_top, pad_bot=pad_bot,
-#                                       raw_data=raw_data)
-#        ax.set_ylim(ylow, yhigh)
-#        
-#        box = ax.get_position()
-#        ax.set_position([box.x0 + box.width*shrinker, 
-#                         box.y0 + box.height*shrinker, 
-#                         box.width*(1.0-shrinker), 
-#                         box.height*(1.0-shrinker)])
-#
-#        plt.setp(ax.get_xticklabels(), rotation=45)
-#        
-#        if figaxis is None:
-#            return f, ax
-#
-#    def plot_spectrum(self, style=styles.style_1, figaxis=None, wn=None,
-#                      size_inches=(3., 2.5), label=None, offset=0., 
-#                      wn_xlim_left=4000., wn_xlim_right=3000., 
-#                      pad_top=0.1, pad_bot=0., plot_raw=False):
-#        """Plot the raw spectrum divided by thickness"""
-#        if self.wn_full is None:
-#            self.get_data()
-#
-#        if self.thickness_microns is not None:
-#            check = self.start_at_zero()
-#            if check is False:
-#                return
-#            absorbance = self.abs_full_cm
-#        else:
-#            absorbance = self.abs_raw
-#            plot_raw = True
-#                
-#        if figaxis is None:
-#            fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
-#                                                 wn_xlim_left=wn_xlim_left,
-#                                                 wn_xlim_right=wn_xlim_right)
-#        else:
-#            fig = None
-#            ax = figaxis
-#
-#        if plot_raw is True:
-#            ax.set_ylabel('raw absorbance')
-#
-#        if label is None:
-#            label = self.fname
-#            
-#        style_to_use = style.copy()
-#        style_to_use.update({'label' : label})
-#        
-#        ax.plot(self.wn_full, absorbance + offset, **style_to_use)
-#        
-#        ax.set_xlim(wn_xlim_left, wn_xlim_right)
-#        
-#        ylow, yhigh = self.ylim_picker(wn_xlim_left=wn_xlim_left,
-#                                       wn_xlim_right=wn_xlim_right, 
-#                                       pad_top=pad_top, pad_bot=pad_bot)
-#        ax.set_ylim(ylow, yhigh)
-#
-#        return fig, ax
-#
-#    def orientation(self, top=None):
-#        """guess orientation based on Si-O overtones in FTIR spectrum"""
-#        print('\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.')
-#        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
-#                                     wn_xlim_right=1200)
-#        fig.set_size_inches(6, 6)
-#                                                    
-#        if top is not None:
-#            ax.set_ylim(0, top)
-#        else:
-#            ctop = ax.get_ylim()[1]
-#            ax.set_ylim(0, ctop + 0.5*ctop)
-#
-#        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
-#        labels = ['E || a', 'E || b', 'E || c']
-#        for idx, wn in enumerate([2035, 1670, 1785,]):
-#            ax.plot([wn, wn], ax.get_ylim(), '-r')
-#            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
-#                    va='center', ha='center', fontsize=12)
-#        
-#            
-#        return fig, ax
-#
 #    def make_composite_peak(self, peak_idx_list):
 #        """Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
 #        other peaks given by their indexes in peak_idx_list"""
@@ -934,7 +910,7 @@ class Spectrum():
 #                     baseline_ending='-baseline.CSV',
 #                     style=styles.style_spectrum, 
 #                     stylesum=styles.style_summed, 
-#                     fig_ax = None, legend=True,
+#                     axes = None, legend=True,
 #                     stylepeaks=styles.style_fitpeak, top=None, legloc=1):
 #        """Single spectrum: Plot peaks fit in MATLAB using peakfit.m
 #        REQUIRES the peak_ending and baseline_ending so that it can
@@ -951,16 +927,16 @@ class Spectrum():
 #        
 #        wn, observed = self.get_baseline(baseline_ending=baseline_ending)
 #
-#        if fig_ax is None:
+#        if axes is None:
 #            fig, ax = self.plot_subtractbaseline(style=style, label='') 
 #        else: 
-#            ax = fig_ax
+#            ax = axes
 #            
 #        ax.plot(wn, observed, label='observed', **style)
 #        ax.plot(wn, gaussian[0], label='fit bands', **stylepeaks)
 #        ax.plot(self.base_wn, summed_spectrum, label='peak sum', **stylesum)
 #        
-#        if fig_ax is None:
+#        if axes is None:
 #            if legend is True:
 #                ax.legend(loc=legloc)
 #            ax.set_ylim(0., top)        
@@ -973,7 +949,7 @@ class Spectrum():
 #        for k in range(len(self.peakpos)):
 #            ax.plot(self.base_wn, gaussian[k], **stylepeaks)
 #
-#        if fig_ax is None:
+#        if axes is None:
 #            return fig, ax
 #
 #    def abs_at_given_wn(self, wn, absorbance='thickness normalized'):
@@ -1024,17 +1000,17 @@ class Spectrum():
 #                          wn_baseline=None, abs_baseline=None, 
 #                          style=styles.style_spectrum, 
 #                          style_base=styles.style_baseline,
-#                          figaxis=None, label=None, size_inches=(3., 2.5),
+#                          axes=None, label=None, size_inches=(3., 2.5),
 #                          offset=0.0, wn_xlim_left=4000, wn_xlim_right=3000.):
 #        """Plot FTIR spectrum and show baseline. 
 #        You can pass in your own baseline"""
-#        if figaxis is None:
+#        if axes is None:
 #            fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
 #                                                 wn_xlim_left=wn_xlim_left,
 #                                                 wn_xlim_right=wn_xlim_right)
 #        else:
 #            fig = None
-#            ax = figaxis
+#            ax = axes
 #        
 #        # Get or make absorbance for baseline
 #        if abs_baseline is None:          
@@ -1070,17 +1046,17 @@ class Spectrum():
 #        return fig, ax
 #
 #    def plot_subtractbaseline(self, polyorder=1, style=styles.style_spectrum, 
-#                              figaxis=None, label=None, offset=0.,
+#                              axes=None, label=None, offset=0.,
 #                              size_inches=(3, 2.5), 
 #                              baseline_ending='-baseline.CSV'):
 #        """Make and plot baseline-subtracted spectrum"""
 #        abs_nobase_cm = self.subtract_baseline(polyorder)
 #        
-#        if figaxis is None:
+#        if axes is None:
 #            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
 #        else:
 #            fig = None
-#            ax = figaxis
+#            ax = axes
 #
 #        if label is None:
 #            label = self.fname
