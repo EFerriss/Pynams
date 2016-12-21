@@ -6,7 +6,6 @@ Define attributes and functions related to physical samples
 
 @author: Ferriss
 """
-from __future__ import print_function
 import numpy as np
 
 class Sample():
@@ -51,7 +50,7 @@ class Sample():
                  length_a_microns = [],
                  length_b_microns = [], 
                  length_c_microns = [],                  
-                 Fe=0, Fe2=0, Fe3=0., Mg=0, Al=0, Ti=0,
+                 Fe=None, Fe2=None, Fe3=0., Mg=None, Al=None, Ti=None,
                  initial_water_ppmH2O=None):
         self.IGSN = IGSN
         self.description = description
@@ -86,7 +85,7 @@ class Sample():
                     floater = float(lengthy)
                 except TypeError:
                     floater = lengthy
-                    print('length should be integer, float, or list')
+                    print 'length should be integer, float, or list'
             return floater
 
         twoA = floatify(length_a_microns)
@@ -96,18 +95,13 @@ class Sample():
         self.thickness_microns = [twoA, twoB, twoC, thinness]
         
     def get_MgNumber(self):
-        if self.Fe == 0:
+        if self.Fe is None:
             self.Fe = self.Fe2 + self.Fe3
-        if self.Fe == 0 and self.Mg == 0:
-            print("You don't seem to have any Fe or Mg")
-            return
-        if self.Fe == 0:
-            print("You don't seem to have any Fe")
-        if self.Mg == 0:
-            print("You don't seem to have any Mg")            
         try:
             MgNum = 100. * self.Mg / (self.Fe + self.Mg)
-            print(MgNum)
-            self.MgNum = MgNum
         except TypeError:
-            print('Check your Mg and Fe values')
+            print self.description
+            print 'Check Mg and Fe are not None'
+        else:
+            self.MgNum = MgNum
+            return MgNum

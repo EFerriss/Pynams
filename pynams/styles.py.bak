@@ -8,7 +8,6 @@ Contains my most commonly used plotting style dictionaries (e.g., blue dots)
 and some frequently used plotting setups, e.g., 3 subplots
 
 """
-from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -208,7 +207,7 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
     elif unit == 'mm':
         axis3[1].set_xlabel('position (mm) || y')
     else:
-        print('unit must = microns or mm')
+        print 'unit must = microns or mm'
     axis3[2].set_xlabel('|| z')
     plt.setp(axis3[1].get_yticklabels(), visible=False)
     plt.setp(axis3[2].get_yticklabels(), visible=False)
@@ -235,19 +234,19 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
 
     if lengths is None:
         lengths = np.ones(3)
-        for k in range(3):
+        for k in xrange(3):
             lengths[k] = max(positions_microns[k] - min(positions_microns[k]))
 
-    for k in range(3): 
+    for k in xrange(3): 
         x = positions_microns[k]
         if unit == 'mm':
             x = np.array(x) / 1000.
         y = area_profiles[k]
                 
         if len(x) != len(y):
-            print('Problem in plot_3panels')
-            print('len(x):', len(x))
-            print('len(y):', len(y))
+            print 'Problem in plot_3panels'
+            print 'len(x):', len(x)
+            print 'len(y):', len(y)
 
         a = lengths[k] / 2.
         pos = x 
