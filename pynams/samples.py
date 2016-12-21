@@ -6,7 +6,7 @@ Define attributes and functions related to physical samples
 
 @author: Ferriss
 """
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 import numpy as np
 
 class Sample():
@@ -111,6 +111,7 @@ class Sample():
             print("You don't seem to have any Mg")            
         try:
             MgNum = 100. * self.Mg / (self.Fe + self.Mg)
+            print('Woohoo! Another successful test! Here is the Mg#:')
             print(MgNum)
             self.MgNum = MgNum
         except TypeError:
