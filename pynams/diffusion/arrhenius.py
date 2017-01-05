@@ -13,6 +13,7 @@ for use in plotting directly onto Arrhenius diagrams and solving
 for activation energies and pre-exponential components
 
 """
+from __future__ import print_function, division, absolute_import
 from pynams import styles
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +34,7 @@ def solve_Ea_D0(log10D_list, celsius_list):
     y = np.array(log10D_list)
 
     if (len(x) < 2) or (len(y) < 2):
-        print 'Warning: fitting to only one point'
+        print('Warning: fitting to only one point')
         return None, None
     
     # If I don't add in a very low weighted extra number, the covariance
@@ -66,24 +67,10 @@ def whatIsD(Ea, D0, celsius, printout=True):
     T = celsius + 273.15
     D = D0 * np.exp(-Ea / (GAS_CONSTANT * T))
     if printout is True:
-        print 'log10 D at ', celsius, 'C: ', '{:.1f}'.format(np.log10(D)), ' in m2/s'
+        print('log10 D at ', celsius, 'C: ', '{:.1f}'.format(np.log10(D)), 
+              ' in m2/s')
     return np.log10(D)
 
-def get_iorient(orient):
-    """Converts x, y, z, u to 0, 1, 2, 3. This is a helper function for 
-    bound methods in class diffusivitiy later on"""
-    if orient == 'x':
-        iorient = 0
-    elif orient == 'y':
-        iorient = 1
-    elif orient == 'z':
-        iorient = 2
-    elif orient == 'u':
-        iorient = 3
-    else:
-        iorient = orient
-    return iorient
-        
 class Diffusivities():
     def __init__(self, description=None, 
                  celsius_x=[], celsius_y=[], celsius_z=[], celsius_u=[], 
@@ -150,16 +137,16 @@ class Diffusivities():
     def picker_DCelsius(self, orient=None):
         """Returns lists of log10D in m2/s and temperatures in Celsius
         of Diffusivities object for specified orientation"""
-        iorient = get_iorient(orient)
+        iorient = styles.get_iorient(orient)
         try:
             logD_of_interest = self.logD[iorient]
             celsius_of_interest = self.celsius[iorient]
         except TypeError:
-            print ''.join(("orient must be an integer 0-3 or", 
-                           "'x' (=0), 'y' (=1), 'z' (=2), or 'u' (=3) for unoriented"))
+            print(''.join(("orient must be an integer 0-3 or", 
+                           "'x' (=0), 'y' (=1), 'z' (=2), or 'u' (=3) for unoriented")))
         except IndexError:
-            print ''.join(("orient must be an integer 0-3 or", 
-                           "'x'=0, 'y'=1, 'z'=2, or 'u'=3 for unoriented"))
+            print(''.join(("orient must be an integer 0-3 or", 
+                           "'x'=0, 'y'=1, 'z'=2, or 'u'=3 for unoriented")))
         else:
             return logD_of_interest, celsius_of_interest
         
@@ -170,7 +157,7 @@ class Diffusivities():
         logD_and_Celsius = self.picker_DCelsius(orient=orient)        
 
         if logD_and_Celsius is None:
-            print 'Problem with self.picker_DCelsius()'
+            print('Problem with self.picker_DCelsius()')
             return None            
         else:
             logD = logD_and_Celsius[0]
@@ -178,9 +165,9 @@ class Diffusivities():
 
         if (len(logD) < 2) or (len(celsius) < 2):
             print
-            print 'Only one point for orientation', orient
-            print 'logD:', logD
-            print 'celsius:', celsius
+            print('Only one point for orientation', orient)
+            print('logD:', logD)
+            print('celsius:', celsius)
             print
             return None
         Ea, D0 = solve_Ea_D0(logD, celsius)
@@ -203,7 +190,7 @@ class Diffusivities():
         else:
             Ea_and_D0 = self.solve_Ea_D0(orient=orient)
             if Ea_and_D0 is None:
-                print 'Problem with self.solve_Ea_D0()'
+                print('Problem with self.solve_Ea_D0()')
                 return None
             D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius, 
                         printout=printout)
@@ -266,9 +253,9 @@ class Diffusivities():
         be extended all the way to the edges of the plot. You can also 
         add it to the legend or not."""
         if orient == 'ALL':
-            orient_list = range(4)
+            orient_list = list(range(4))
         else:
-            iorient = get_iorient(orient)    
+            iorient = styles.get_iorient(orient)    
             orient_list = [iorient]
                   
         for iorient in orient_list:
@@ -296,8 +283,8 @@ class Diffusivities():
                 _, style_line = self.make_styles(iorient)
 #                
             if legend_add is True and legend_handle is None:
-                print self.description
-                print 'Need legend_handle for legend'
+                print(self.description)
+                print('Need legend_handle for legend')
                 return
                
             if (len(celsius) == 0) and (self.celsius_all is not None):
@@ -310,8 +297,8 @@ class Diffusivities():
                 continue
     
             if len(celsius) != len(logD):
-                print '\n', self.description
-                print 'temp and logD not the same length'
+                print('\n', self.description)
+                print('temp and logD not the same length')
                 continue
     
             # change temperature scale                   
@@ -361,7 +348,7 @@ class Diffusivities():
         and adds information to it"""
         if label is None:
             if self.description is None:
-                print 'Need label or self.description to make legend'
+                print('Need label or self.description to make legend')
                 return
             else:
                descript = self.description

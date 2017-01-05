@@ -29,6 +29,7 @@ Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
     Requires raypath information, unlike 3Dnpi
 
 """
+from __future__ import print_function, division, absolute_import
 import pynams.styles as styles
 import numpy as np
 import pynams.diffusion.lmfit as lmfit
@@ -120,7 +121,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
     twoA = L_meters
 
     if t < 0:
-        print 'no negative time'
+        print('no negative time')
         return           
 
     # Fitting to data or not? Default is not
@@ -129,9 +130,9 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
         if len(data_x_microns) == len(data_y_unit_areas):
             fitting = True
         else:
-            print 'x and y data must be the same length'
-            print 'x', len(data_x_microns)
-            print 'y', len(data_y_unit_areas)
+            print('x and y data must be the same length')
+            print('x', len(data_x_microns))
+            print('y', len(data_y_unit_areas))
         
     # x is in meters and assumed centered around 0
     if fitting is True:
@@ -197,7 +198,7 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
     a_meters = a_microns / 1e3
     
     if fighandle is None and axishandle is not None:
-        print 'Remember to pass in handles for both figure and axis'
+        print('Remember to pass in handles for both figure and axis')
     if fighandle is None or axishandle is None:
         fig = plt.figure()          
         ax  = SubplotHost(fig, 1,1,1)
@@ -308,11 +309,11 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         y_data = np.array(data_y_unit_areas)
         if np.shape(x_data) == np.shape(y_data):
             fitting = True
-            print 'fitting to data'
+            print('fitting to data')
         else:
-            print 'x and y data must be the same shape'
-            print 'x', np.shape(x_data)
-            print 'y', np.shape(y_data)
+            print('x and y data must be the same shape')
+            print('x', np.shape(x_data))
+            print('y', np.shape(y_data))
 
     p = params.valuesdict()
     L3_microns = np.array(p['microns3'])
@@ -450,7 +451,7 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
                     return v, x, y
             except(TypeError):
                 print
-                print 'TypeError: problem in plot_3panels()'
+                print('TypeError: problem in plot_3panels()')
                 
         else:
             return v, x, y
@@ -464,7 +465,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     Requires setup with params_setup3Dwb
     """
     if raypaths is None:
-        print 'raypaths must be in the form of a list of three abc directions'
+        print('raypaths must be in the form of a list of three abc directions')
         return
 
     # v is the model 3D array of internal concentrations
@@ -482,12 +483,12 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
         x_array = np.array(data_x_microns)
         y_array = np.array(data_y_unit_areas)
         if np.shape(x_array) == np.shape(y_array):
-            print 'fitting to data'
+            print('fitting to data')
             fitting = True
         else:
-            print 'x and y data must be the same shape'
-            print 'x', np.shape(x_array)
-            print 'y', np.shape(y_array)
+            print('x and y data must be the same shape')
+            print('x', np.shape(x_array))
+            print('y', np.shape(y_array))
             
     # Whole-block measurements can be obtained through any of the three 
     # planes of the whole-block, so profiles can come from one of two ray path
@@ -503,7 +504,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     elif raypaths[0] == 'c':
         wbA = raypathC[:, mid]       
     else:
-        print 'raypaths[0] for profile || a must be "b" or "c"'
+        print('raypaths[0] for profile || a must be "b" or "c"')
         return
         
     if raypaths[1] == 'a':
@@ -511,7 +512,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     elif raypaths[1] == 'c':
         wbB = raypathC[mid]       
     else:
-        print 'raypaths[1] for profile || b must be "a" or "c"'
+        print('raypaths[1] for profile || b must be "a" or "c"')
         return
 
     if raypaths[2] == 'a':
@@ -519,7 +520,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     elif raypaths[2] == 'b':
         wbC = raypathB[mid]       
     else:
-        print 'raypaths[2] for profile || c must be "a" or "b"'
+        print('raypaths[2] for profile || c must be "a" or "b"')
         return
 
     p = params.valuesdict()

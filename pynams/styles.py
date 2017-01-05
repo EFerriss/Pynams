@@ -8,7 +8,7 @@ Contains my most commonly used plotting style dictionaries (e.g., blue dots)
 and some frequently used plotting setups, e.g., 3 subplots
 
 """
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -72,17 +72,17 @@ style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 #
 #
 ##                'markerfacecolor' : 'w'}
-#style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
-#style_spectrum = {'color' : 'b', 'linewidth' : 3}
+style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
+style_spectrum = {'color' : 'b', 'linewidth' : 3}
 #style_spectrum_red = {'color' : 'r'}
-#style_fitpeak = {'color' : 'g', 'linewidth' : 1}
-#style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
-#style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
-#                 'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
+style_fitpeak = {'color' : 'g', 'linewidth' : 1}
+style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
+style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
+                 'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
 #
 #style_initial_point = {'color' : 'grey', 'label' : 'initial', 'linestyle' : 'none',
 #                       'marker' : 'o', 'alpha' : 0.5}
-#style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
+style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
 #style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
 #style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
@@ -133,10 +133,10 @@ style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 #            'markerfacecolor' : 'blue'}
 #style_Du = {'fillstyle' : 'none', 'color' : 'k', 
 #            'markerfacecolor' : 'white'}
-#style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
-#style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
-#style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
-#style_Du_line = {'linestyle' : '-', 'color' : 'black'}
+style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
+style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
+style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
+style_Du_line = {'linestyle' : '-', 'color' : 'black'}
 #style_orient = [style_Dx, style_Dy, style_Dz, style_Du]            
 #style_orient_lines = [style_Dx_line, style_Dy_line, style_Dz_line, style_Du_line]            
 #
@@ -170,6 +170,22 @@ style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 #              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'violet',
 #              'alpha' : 0.5, 'label' : '3350 cm$^{-1}$'}
 #
+def get_iorient(orient):
+    """Converts x, y, z, u and a, b, c, u to 0, 1, 2, 3. 
+    This is a helper function for bound methods in class diffusivitiy 
+    and for determining thickness from raypath for wholeblocks"""
+    if orient == 'x' or orient == 'a':
+        iorient = 0
+    elif orient == 'y' or orient == 'b':
+        iorient = 1
+    elif orient == 'z' or orient == 'c':
+        iorient = 2
+    elif orient == 'u' or orient == None:
+        iorient = 3
+    else:
+        iorient = orient
+    return iorient
+        
 def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
                 pad_bot=0., raw_data=False):
     """Takes a Spectrum object and returns reasonable min and max values for 
@@ -194,6 +210,21 @@ def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1,
 
     return ylow, yhigh
           
+def make_line_style(direction, style_marker):
+    """Take direction and marker style and return line style dictionary
+    that reflects the direction (x, y, z, or u for unoriented) with the 
+    color of the base style"""
+    if direction == 'x':
+        d = style_Dx_line
+    if direction == 'y':
+        d = style_Dy_line
+    if direction == 'z':
+        d = style_Dz_line
+    if direction == 'u':
+        d = style_Du_line
+    d.update({'linewidth' : 2})
+    return d
+
 def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
                           figaxis=None, wn_xlim_left=4000., 
                           wn_xlim_right=3000., pad_top=0.1, 
@@ -341,3 +372,5 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
 
     if figaxis3 is None:
         return fig, axis3   
+
+        

@@ -11,6 +11,7 @@ function fast_vs_slow() provides a quick comparison of the fast and slow
 bulk H mechanisms in olivine relative progress
 
 """
+from __future__ import print_function, division, absolute_import
 import numpy as np
 from ..uncertainties import ufloat
 import pynams.styles as st
@@ -526,14 +527,14 @@ def fast_vs_slow(celsius, minutes, lengths_microns=[2000., 2000., 2000.],
 
         
     if printout is True:
-        print 'slower proton-vacancy pv mechanism diffusivities'
+        print('slower proton-vacancy pv mechanism diffusivities')
     D_slow = [KM98_slow.whatIsD(celsius, orient='x', printout=printout), 
               KM98_slow.whatIsD(celsius, orient='y', printout=printout),          
               KM98_slow.whatIsD(celsius, orient='z', printout=printout)]
     
     if printout is True:
         print
-        print 'faster proton-polaron pp mechanism diffusivites'
+        print('faster proton-polaron pp mechanism diffusivites')
     D_fast = [KM98_fast.whatIsD(celsius, orient='x', printout=printout), 
               KM98_fast.whatIsD(celsius, orient='y', printout=printout),          
               KM98_fast.whatIsD(celsius, orient='z', printout=printout)]
