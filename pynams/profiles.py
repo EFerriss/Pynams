@@ -5,7 +5,7 @@ The central concept is an object class called Profile, which creates groups
 of Spectrum objects, which are defined in a separate module.
 """
 
-#from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import
 from . import styles
 from . import diffusion
 from . import pynams
@@ -16,12 +16,12 @@ import matplotlib.pyplot as plt
 #import matplotlib.lines as mlines
 from .uncertainties import ufloat
 import os.path
-from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
 import lmfit
 from . import uncertainties
+from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #from matplotlib.backends.backend_pdf import PdfPages
 #import xlsxwriter
 import json
@@ -33,7 +33,7 @@ class Profile():
     def __init__(self, profile_name=None, time_seconds=None, folder='',
                  fname_list=[], positions_microns = np.array([]),
                  sample=None, direction=None, raypath=None, short_name=None,
-                 spectra_list=[], set_thickness=False,
+                 spectra=[], set_thickness=False,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
                  diffusivity_log10m2s=None, diff_error=None, length_microns=None,
                  peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
@@ -45,7 +45,7 @@ class Profile():
         
         """
         self.profile_name = profile_name
-        self.spectra_list = spectra_list
+        self.spectra = spectra
         self.folder = folder
         self.fname_list = fname_list
         self.positions_microns = positions_microns
@@ -64,14 +64,14 @@ class Profile():
         
 #        if (self.fname_list is not None) and (self.sample is not None):
         if base_low_wn is not None:
-            for spectrum in self.spectra_list:
+            for spectrum in self.spectra:
                 spectrum.base_low_wn = base_low_wn
 
         if base_high_wn is not None:
-            for spectrum in self.spectra_list:
+            for spectrum in self.spectra:
                 spectrum.base_low_wn = base_high_wn
 
-        self.make_spectra_list(set_thickness=set_thickness)
+        self.make_spectra(set_thickness=set_thickness)
 
     short_name = None # short string for saving diffusivities, etc.
     thick_microns_list = None
@@ -79,10 +79,10 @@ class Profile():
     
     # for constructing whole-block profiles
 
-    # The actual list of spectra is made automatically by make_spectra_list.
+    # The actual list of spectra is made automatically by make_spectra.
     # Set spectrum_class_name to use non-default spectra classes
     # e.g., to set different baseline limits consistently
-    spectra_list = []
+    spectra = []
     spectrum_class_name = None 
     avespec = None # averaged spectra made by self.average_spectra()
     iavespec = None # initial averaged spectra
@@ -152,7 +152,7 @@ class Profile():
     def set_all_thicknesses_from_SiO(self):
         """Individually set thicknesses for all spectra based on the area
         under their Si-O overtone peaks"""
-        self.make_spectra_list()
+        self.make_spectra()
 
     def set_len(self):
         """Set profile.length_microns from profile.direction and 
@@ -204,7 +204,8 @@ class Profile():
         if figaxis is not None:
             ax = figaxis
         else:
-            fig, ax, ax_right = self.plot_area_profile_outline(centered=False)
+            fig, ax, ax_right = styles.plot_area_profile_outline(self,
+                                                            centered=False)
         ax.plot(self.positions_microns, self.thick_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
         ax.set_title(self.profile_name)
@@ -212,8 +213,8 @@ class Profile():
                     max(self.thick_microns_list)+0.05*max(self.thick_microns_list))
         return fig, ax            
 
-    def make_spectra_list(self, set_thickness=True):
-        """Set profile length and generate spectra_list 
+    def make_spectra(self, set_thickness=True):
+        """Set profile length and generate spectra 
         with key attributes"""
         try:
             if (self.raypath is not None) and (self.raypath == self.direction):
@@ -223,7 +224,7 @@ class Profile():
             self.raypath = None
 
         # construct each spectrum from fnames
-        if len(self.spectra_list) == 0:
+        if len(self.spectra) == 0:
             if len(self.fname_list) == 0:
                 print('Need fnames')
                 return False                
@@ -233,10 +234,10 @@ class Profile():
                 newspec.fname = x
                 newspec.thick_microns = self.thick_microns
                 fspectra_list.append(newspec)
-            self.spectra_list = fspectra_list
+            self.spectra = fspectra_list
 
         # set sample, raypath for all
-        for spec in self.spectra_list:
+        for spec in self.spectra:
             spec.sample = self.sample
             spec.raypath = self.raypath
 
@@ -246,15 +247,18 @@ class Profile():
 
     def set_thicknesses(self):
         """Sets thickness for each spectrum and makes list of thickness for profile"""
-        if self.thick_microns_list is None:
-            self.thick_microns_list = []
-        for spec in self.spectra_list:
-           if len(self.thick_microns_list) < len(self.spectra_list):
-                if self.thick_microns is not None:      
-                    spec.thick_microns = self.thick_microns
-                elif spec.thick_microns is None:
-                    spec.thickness_from_SiO()
-                self.thick_microns_list.append(spec.thick_microns)   
+#        if self.thick_microns_list is None:
+#            self.thick_microns_list = []
+        thickness_list = []
+        for spec in self.spectra:
+            thickness_list.append(spec.thickness_microns)
+        self.thick_microns_list = thickness_list
+#           if len(self.thick_microns_list) < len(self.spectra):
+#            if self.thick_microns is not None:      
+#                spec.thick_microns = self.thick_microns
+#            elif spec.thick_microns is None:
+#                spec.get_thickness_from_SiO()
+#            self.thick_microns_list.append(spec.thick_microns)   
 
     def set_length(self):
         if self.length_microns is None:
@@ -263,7 +267,7 @@ class Profile():
     def average_spectra(self):
         """Creates and returns averaged spectrum and stores it in
         attribute avespec"""
-        spec_list = self.spectra_list
+        spec_list = self.spectra
         avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list, folder=self.folder)
         
@@ -284,10 +288,10 @@ class Profile():
                      stylei=styles.style_initial, wn=None,
                      figsize=(3.2, 3.2)):
         """Plot averaged spectrum across profile. Returns figure and axis."""
-        for spec in self.spectra_list:
+        for spec in self.spectra:
             spec.plot_spectrum()
-#        if self.spectra_list is None or len(self.spectra_list) < 1:
-#            self.make_spectra_list()
+#        if self.spectra is None or len(self.spectra) < 1:
+#            self.make_spectra()
 #
 #        if show_initial_ave is True or initial_and_final_together is True:
 #            if self.initial_profile is None:
@@ -299,13 +303,13 @@ class Profile():
 #        ax = None
 #        
 #        if plot_all is True:
-#            for spec in self.spectra_list:
+#            for spec in self.spectra:
 #                if show_baseline is True:
 #                    spec.plot_showbaseline(style=style)
 #                else:
 #                    spec.plot_spectrum(style=style, wn=wn)
 #            if show_initial_ave is True:
-#                for spec in self.initial_profile.spectra_list:
+#                for spec in self.initial_profile.spectra:
 #                    if show_baseline is True:
 #                        spec.plot_showbaseline(style=stylei)
 #                    else:
@@ -333,7 +337,7 @@ class Profile():
 #        
 #        # Plot average spectra together
 #        if initial_and_final_together is True:
-#            f, ax = avespec.plot_spectrum_outline()
+#            f, ax = avespec.plot_spectrum_outline(self)
 #            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
 #            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
 #            ax.legend()
@@ -346,7 +350,7 @@ class Profile():
 
     def change_baseline(self, highwn=3800, lowwn=3000, shift=None):
         """Change baseline parameters for all spectra, final and initial"""
-        for spectrum in self.spectra_list + self.initial_profile.spectra_list:
+        for spectrum in self.spectra + self.initial_profile.spectra:
             spectrum.base_high_wn = highwn
             spectrum.base_low_wn = lowwn
             if shift is not None:
@@ -354,7 +358,7 @@ class Profile():
 
     def make_composite_peak(self,peak_idx_list):
         """Make composite peaks for all spectra in profile"""
-        for spec in self.spectra_list:
+        for spec in self.spectra:
             spec.make_composite_peak(peak_idx_list)
         self.get_peak_info()
 
@@ -363,9 +367,9 @@ class Profile():
                        show_fit_values=False, show_plot=False,
                        size_inches=(3., 2.5), abs_high=None):
         """Make baselines for all final and initial spectra in profile"""
-        if len(self.spectra_list) < 1:
-            self.make_spectra_list()
-        for spectrum in self.spectra_list:
+        if len(self.spectra) < 1:
+            self.make_spectra()
+        for spectrum in self.spectra:
             spectrum.base_high_wn = wn_high
             spectrum.base_low_wn = wn_low
             spectrum.make_baseline(linetype=linetype, shiftline=shiftline,
@@ -376,18 +380,18 @@ class Profile():
     def get_baselines(self, initial_too=False, folder=None, delim=',', 
                       baseline_ending='-baseline.CSV'):
         """Get previously saved baselines for all spectra in profile"""
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             spectrum.get_baseline(baseline_ending=baseline_ending,
                                   folder=folder, delim=delim)
             
         if initial_too is True:
-            for spectrum in self.initial_profile.spectra_list:
+            for spectrum in self.initial_profile.spectra:
                 spectrum.get_baseline()
 
     def matlab(self):
         """Print out spectra fnames for FTIR_peakfit_loop.m"""
         string = "{"
-        for spec in self.spectra_list:
+        for spec in self.spectra:
             stringname = spec.fname
             string = string + "'" + stringname + "' "
         string = string + "};"
@@ -396,7 +400,7 @@ class Profile():
                         
     def save_baselines(self, printnames=True):
         """Save all baselines in profile"""
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             spectrum.save_baseline()
         
         if printnames is True:
@@ -407,8 +411,8 @@ class Profile():
         """Make list of areas (no error) under the curve for an FTIR profile.
         Default is bulk area. Set peak=wavenumber for peak-specific profile"""
         # You need the list of spectra for the profile
-        if len(self.spectra_list) < 1:
-            check = self.make_spectra_list(class_from_module=set_class)
+        if len(self.spectra) < 1:
+            check = self.make_spectra(class_from_module=set_class)
             if check is False:
                 return False
               
@@ -417,27 +421,27 @@ class Profile():
             if self.areas_list is not None:
                 print('Overwriting previous areas list')
                             
-            if self.spectra_list[0].area is None:                
+            if self.spectra[0].area is None:                
                 print('generating bulk areas under curves...')
-                for spec in self.spectra_list:
+                for spec in self.spectra:
                     a = spec.area_under_curve(polyorder, show_plot, shiftline, 
                                            printout_area, 
                                            require_saved_baseline=False)
                     areas.append(a)            
                 self.areas_list = np.array(areas)
             else:
-                for spec in self.spectra_list:
+                for spec in self.spectra:
                     areas.append(spec.area)
                 
             self.areas_list = areas
             
         else:
-            peaklist = list(self.spectra_list[0].peakpos)
+            peaklist = list(self.spectra[0].peakpos)
             print('peak at', peak)
 
             if peak in peaklist:
                 idx = peaklist.index(peak)
-                for x in self.spectra_list:
+                for x in self.spectra:
                     a = x.peak_areas[idx]
                     areas.append(a)
             else:
@@ -452,7 +456,7 @@ class Profile():
         in the initial profile. The resulting numpy arrays are in dimensions
         (number of peaks, number of spectra in profile) and stored in
         the profiles's attributes peak_heights, peak_widths, and peak_areas"""
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             spectrum.get_peakfit(peak_ending=peak_ending,
                                  baseline_ending=baseline_ending)
         self.get_peak_info()
@@ -460,9 +464,9 @@ class Profile():
     def get_peak_info(self):
         """Pull peak info from individual spectra into a single profile
         attribute"""
-        if len(self.spectra_list) < 1:
-            self.make_spectra_list()
-        peakpos = self.spectra_list[0].peakpos
+        if len(self.spectra) < 1:
+            self.make_spectra()
+        peakpos = self.spectra[0].peakpos
 
         if peakpos is None:
             return False
@@ -474,7 +478,7 @@ class Profile():
             h = []
             w = []
             a = []        
-            for spectrum in self.spectra_list:
+            for spectrum in self.spectra:
                 h.append(spectrum.peak_heights[p])
                 w.append(spectrum.peak_widths[p])
                 a.append(spectrum.peak_areas[p])
@@ -507,7 +511,7 @@ class Profile():
         total_peak_area = []
         total_height = []
         
-        for spec in self.spectra_list:
+        for spec in self.spectra:
             spec.get_peakareas()
             total_peak_area.append(sum(spec.peak_areas))
             total_height.append(sum(spec.peak_heights))
@@ -522,7 +526,7 @@ class Profile():
         print('\n', self.profile_name)
 
         poscounter = 0
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             print('\n', spectrum.fname, \
                     self.positions_microns[poscounter], 'microns')
             poscounter += 1
@@ -542,7 +546,7 @@ class Profile():
         """Computes, prints, and returns average values in profile for
         peak areas, peak heights, and the summed average peak areas"""
         # get peak information for all spectra
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             if spectrum.peak_areas is None:
                 self.get_peakfit()
 
@@ -555,7 +559,7 @@ class Profile():
 
         if printout is True:
             print('\n', self.profile_name)
-            print('peak positions (cm-1)\n', self.spectra_list[0].peakpos)
+            print('peak positions (cm-1)\n', self.spectra[0].peakpos)
             print('average peak areas (cm-2)\n', average_peakareas)
             print('average peak heights (cm-1)\n', average_peakheights)
             print('summed areas (cm-2)', total_area)
@@ -567,14 +571,14 @@ class Profile():
 
     def plot_peakfits(self, initial_too=False, legloc=1, top=1.2):
         """Show fit peaks for all spectra in profile"""
-        if len(self.spectra_list) < 1:
-            self.make_spectra_list()
+        if len(self.spectra) < 1:
+            self.make_spectra()
             
-        for spectrum in self.spectra_list:
+        for spectrum in self.spectra:
             spectrum.plot_peakfit(legloc=legloc, top=top)
         
         if initial_too is True and self.initial_profile is not None:
-            for spectrum in self.initial_profile.spectra_list:
+            for spectrum in self.initial_profile.spectra:
                 spectrum.plot_peakfit(legloc=legloc)
                 
     def make_wholeblock(self, peakfit=True, show_plot=False, bulk=True):
@@ -759,63 +763,6 @@ class Profile():
 
         return style
         
-    def plot_area_profile_outline(self, centered=True, peakwn=None,
-                                  set_size=(6.5, 4), top=1.2, 
-                                  wholeblock=False, heights_instead=False,
-                                  show_water_ppm=True):
-        """Set up area profile outline and style defaults. 
-        Default is for 0 to be the middle of the profile (centered=True)."""
-        if self.style_base is None:
-            self.style_base = styles.style_profile
-        self.make_style_subtypes()
-        
-        if self.length_microns is None:
-            leng = self.set_len()
-        else:
-            leng = self.length_microns
-
-        fig = plt.figure(figsize=set_size)
-        ax = SubplotHost(fig, 1,1,1)
-        fig.add_subplot(ax)
-
-        ax_ppm = ax.twin()
-        ax_ppm.axis["top"].major_ticklabels.set_visible(False)
-        
-        if show_water_ppm is True:
-            pass
-        else:
-            ax_ppm.axis["right"].major_ticklabels.set_visible(False)    
-        
-        ax.set_xlabel('Position ($\mu$m)')
-        
-        # Set y-label
-        if wholeblock is True:
-            if heights_instead is False:
-                ax.set_ylabel('Area/Area$_0$')
-            else:
-                ax.set_ylabel('Height/Height$_0$')            
-        else:
-            if heights_instead is False:
-                ax.set_ylabel('Area (cm$^{-2}$)')
-            else:
-                ax.set_ylabel('Height (cm$^{-1}$)')
-
-        if top is None:
-            if len(self.areas_list) > 1:
-                top = max(self.areas_list)+0.2*max(self.areas_list)
-            else:
-                top = 1.
-            
-        ax.set_ylim(0, top)
-
-        if centered is True:
-            ax.set_xlim(-leng/2.0, leng/2.0)
-        else:
-            ax.set_xlim(0, leng)
-                    
-        ax.grid()
-        return fig, ax, ax_ppm
-
     def plot_area_profile(self, polyorder=1, centered=True, 
                           heights_instead=False, figaxis=None, 
                           bestfitline=False, style_bestfitline=None,
@@ -835,8 +782,8 @@ class Profile():
             print('Need to specify an initial profile')
             return False, False
         
-        if len(self.spectra_list) < 1:
-            self.make_spectra_list()
+        if len(self.spectra) < 1:
+            self.make_spectra()
         
         # Check for or create positions and areas
         if len(self.positions_microns) < 1:
@@ -894,9 +841,10 @@ class Profile():
 
         # Use new or old figure axes
         if figaxis is None:
-            f, ax, ax_ppm = self.plot_area_profile_outline(centered, peakwn,
-                           heights_instead=heights_instead, wholeblock=wholeblock,
-                           show_water_ppm=show_water_ppm)
+            f, ax, ax_ppm = styles.plot_area_profile_outline(self, centered, 
+                            peakwn, heights_instead=heights_instead, 
+                            wholeblock=wholeblock,
+                            show_water_ppm=show_water_ppm)
         else:
             ax = figaxis
             show_water_ppm = False
@@ -1015,7 +963,7 @@ class Profile():
 #            return
 #        a, w = self.make_3DWB_water_list(polyorder=1)
 #        
-#        fig, ax, leng = self.plot_area_profile_outline(centered)
+#        fig, ax, leng = styles.plot_area_profile_outline(self, centered)
 #        top = max(a) + 0.2*max(a)
 #        ax.set_ylim(0, top)
 #        ax.set_ylabel('Final area / Initial area')
@@ -1569,7 +1517,7 @@ class Profile():
         """For each spectrum in profile, divide raw absorbance by thickness 
         and set spectra abs_full_cm such that they overlap at the specified 
         wavenumber wn_matchup with specified offset up from zero"""
-        for x in self.spectra_list:
+        for x in self.spectra:
             # Divide by thickness if not done already
             if x.abs_full_cm is None:
                 check = x.divide_by_thickness(folder=self.folder)
@@ -1594,7 +1542,7 @@ class TimeSeries(Profile):
         self.times_hours = time_hours
         self.style_base = style_base        
         self.folder = folder
-        self.make_spectra_list()
+        self.make_spectra()
     
     def plot_timeseries(self, y=None, peak_idx=None, tit=None, D_list=[], 
                         thickness_microns=None, max_hours=None,
@@ -1710,7 +1658,7 @@ def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
 def make_all_specta_lists(classname=Profile):
     for obj in gc.get_objects():
         if isinstance(obj, classname):
-            obj.make_spectra_list()
+            obj.make_spectra()
     
 
 #
@@ -1953,7 +1901,7 @@ def make_3DWB_area_profile(final_profile,
     
     if show_plot is True:
         if fig_ax is None:
-            f, ax = final_profile.plot_area_profile_outline()
+            f, ax = styles.plot_area_profile_outline(fin)
         else:
             ax = fig_ax
         ax.set_ylim(0, top)

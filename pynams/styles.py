@@ -10,6 +10,7 @@ and some frequently used plotting setups, e.g., 3 subplots
 """
 from __future__ import print_function, division, absolute_import
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import numpy as np
 
 style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
@@ -31,34 +32,34 @@ style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 #style_profile_default = {'markeredgecolor' : 'blue', 'linestyle' : 'none', 
 #                         'marker' : 's', 'fillstyle' : 'none', 
 #                         'markersize' : 10, 'alpha' : 0.5}
-#style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 10,
-#                 'fillstyle' : 'none', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-#                 'markerfacecolor' : 'w'}
-#style_points1 = {'color' : 'violet', 'marker' : 'o', 'markersize' : 4,
-#                 'fillstyle' : 'full', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-#                 'markerfacecolor' : 'violet'}
-#style_points2 = {'color' : 'indigo', 'marker' : '^', 'markersize' : 6,
-#                 'fillstyle' : 'none', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-#                 'markerfacecolor' : 'w'}
-#style_points3 = {'color' : 'blue', 'marker' : 's', 'markersize' : 4,
-#                 'fillstyle' : 'none', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-#style_points4 = {'color' : 'green', 'marker' : 'd', 'markersize' : 5,
-#                 'fillstyle' : 'none', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-#style_points5 = {'color' : 'darkgoldenrod', 'marker' : 'D', 'markersize' : 4,
-#                 'fillstyle' : 'full', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-#                 'markerfacecolor' : 'y'}
-#style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
-#                 'fillstyle' : 'none', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-#style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 7,
-#                 'fillstyle' : 'full', 'linestyle' : 'none', 
-#                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 10,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points1 = {'color' : 'violet', 'marker' : 'o', 'markersize' : 4,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'violet'}
+style_points2 = {'color' : 'indigo', 'marker' : '^', 'markersize' : 6,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'w'}
+style_points3 = {'color' : 'blue', 'marker' : 's', 'markersize' : 4,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points4 = {'color' : 'green', 'marker' : 'd', 'markersize' : 5,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points5 = {'color' : 'darkgoldenrod', 'marker' : 'D', 'markersize' : 4,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'y'}
+style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
+                 'fillstyle' : 'none', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
+style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 7,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
 #
 #style_list_points = [style_points0,
 #                     style_points1,
@@ -84,19 +85,19 @@ style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o',
 #                       'marker' : 'o', 'alpha' : 0.5}
 style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
 #style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
-#style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
+style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
-#style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
-#style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
-#style_3 = {'color':'orange', 'linewidth': 2., 'linestyle' : '--'}
-#style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
-#style_4 = {'color':'yellow', 'linewidth':2.5, 'linestyle' : '-'}
-#style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
-#style_5 = {'color':'green', 'linewidth':2.5, 'linestyle' : '-.'}
-#style_6 = {'color':'cyan', 'linewidth':2., 'linestyle' : '--'}
-#style_7 = {'color':'steelblue', 'linewidth':3., 'linestyle' : '-.'}
-#style_8 = {'color':'violet', 'linewidth':2., 'linestyle' : '-'}
-#style_grey = {'color' : 'grey', 'linewidth':4, 'linestyle' : '-'}
+style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
+style_2a = {'color':'green', 'linewidth': 1.5, 'linestyle' : '--'}
+style_3 = {'color':'orange', 'linewidth': 2., 'linestyle' : '--'}
+style_3a = {'color':'blue', 'linewidth': 1., 'linestyle' : '--'}
+style_4 = {'color':'yellow', 'linewidth':2.5, 'linestyle' : '-'}
+style_4a = {'color':'brown', 'linewidth':1.5, 'linestyle' : '-.'}
+style_5 = {'color':'green', 'linewidth':2.5, 'linestyle' : '-.'}
+style_6 = {'color':'cyan', 'linewidth':2., 'linestyle' : '--'}
+style_7 = {'color':'steelblue', 'linewidth':3., 'linestyle' : '-.'}
+style_8 = {'color':'violet', 'linewidth':2., 'linestyle' : '-'}
+style_grey = {'color' : 'grey', 'linewidth':4, 'linestyle' : '-'}
 #
 #style_list = [style_initial, 
 #              style_2,
@@ -126,13 +127,13 @@ style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 #                     'linestyle' : '--', 'alpha' : 0.5}
 #
 ## different profile directions
-#style_Dx = {'fillstyle' : 'left', 'color' : 'red', 'markerfacecolor' : 'red'}
-#style_Dy = {'fillstyle' : 'bottom', 'color' : 'green', 
-#            'markerfacecolor' : 'green' }
-#style_Dz = {'fillstyle' : 'right', 'color' : 'blue', 
-#            'markerfacecolor' : 'blue'}
-#style_Du = {'fillstyle' : 'none', 'color' : 'k', 
-#            'markerfacecolor' : 'white'}
+style_Dx = {'fillstyle' : 'left', 'color' : 'red', 'markerfacecolor' : 'red'}
+style_Dy = {'fillstyle' : 'bottom', 'color' : 'green', 
+            'markerfacecolor' : 'green' }
+style_Dz = {'fillstyle' : 'right', 'color' : 'blue', 
+            'markerfacecolor' : 'blue'}
+style_Du = {'fillstyle' : 'none', 'color' : 'k', 
+            'markerfacecolor' : 'white'}
 style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
 style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
 style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
@@ -251,6 +252,63 @@ def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
     
     if figaxis is None:
         return f, ax
+    
+def plot_area_profile_outline(profile, centered=True, peakwn=None,
+                              set_size=(6.5, 4), top=1.2, 
+                              wholeblock=False, heights_instead=False,
+                              show_water_ppm=True):
+    """Set up area profile outline and style defaults. 
+    Default is for 0 to be the middle of the profile (centered=True)."""
+    if profile.style_base is None:
+        profile.style_base = style_profile
+    profile.make_style_subtypes()
+    
+    if profile.length_microns is None:
+        leng = profile.set_len()
+    else:
+        leng = profile.length_microns
+
+    fig = plt.figure(figsize=set_size)
+    ax = SubplotHost(fig, 1,1,1)
+    fig.add_subplot(ax)
+
+    ax_ppm = ax.twin()
+    ax_ppm.axis["top"].major_ticklabels.set_visible(False)
+    
+    if show_water_ppm is True:
+        pass
+    else:
+        ax_ppm.axis["right"].major_ticklabels.set_visible(False)    
+    
+    ax.set_xlabel('Position ($\mu$m)')
+    
+    # Set y-label
+    if wholeblock is True:
+        if heights_instead is False:
+            ax.set_ylabel('Area/Area$_0$')
+        else:
+            ax.set_ylabel('Height/Height$_0$')            
+    else:
+        if heights_instead is False:
+            ax.set_ylabel('Area (cm$^{-2}$)')
+        else:
+            ax.set_ylabel('Height (cm$^{-1}$)')
+
+    if top is None:
+        if len(profile.areas_list) > 1:
+            top = max(profile.areas_list)+0.2*max(profile.areas_list)
+        else:
+            top = 1.
+        
+    ax.set_ylim(0, top)
+
+    if centered is True:
+        ax.set_xlim(-leng/2.0, leng/2.0)
+    else:
+        ax.set_xlim(0, leng)
+                
+    ax.grid()
+    return fig, ax, ax_ppm
 
 def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,

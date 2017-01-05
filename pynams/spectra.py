@@ -14,7 +14,6 @@ This software was developed using Python 2.7.
 
 """
 from __future__ import print_function, division, absolute_import
-
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -98,6 +97,12 @@ class Spectrum():
                  base_low_wn=3200, base_high_wn=3700,
                  base_mid_wn=3550,
                  ):
+        """
+        Automatically locates the FTIR file and pulls out the wavenumber 
+        (wn_full) and raw absorbance data (abs_raw) and sets the 
+        thickness_microns attribute if it input directly or as part of a 
+        sample. 
+        """
         self.fname = fname
         self.folder = folder
         self.sample = sample
@@ -126,9 +131,6 @@ class Spectrum():
             signal = signal[signal[:,0].argsort()]
             self.wn_full = signal[:, 0]
             self.abs_raw = signal[:, 1]
-            print('Yay. The test worked.')
-            print('Try printing your_spectrum.wn_full for wavenumbers')
-            print('and your_spectrum.abs_raw for the absorbances.')
             
             # set up thickness information
             if thickness_microns is not None:
@@ -137,11 +139,9 @@ class Spectrum():
                 if sample is not None:
                     idx = styles.get_iorient(raypath)
                     self.thickness_microns = sample.thickness_microns[idx]
-            
-            if self.thickness_microns is None:
-                print('Warning: the thickness was not set.')
-                print('If you have a sample, remember to specify the raypath')
-
+                else:
+                    self.thickness_microns = None
+#                    print('Warning: the thickness was not set.')
         else:
             print('There is a problem finding the file.')
             print('filename =', self.filename)
@@ -225,32 +225,32 @@ class Spectrum():
                                          wn_xlim_right=wn_xlim_right, 
                                          pad_top=pad_top, pad_bot=pad_bot)
         ax.set_ylim(ylow, yhigh)
-        ax.set_title('This test worked!')
+        ax.set_title(self.fname)
         return fig, ax
 
-#    def orientation(self, top=None):
-#        """guess orientation based on Si-O overtones in FTIR spectrum"""
-#        print('\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.')
-#        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
-#                                     wn_xlim_right=1200)
-#        fig.set_size_inches(6, 6)
-#                                                    
-#        if top is not None:
-#            ax.set_ylim(0, top)
-#        else:
-#            ctop = ax.get_ylim()[1]
-#            ax.set_ylim(0, ctop + 0.5*ctop)
-#
-#        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
-#        labels = ['E || a', 'E || b', 'E || c']
-#        for idx, wn in enumerate([2035, 1670, 1785,]):
-#            ax.plot([wn, wn], ax.get_ylim(), '-r')
-#            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
-#                    va='center', ha='center', fontsize=12)
-#        
-#            
-#        return fig, ax
-#
+    def orientation(self, top=None):
+        """guess orientation based on Si-O overtones in FTIR spectrum"""
+        print('\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.')
+        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
+                                     wn_xlim_right=1200)
+        fig.set_size_inches(6, 6)
+                                                    
+        if top is not None:
+            ax.set_ylim(0, top)
+        else:
+            ctop = ax.get_ylim()[1]
+            ax.set_ylim(0, ctop + 0.5*ctop)
+
+        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
+        labels = ['E || a', 'E || b', 'E || c']
+        for idx, wn in enumerate([2035, 1670, 1785,]):
+            ax.plot([wn, wn], ax.get_ylim(), '-r')
+            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
+                    va='center', ha='center', fontsize=12)
+        
+            
+        return fig, ax
+
 #    # full range of measured wavenumber and absorbances
 #    wn_full = None
 #    abs_raw = None
@@ -288,7 +288,7 @@ class Spectrum():
 #    temperature_celsius = None
 #    time_seconds = None
 #    D_area_wb = None
-#   
+   
     def get_thickness_from_SiO(self, show_plot=False, printout=False):
         """
         Estimates the sample thickness based on area of the Si-O overtones
@@ -458,29 +458,25 @@ class Spectrum():
         shift minimum to 0 within specified wavenumber range specified
         by wn_xlim_left and _right
         """
-        if self.abs_full_cm is None:
-            check = self.divide_by_thickness()
-            if check is False:
-                return False
-
         index_lo = (np.abs(self.wn_full-wn_xlim_right)).argmin()
         index_hi = (np.abs(self.wn_full-wn_xlim_left)).argmin()
-
         indices = list(range(index_lo, index_hi, 1))
 
         try: 
+            self.abs_full_cm = self.abs_full_cm - min(self.abs_full_cm[indices])
+        except AttributeError:
+            self.divide_by_thickness()
             self.abs_full_cm = self.abs_full_cm - min(self.abs_full_cm[indices])
         except ValueError:
             print('There was a problem.')
             print('index_lo at wn', wn_xlim_right, ':', index_lo)
             print('index_hi at wn', wn_xlim_left, ':', index_hi)
-            return False        
+            return False
         return self.abs_full_cm
 #
     def make_baseline(self, raw_data=False, wn_low=3200, wn_high=3700, 
                       linetype='line', spline_type='quadratic', 
                       quadratic_shift=0.02, quadratic_wn=None,
-                      
                       show_fit_values=False, show_plot=False,
                       abs_high=None, abs_low=None,
                       abs_smear_high=0, abs_smear_low=0):
@@ -1024,9 +1020,11 @@ class Spectrum():
                 self.get_data()
             absorbance = self.abs_raw
         else:
-            if self.abs_full_cm is None:
+            try:
+                absorbance = self.abs_full_cm
+            except AttributeError:
                 self.start_at_zero()
-            absorbance = self.abs_full_cm
+                absorbance = self.abs_full_cm
         return absorbance            
         
     def plot_showbaseline(self, linetype='line', shiftline=None,
@@ -1038,7 +1036,7 @@ class Spectrum():
         """Plot FTIR spectrum and show baseline. 
         You can pass in your own baseline"""
         if axes is None:
-            fig, ax = self.plot_spectrum_outline(size_inches=size_inches,
+            fig, ax = styles.plot_spectrum_outline(size_inches=size_inches,
                                                  wn_xlim_left=wn_xlim_left,
                                                  wn_xlim_right=wn_xlim_right)
         else:
@@ -1086,7 +1084,7 @@ class Spectrum():
         abs_nobase_cm = self.subtract_baseline(polyorder)
         
         if axes is None:
-            fig, ax = self.plot_spectrum_outline(size_inches=size_inches)
+            fig, ax = styles.plot_spectrum_outline(size_inches=size_inches)
         else:
             fig = None
             ax = axes
