@@ -12,5 +12,5 @@ from .spectra import Spectrum
 from .profiles import Profile
 from . import styles
 from . import uncertainties
-
+import numpy as np
 #from .diffusion.arrhenius import Diffusivities
