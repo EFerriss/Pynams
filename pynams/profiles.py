@@ -13,9 +13,6 @@ from . import uncertainties
 #from . import lmfit
 from .spectra import Spectrum
 from .uncertainties import ufloat
-
-#from .diffusion import lmfit
-
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
