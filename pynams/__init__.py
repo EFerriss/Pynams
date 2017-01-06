@@ -12,4 +12,5 @@ from .spectra import Spectrum
 from .profiles import Profile
 from . import styles
 from . import uncertainties
+import lmfit
 #from .diffusion.arrhenius import Diffusivities
