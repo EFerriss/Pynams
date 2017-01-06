@@ -19,7 +19,7 @@ import os.path
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
-import lmfit
+import pynams.diffusion.lmfit as lmfit
 from . import uncertainties
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #from matplotlib.backends.backend_pdf import PdfPages
