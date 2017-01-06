@@ -145,7 +145,7 @@ class Spectrum():
         else:
             print('There is a problem finding the file.')
             print('filename =', self.filename)
-            print('current working directory = ', os.getcwd())
+#            print('current working directory = ', os.getcwd())
             print('Maybe check the folder name')
 
     def plot_spectrum(self, axes=None, style=styles.style_1, offset=0., 
