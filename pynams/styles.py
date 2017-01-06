@@ -253,21 +253,12 @@ def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
     if figaxis is None:
         return f, ax
     
-def plot_area_profile_outline(profile, centered=True, peakwn=None,
+def plot_area_profile_outline(centered=True, peakwn=None,
                               set_size=(6.5, 4), top=1.2, 
                               wholeblock=False, heights_instead=False,
                               show_water_ppm=True):
     """Set up area profile outline and style defaults. 
     Default is for 0 to be the middle of the profile (centered=True)."""
-    if profile.style_base is None:
-        profile.style_base = style_profile
-    profile.make_style_subtypes()
-    
-    if profile.length_microns is None:
-        leng = profile.set_len()
-    else:
-        leng = profile.length_microns
-
     fig = plt.figure(figsize=set_size)
     ax = SubplotHost(fig, 1,1,1)
     fig.add_subplot(ax)
@@ -294,19 +285,8 @@ def plot_area_profile_outline(profile, centered=True, peakwn=None,
         else:
             ax.set_ylabel('Height (cm$^{-1}$)')
 
-    if top is None:
-        if len(profile.areas_list) > 1:
-            top = max(profile.areas_list)+0.2*max(profile.areas_list)
-        else:
-            top = 1.
-        
     ax.set_ylim(0, top)
 
-    if centered is True:
-        ax.set_xlim(-leng/2.0, leng/2.0)
-    else:
-        ax.set_xlim(0, leng)
-                
     ax.grid()
     return fig, ax, ax_ppm
 

@@ -206,7 +206,7 @@ class Profile():
         if figaxis is not None:
             ax = figaxis
         else:
-            fig, ax, ax_right = styles.plot_area_profile_outline(self,
+            fig, ax, ax_right = styles.plot_area_profile_outline(
                                                             centered=False)
         ax.plot(self.positions_microns, self.thickness_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
@@ -339,7 +339,7 @@ class Profile():
 #        
 #        # Plot average spectra together
 #        if initial_and_final_together is True:
-#            f, ax = avespec.plot_spectrum_outline(self)
+#            f, ax = avespec.plot_spectrum_outline()
 #            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
 #            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
 #            ax.legend()
@@ -770,7 +770,7 @@ class Profile():
                           bestfitline=False, style_bestfitline=None,
                           show_FTIR=False, show_water_ppm=True,
                           show_values=False, set_class=None,
-                          peakwn=None, peak_idx=None,
+                          peakwn=None, peak_idx=None, top=None,
                           style=styles.style_points, show_initial_areas=False,
                           error_percent=0, wholeblock=False,
                           label=None, initial_style=None,
@@ -843,10 +843,26 @@ class Profile():
 
         # Use new or old figure axes
         if figaxis is None:
-            f, ax, ax_ppm = styles.plot_area_profile_outline(self, centered, 
+                        
+            if top is None:
+                if len(self.areas_list) > 1:
+                    top = max(self.areas_list)+0.2*max(self.areas_list)
+                else:
+                    top = 1.
+            
+            f, ax, ax_ppm = styles.plot_area_profile_outline(centered, 
                             peakwn, heights_instead=heights_instead, 
-                            wholeblock=wholeblock,
+                            wholeblock=wholeblock, top=top,
                             show_water_ppm=show_water_ppm)
+            if self.length_microns is None:
+                leng = self.set_len()
+            else:
+                leng = self.length_microns
+            if centered is True:
+                ax.set_xlim(-leng/2.0, leng/2.0)
+            else:
+                ax.set_xlim(0, leng)
+
         else:
             ax = figaxis
             show_water_ppm = False
@@ -936,6 +952,8 @@ class Profile():
 #            ax_ppm.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
             np.set_printoptions(precision=1)
             ax_ppm.set_yticklabels(['{:.1f}'.format(i) for i in ppm_labels])
+
+            
 #    parasite_tick_locations = 1e4/(celsius_labels + 273.15)
 #    ax_celsius.set_xticks(parasite_tick_locations)
 #    ax_celsius.set_xticklabels(celsius_labels)
@@ -965,7 +983,7 @@ class Profile():
 #            return
 #        a, w = self.make_3DWB_water_list(polyorder=1)
 #        
-#        fig, ax, leng = styles.plot_area_profile_outline(self, centered)
+#        fig, ax, leng = styles.plot_area_profile_outline(centered)
 #        top = max(a) + 0.2*max(a)
 #        ax.set_ylim(0, top)
 #        ax.set_ylabel('Final area / Initial area')
@@ -1903,7 +1921,7 @@ def make_3DWB_area_profile(final_profile,
     
     if show_plot is True:
         if fig_ax is None:
-            f, ax = styles.plot_area_profile_outline(fin)
+            f, ax = styles.plot_area_profile_outline()
         else:
             ax = fig_ax
         ax.set_ylim(0, top)
