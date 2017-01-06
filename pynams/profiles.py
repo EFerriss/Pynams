@@ -31,13 +31,13 @@ import json
 
 class Profile():
     def __init__(self, profile_name=None, time_seconds=None, folder='',
-                 fname_list=[], positions_microns = np.array([]),
+                 fnames=[], positions_microns = np.array([]),
                  sample=None, direction=None, raypath=None, short_name=None,
                  spectra=[], set_thickness=False,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
                  diffusivity_log10m2s=None, diff_error=None, length_microns=None,
                  peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
-        """fname_list = list of spectra filenames without the .CSV extension.
+        """fnames = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
         info contained in sample's length_a_microns, length_b_microns, and length_c_microns.
         base_low_wn and base_high_wn can be used to set the wavenumber
@@ -47,7 +47,7 @@ class Profile():
         self.profile_name = profile_name
         self.spectra = spectra
         self.folder = folder
-        self.fname_list = fname_list
+        self.fnames = fnames
         self.positions_microns = positions_microns
         self.sample = sample
         self.length_microns = length_microns
@@ -62,7 +62,7 @@ class Profile():
         self.peak_diff_error = peak_diff_error
         self.thick_microns = thick_microns
         
-#        if (self.fname_list is not None) and (self.sample is not None):
+#        if (self.fnames is not None) and (self.sample is not None):
         if base_low_wn is not None:
             for spectrum in self.spectra:
                 spectrum.base_low_wn = base_low_wn
@@ -225,11 +225,11 @@ class Profile():
 
         # construct each spectrum from fnames
         if len(self.spectra) == 0:
-            if len(self.fname_list) == 0:
+            if len(self.fnames) == 0:
                 print('Need fnames')
                 return False                
             fspectra_list = []
-            for x in self.fname_list:
+            for x in self.fnames:
                 newspec = Spectrum(fname=x, folder=self.folder)
                 newspec.fname = x
                 newspec.thick_microns = self.thick_microns
@@ -1534,11 +1534,11 @@ class Profile():
 #
 
 class TimeSeries(Profile):
-    def __init__(self, sample=None, fname_list=[], time_hours=[], folder='',
+    def __init__(self, sample=None, fnames=[], time_hours=[], folder='',
                  thick_microns=None, style_base=styles.style_points):
         self.sample = sample
         self.thick_microns = thick_microns
-        self.fname_list = fname_list
+        self.fnames = fnames
         self.times_hours = time_hours
         self.style_base = style_base        
         self.folder = folder
