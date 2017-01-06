@@ -10,7 +10,7 @@ from . import styles
 from . import diffusion
 from . import pynams
 from . import uncertainties
-from . import lmfit
+#from . import lmfit
 from .spectra import Spectrum
 from .uncertainties import ufloat
 
