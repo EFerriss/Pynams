@@ -427,11 +427,6 @@ class Spectrum():
     
     def divide_by_thickness(self):
         """Divide raw absorbance by thickness"""
-        if self.thickness_microns is None:
-            check = self.set_thick()
-            if check is False:
-                return False
-                
         if self.fname is None:
             print('Need .fname to know what to call saved file')
             return False
@@ -442,12 +437,15 @@ class Spectrum():
 
         # Convert from numpy.float64 to regular python float
         # or else element-wise division doesn't work.
-        if isinstance(self.thickness_microns, float) is True:
-            th = self.thickness_microns
-        elif isinstance(self.thickness_microns, int) is True:
-            th = float(self.thickness_microns)
-        else:
-            th = np.asscalar(self.thickness_microns)
+        try:
+            if isinstance(self.thickness_microns, float) is True:
+                th = self.thickness_microns
+            elif isinstance(self.thickness_microns, int) is True:
+                th = float(self.thickness_microns)
+            else:
+                th = np.asscalar(self.thickness_microns)
+        except AttributeError:
+            print('need thickness. Try get_thickness_from_SiO if not sure')
             
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm

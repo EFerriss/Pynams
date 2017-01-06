@@ -35,8 +35,10 @@ class Profile():
                  sample=None, direction=None, raypath=None, short_name=None,
                  spectra=[], set_thickness=False,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
-                 diffusivity_log10m2s=None, diff_error=None, length_microns=None,
-                 peak_diffusivities=[], peak_diff_error=[], thick_microns=None):
+                 diffusivity_log10m2s=None, diff_error=None, 
+                 length_microns=None,
+                 peak_diffusivities=[], peak_diff_error=[], 
+                 thickness_microns=None):
         """fnames = list of spectra filenames without the .CSV extension.
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
         info contained in sample's length_a_microns, length_b_microns, and length_c_microns.
@@ -60,7 +62,7 @@ class Profile():
         self.diff_error = diff_error
         self.peak_diffusivities = peak_diffusivities
         self.peak_diff_error = peak_diff_error
-        self.thick_microns = thick_microns
+        self.thickness_microns = thickness_microns
         
 #        if (self.fnames is not None) and (self.sample is not None):
         if base_low_wn is not None:
@@ -74,7 +76,7 @@ class Profile():
         self.make_spectra(set_thickness=set_thickness)
 
     short_name = None # short string for saving diffusivities, etc.
-    thick_microns_list = None
+    thickness_microns_list = None
 
     
     # for constructing whole-block profiles
@@ -156,7 +158,7 @@ class Profile():
 
     def set_len(self):
         """Set profile.length_microns from profile.direction and 
-        profile.sample.thick_microns""" 
+        profile.sample.thickness_microns""" 
 
         if self.sample is None:
             print('\n', self.profile_name)
@@ -177,8 +179,8 @@ class Profile():
         return self.length_microns
 
     def set_thick(self):
-        """Set profile.thick_microns from profile.raypath and
-        profile.sample.thick_microns"""
+        """Set profile.thickness_microns from profile.raypath and
+        profile.sample.thickness_microns"""
         if self.sample is None:
             print('Need to specify profile sample or thickness')
             return False
@@ -186,16 +188,16 @@ class Profile():
             s = self.sample
 
         if self.raypath == 'a':
-           self.thick_microns = s.thickness_microns[0]
+           self.thickness_microns = s.thickness_microns[0]
         elif self.raypath == 'b':
-            self.thick_microns = s.thickness_microns[1]
+            self.thickness_microns = s.thickness_microns[1]
         elif self.raypath == 'c':
-            self.thick_microns = s.thickness_microns[2]
+            self.thickness_microns = s.thickness_microns[2]
         else:
             print('Need raypath')
             return False
             
-        return self.thick_microns
+        return self.thickness_microns
 
     def plot_thicknesses(self, figaxis=None):
         """Plot thickness across profile"""
@@ -206,11 +208,11 @@ class Profile():
         else:
             fig, ax, ax_right = styles.plot_area_profile_outline(self,
                                                             centered=False)
-        ax.plot(self.positions_microns, self.thick_microns_list, 'o')
+        ax.plot(self.positions_microns, self.thickness_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
         ax.set_title(self.profile_name)
-        ax.set_ylim(min(self.thick_microns_list)-0.05*min(self.thick_microns_list), 
-                    max(self.thick_microns_list)+0.05*max(self.thick_microns_list))
+        ax.set_ylim(min(self.thickness_microns_list)-0.05*min(self.thickness_microns_list), 
+                    max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
 
     def make_spectra(self, set_thickness=True):
@@ -232,7 +234,7 @@ class Profile():
             for x in self.fnames:
                 newspec = Spectrum(fname=x, folder=self.folder)
                 newspec.fname = x
-                newspec.thick_microns = self.thick_microns
+                newspec.thickness_microns = self.thickness_microns
                 fspectra_list.append(newspec)
             self.spectra = fspectra_list
 
@@ -247,22 +249,22 @@ class Profile():
 
     def set_thicknesses(self):
         """Sets thickness for each spectrum and makes list of thickness for profile"""
-#        if self.thick_microns_list is None:
-#            self.thick_microns_list = []
+#        if self.thickness_microns_list is None:
+#            self.thickness_microns_list = []
         thickness_list = []
         for spec in self.spectra:
             thickness_list.append(spec.thickness_microns)
-        self.thick_microns_list = thickness_list
-#           if len(self.thick_microns_list) < len(self.spectra):
-#            if self.thick_microns is not None:      
-#                spec.thick_microns = self.thick_microns
-#            elif spec.thick_microns is None:
+        self.thickness_microns_list = thickness_list
+#           if len(self.thickness_microns_list) < len(self.spectra):
+#            if self.thickness_microns is not None:      
+#                spec.thickness_microns = self.thickness_microns
+#            elif spec.thickness_microns is None:
 #                spec.get_thickness_from_SiO()
-#            self.thick_microns_list.append(spec.thick_microns)   
+#            self.thickness_microns_list.append(spec.thickness_microns)   
 
     def set_length(self):
         if self.length_microns is None:
-            self.length_microns = max(self.thick_microns_list) + 50.
+            self.length_microns = max(self.thickness_microns_list) + 50.
 
     def average_spectra(self):
         """Creates and returns averaged spectrum and stores it in
@@ -1535,9 +1537,9 @@ class Profile():
 
 class TimeSeries(Profile):
     def __init__(self, sample=None, fnames=[], time_hours=[], folder='',
-                 thick_microns=None, style_base=styles.style_points):
+                 thickness_microns=None, style_base=styles.style_points):
         self.sample = sample
-        self.thick_microns = thick_microns
+        self.thickness_microns = thickness_microns
         self.fnames = fnames
         self.times_hours = time_hours
         self.style_base = style_base        
@@ -1554,7 +1556,7 @@ class TimeSeries(Profile):
             max_hours = max(self.times_hours)
             
         if thickness_microns is None:
-            thickness_microns = self.thick_microns
+            thickness_microns = self.thickness_microns
             
         if style is None:
             style = self.style_base
