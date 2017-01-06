@@ -10,21 +10,22 @@ from . import styles
 from . import diffusion
 from . import pynams
 from .spectra import Spectrum
+#from .diffusion import lmfit
+from . import uncertainties
+from .uncertainties import ufloat
+
 import gc
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib.lines as mlines
-from .uncertainties import ufloat
 import os.path
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MultipleLocator
 import string as string
-from .diffusion import lmfit
-from . import uncertainties
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
+import json
+#import matplotlib.lines as mlines
 #from matplotlib.backends.backend_pdf import PdfPages
 #import xlsxwriter
-import json
 #from scipy import signal as scipysignal
 #import scipy.interpolate as interp
 
@@ -1235,60 +1236,60 @@ class Profile():
                                         maximum_value=maximum_value)
         return resid, RSS
             
-    def fitD(self, time_seconds=None, points=200, 
-             initial_unit_value=1., vary_initial=True,
-             varyD=True, guess=-13., peak_idx=None, top=1.2, 
-             peakwn=None, wholeblock=True, centered=False,
-             show_plot=True, polyorder=1, heights_instead=False,
-             final_unit_value=0., vary_final=False, 
-             maximum_value=None, min_water=0., symmetric=False):
-        """Fits 1D diffusion curve to profile data."""
-        if self.time_seconds is None and time_seconds is None:
-            print('Need time_seconds')
-            return
-        elif time_seconds is None:
-            time_seconds = self.time_seconds            
-
-        if self.length_microns is None:
-            print('Need to set profile attribute length_microns')
-            return
-            
-        if self.positions_microns is None:
-            print('Need to set profile positions')
-            return
-
-        if self.areas_list is None:
-            self.make_area_list()
-        
-        ### Choose y data to fit to ###
-        y = self.y_data_picker(wholeblock, heights_instead, peak_idx)
-        scaling_factor = max(y)
-        y = y / scaling_factor # scale down to unit, so y range between 0 and 1
-        
-        # Set up x data and other parameters
-        x = self.positions_microns
-        L = self.length_microns
-        t = time_seconds
-        D0 = guess
-        init = initial_unit_value
-        fin = final_unit_value
-        params = diffusion.params_setup1D(L, D0, t, init, fin, vD=varyD, 
-                                          vinit=vary_initial, vfin=vary_final)
-
-        dict_fitting = {'points' : points, 
-#                        'symmetric' : symmetric,
-#                        'centered' : centered
-                        }
-
-#        # minimization
-        lmfit.minimize(diffusion.diffusion1D_params, params, args=(x, y), 
-                       kws=dict_fitting)
-        best_D = ufloat(params['log10D_m2s'].value, 
-                        params['log10D_m2s'].stderr)
-        best_init = ufloat(params['initial_unit_value'].value, 
-                         params['initial_unit_value'].stderr)   
-        print('best-fit log10D m2/s', best_D)
-        print('best-fit initial    ', best_init*scaling_factor)
+#    def fitD(self, time_seconds=None, points=200, 
+#             initial_unit_value=1., vary_initial=True,
+#             varyD=True, guess=-13., peak_idx=None, top=1.2, 
+#             peakwn=None, wholeblock=True, centered=False,
+#             show_plot=True, polyorder=1, heights_instead=False,
+#             final_unit_value=0., vary_final=False, 
+#             maximum_value=None, min_water=0., symmetric=False):
+#        """Fits 1D diffusion curve to profile data."""
+#        if self.time_seconds is None and time_seconds is None:
+#            print('Need time_seconds')
+#            return
+#        elif time_seconds is None:
+#            time_seconds = self.time_seconds            
+#
+#        if self.length_microns is None:
+#            print('Need to set profile attribute length_microns')
+#            return
+#            
+#        if self.positions_microns is None:
+#            print('Need to set profile positions')
+#            return
+#
+#        if self.areas_list is None:
+#            self.make_area_list()
+#        
+#        ### Choose y data to fit to ###
+#        y = self.y_data_picker(wholeblock, heights_instead, peak_idx)
+#        scaling_factor = max(y)
+#        y = y / scaling_factor # scale down to unit, so y range between 0 and 1
+#        
+#        # Set up x data and other parameters
+#        x = self.positions_microns
+#        L = self.length_microns
+#        t = time_seconds
+#        D0 = guess
+#        init = initial_unit_value
+#        fin = final_unit_value
+#        params = diffusion.params_setup1D(L, D0, t, init, fin, vD=varyD, 
+#                                          vinit=vary_initial, vfin=vary_final)
+#
+#        dict_fitting = {'points' : points, 
+##                        'symmetric' : symmetric,
+##                        'centered' : centered
+#                        }
+#
+##        # minimization
+#        lmfit.minimize(diffusion.diffusion1D_params, params, args=(x, y), 
+#                       kws=dict_fitting)
+#        best_D = ufloat(params['log10D_m2s'].value, 
+#                        params['log10D_m2s'].stderr)
+#        best_init = ufloat(params['initial_unit_value'].value, 
+#                         params['initial_unit_value'].stderr)   
+#        print('best-fit log10D m2/s', best_D)
+#        print('best-fit initial    ', best_init*scaling_factor)
 
 #        # save results as attributes
 #        # Use save_diffusivities to save to a file
@@ -1312,33 +1313,33 @@ class Profile():
 #                          heights_instead, peak_idx, best_init.n, 
 #                          final_unit_value, show_plot=False, 
 #                          maximum_value=best_init.n)
-
-        resid, RSS = self.diffusion_residuals(time_seconds=time_seconds, 
-                                              log10D_m2s=best_D.n,
-                                              wholeblock=wholeblock,
-                                              heights_instead=heights_instead,
-                                              peak_idx=peak_idx,
-                                              initial_unit_value=best_init.n,
-                                              final_unit_value=final_unit_value,
-                                              show_plot=False,
-                                              maximum_value=best_init.n)
-        # report results
-        print('\ntime in hours:', params['time_seconds'].value / 3600.)
-        print('initial unit value:', '{:.2f}'.format(best_init*scaling_factor))
-        print('bestfit log10D in m2/s:', '{:.2f}'.format(best_D))
-        print('residual sum of squares', '{:.2f}'.format(RSS))
-        if show_plot is True:
-            fig, ax = self.plot_diffusion(time_seconds=time_seconds,
-                                          log10D_m2s=best_D.n,
-                                          peak_idx=peak_idx, top=top, 
-                                          wholeblock=wholeblock,
-                                          centered=centered,
-                                          symmetric=symmetric,
-                                          heights_instead=heights_instead, 
-                                          maximum_value=best_init.n*scaling_factor,
-                                          final_unit_value=final_unit_value
-                                          )
-            return fig, ax
+#
+#        resid, RSS = self.diffusion_residuals(time_seconds=time_seconds, 
+#                                              log10D_m2s=best_D.n,
+#                                              wholeblock=wholeblock,
+#                                              heights_instead=heights_instead,
+#                                              peak_idx=peak_idx,
+#                                              initial_unit_value=best_init.n,
+#                                              final_unit_value=final_unit_value,
+#                                              show_plot=False,
+#                                              maximum_value=best_init.n)
+#        # report results
+#        print('\ntime in hours:', params['time_seconds'].value / 3600.)
+#        print('initial unit value:', '{:.2f}'.format(best_init*scaling_factor))
+#        print('bestfit log10D in m2/s:', '{:.2f}'.format(best_D))
+#        print('residual sum of squares', '{:.2f}'.format(RSS))
+#        if show_plot is True:
+#            fig, ax = self.plot_diffusion(time_seconds=time_seconds,
+#                                          log10D_m2s=best_D.n,
+#                                          peak_idx=peak_idx, top=top, 
+#                                          wholeblock=wholeblock,
+#                                          centered=centered,
+#                                          symmetric=symmetric,
+#                                          heights_instead=heights_instead, 
+#                                          maximum_value=best_init.n*scaling_factor,
+#                                          final_unit_value=final_unit_value
+#                                          )
+#            return fig, ax
 #        else:
 #            return 1, 2
 ##        return best_D, best_init, RSS
