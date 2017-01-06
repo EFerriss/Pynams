@@ -2,6 +2,19 @@
 """
 Created on Thu Mar 19 09:24:43 2015
 
+__init__ file for pynams main package
+
 @author: Ferriss
 """
-
+from __future__ import print_function
+from .samples import Sample
+from .spectra import Spectrum
+from .profiles import Profile
+from . import styles
+from . import uncertainties
+try:
+    import lmfit
+except ImportError:
+    print('Sorry. You need to go download lmfit')
+    print('In the command line type "pip install lmfit", no quotes')
+#from .diffusion.arrhenius import Diffusivities
