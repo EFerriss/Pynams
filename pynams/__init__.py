@@ -10,5 +10,5 @@ __init__ file for pynams main package
 from .samples import Sample
 from .spectra import Spectrum
 from .profiles import Profile
-from . import lmfit 
+#from . import lmfit 
 #from .diffusion.arrhenius import Diffusivities
