@@ -9,10 +9,12 @@ from __future__ import print_function, division, absolute_import
 from . import styles
 from . import diffusion
 from . import pynams
-from .spectra import Spectrum
-#from .diffusion import lmfit
 from . import uncertainties
+from . import lmfit
+from .spectra import Spectrum
 from .uncertainties import ufloat
+
+#from .diffusion import lmfit
 
 import gc
 import numpy as np
