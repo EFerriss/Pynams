@@ -755,45 +755,53 @@ class Spectrum():
         with open(abs_filename, 'w') as abs_file:
             np.savetxt(abs_file, a, delimiter=delim)
         
-    def save_baseline(self, folder=None, 
-                 baseline_ending='-baseline.CSV', linetype='line', 
-                 shiftline=0.02, basel=None, delim=',', showplots=False):
-        """Save baseline with baseline-subtracted spectrum 
-        (-baseline) to file. These can be retrieved using get_baseline(). 
-        Use save_spectrum() to save full wavenumber and -per-cm absorbances.
+    def save_baseline(self, folder=None, delim=',',
+                      baseline_ending='-baseline.CSV'):
+        """
+        Save baseline (and baseline-subtracted) absorbance spectrum 
+        (-baseline) to file fname-baseline.CSV in the specified folder. 
+        
+        The baselines can be retrieved using get_baseline(). 
+        Use save_spectrum() to save full wavenumber and -per-cm absorbances,
+        which in most cases will already exist but may not in the case of
+        averaged or synthetic spectra.
+        
+        You can save multiple baselines by changing the keyword 
+        baseline_ending. 
+        
+        The default is a CSV file, but the delimiter (delim) can be changed
+        along with the file ending in baseline_ending.
         """
         if folder is None:
             folder = self.folder
             
-        if self.fname is None:
-            print('Need .fname to know what to call saved file')
-            return
-            
+        # getting baseline absorbance
         if self.base_abs is None:
-            print('making baseline...')
-            basel = self.make_baseline(linetype, shiftline)
+            print('making default linear baseline')
+            base_abs = self.make_baseline()
         else:
-            print('using existing baseline')
-            basel = self.base_abs
-
-        if showplots is True:
-            self.plot_showbaseline(baseline=basel)
-        self.abs_nobase_cm = self.subtract_baseline(linetype=linetype, 
-                                                    bline=basel)
+            base_abs = self.base_abs
+            
+        # the baseline-subtracted absorbance is also saved in this file
+        abs_nobase_cm = self.subtract_baseline()
         
+        # name the baseline file
         base_filename = folder + self.fname + baseline_ending
-        print('Saving', self.fname + baseline_ending)
         
+        # make headings in the baseline file
         t = ['wavenumber (/cm)', 'baseline value (/cm)', 
              'baseline-subtracted absorbance (/cm)']
         with open(base_filename, 'w') as base_file:
             for item in t:
                 base_file.write(item+delim)
             base_file.write('\n')
-        a = np.transpose(np.vstack((self.base_wn, self.base_abs,
-                                    self.abs_nobase_cm)))
+            
+        # write data to baseline file 
+        a = np.transpose(np.vstack((self.base_wn, base_abs, abs_nobase_cm)))
         with open(base_filename, 'a') as base_file:
             np.savetxt(base_file, a, delimiter=delim)
+            
+        print('Saved', base_filename)
 
     def get_baseline(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV'):
