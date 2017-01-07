@@ -418,8 +418,8 @@ class Profile():
         if printnames is True:
             self.print_names4matlab()
             
-    def make_area_list(self, polyorder=1, show_plot=False, set_class=None,
-                       shiftline=None, printout_area=False, peak=None):
+    def make_area_list(self, show_plot=False, set_class=None,
+                       printout_area=False, peak=None):
         """Make list of areas (no error) under the curve for an FTIR profile.
         Default is bulk area. Set peak=wavenumber for peak-specific profile"""
         # You need the list of spectra for the profile
@@ -430,22 +430,11 @@ class Profile():
               
         areas = []
         if peak is None:
-            if self.areas_list is not None:
-                print('Overwriting previous areas list')
-                            
-            if self.spectra[0].area is None:                
-                print('generating bulk areas under curves...')
-                for spec in self.spectra:
-                    a = spec.area_under_curve(polyorder, show_plot, shiftline, 
-                                           printout_area, 
-                                           require_saved_baseline=False)
-                    areas.append(a)            
-                self.areas_list = np.array(areas)
-            else:
-                for spec in self.spectra:
-                    areas.append(spec.area)
-                
-            self.areas_list = areas
+            for spec in self.spectra:
+                a = spec.get_area_under_curve(show_plot=show_plot, 
+                                              printout=printout_area)
+                areas.append(a)            
+            self.areas_list = np.array(areas)
             
         else:
             peaklist = list(self.spectra[0].peakpos)
