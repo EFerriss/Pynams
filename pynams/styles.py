@@ -189,9 +189,11 @@ def get_iorient(orient):
         
 def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
                 pad_bot=0., raw_data=False):
-    """Takes a Spectrum object and returns reasonable min and max values for 
+    """
+    Takes a Spectrum object and returns reasonable min and max values for 
     y-axis of plots based on the absorbance values for the specified wavenumber
-    range and padded top and bottom with pad variable"""
+    range and padded top and bottom with pad variable
+    """
     if spectrum.thickness_microns is None:
         absorbance = spectrum.abs_raw
     else:

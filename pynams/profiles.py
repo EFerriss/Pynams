@@ -6,15 +6,15 @@ of Spectrum objects, which are defined in a separate module.
 """
 
 from __future__ import print_function, division, absolute_import
+import numpy as np
 from . import styles
 from . import diffusion
 from . import pynams
 from . import uncertainties
-#from . import lmfit
 from .spectra import Spectrum
 from .uncertainties import ufloat
+import lmfit
 import gc
-import numpy as np
 import matplotlib.pyplot as plt
 import os.path
 import matplotlib.gridspec as gridspec
@@ -22,16 +22,19 @@ from matplotlib.ticker import MultipleLocator
 import string as string
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import json
-#import matplotlib.lines as mlines
-#from matplotlib.backends.backend_pdf import PdfPages
-#import xlsxwriter
-#from scipy import signal as scipysignal
-#import scipy.interpolate as interp
+import matplotlib.lines as mlines
+from matplotlib.backends.backend_pdf import PdfPages
+import xlsxwriter
+from scipy import signal as scipysignal
+import scipy.interpolate as interp
 
 
 class Profile():
-    def __init__(self, profile_name=None, time_seconds=None, folder='',
-                 fnames=[], positions_microns = np.array([]),
+    def __init__(self, fnames=[], 
+                 positions_microns = np.array([]),profile_name=None,
+                 folder='',
+                 time_seconds=None, 
+                 
                  sample=None, direction=None, raypath=None, short_name=None,
                  spectra=[], set_thickness=False,
                  initial_profile=None, base_low_wn=None, base_high_wn=None,
@@ -39,7 +42,13 @@ class Profile():
                  length_microns=None,
                  peak_diffusivities=[], peak_diff_error=[], 
                  thickness_microns=None):
-        """fnames = list of spectra filenames without the .CSV extension.
+        """
+        Creates a group of FTIR Spectrum objects that can be handled
+        and interpreted together.
+        
+        fnames = list of spectra filenames without the .CSV or 
+        .txt extension, just like the fname when making a Spectrum.
+        
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
         info contained in sample's length_a_microns, length_b_microns, and length_c_microns.
         base_low_wn and base_high_wn can be used to set the wavenumber
@@ -151,11 +160,11 @@ class Profile():
     D_peakarea_wb_error = None
     D_height_wb_error = None
     
-    def set_all_thicknesses_from_SiO(self):
-        """Individually set thicknesses for all spectra based on the area
-        under their Si-O overtone peaks"""
-        self.make_spectra()
-
+#    def set_all_thicknesses_from_SiO(self):
+#        """Individually set thicknesses for all spectra based on the area
+#        under their Si-O overtone peaks"""
+#        self.make_spectra()
+#
     def set_len(self):
         """Set profile.length_microns from profile.direction and 
         profile.sample.thickness_microns""" 
@@ -255,12 +264,13 @@ class Profile():
         for spec in self.spectra:
             thickness_list.append(spec.thickness_microns)
         self.thickness_microns_list = thickness_list
-#           if len(self.thickness_microns_list) < len(self.spectra):
-#            if self.thickness_microns is not None:      
-#                spec.thickness_microns = self.thickness_microns
-#            elif spec.thickness_microns is None:
+        if len(self.thickness_microns_list) < len(self.spectra):
+            if self.thickness_microns is not None:      
+                spec.thickness_microns = self.thickness_microns
+            elif spec.thickness_microns is None:
+                print('Need thickness information!')
 #                spec.get_thickness_from_SiO()
-#            self.thickness_microns_list.append(spec.thickness_microns)   
+            self.thickness_microns_list.append(spec.thickness_microns)   
 
     def set_length(self):
         if self.length_microns is None:

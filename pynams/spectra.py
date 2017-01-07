@@ -247,8 +247,6 @@ class Spectrum():
             ax.plot([wn, wn], ax.get_ylim(), '-r')
             ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
                     va='center', ha='center', fontsize=12)
-        
-            
         return fig, ax
 
 #    # full range of measured wavenumber and absorbances
@@ -288,55 +286,55 @@ class Spectrum():
 #    temperature_celsius = None
 #    time_seconds = None
 #    D_area_wb = None
-   
-    def get_thickness_from_SiO(self, show_plot=False, printout=False):
-        """
-        Estimates the sample thickness based on area of the Si-O overtones
-        Using Eq 1 of Matveev and Stachel 2007. 
-        
-        If show_plot is set to True, it will show (and return figure and axes 
-        handlles for) a plot of the line under the Si-O overtones showing the 
-        area used to estimate the thickness. 
-        
-        If printout is set to True, then it will also print the exact
-        area under that curve.
-        """
-        # make temporary baseline under Si-O overtone peaks
-        try:
-            if self.base_abs is not None:
-                self.save_baseline(baseline_ending='baseline-temp.CSV')
-                retrieveBaseline = True
-            else:
-                retrieveBaseline = False
-        except AttributeError:
-            retrieveBaseline = False
-
-        self.make_baseline(wn_low=1625, wn_high=2150, show_plot=False,
-                           raw_data=True)
-        SiOarea = self.area_under_curve(show_plot=False, printout=printout)
-        thickness_microns = SiOarea / 0.6366
-
-        if show_plot is True:    
-            fig, ax = self.plot_showbaseline(size_inches=(6, 6), #pad_top=10.,
-                                             wn_xlim_left=2200., 
-                                             wn_xlim_right=1200)
-                                                         
-            ax.set_title(''.join((self.fname, '\n',
-                                    '{:.0f}'.format(thickness_microns),
-                                    ' $\mu$m thick')))
-
-        if retrieveBaseline is True:
-            self.get_baseline(baseline_ending='baseline-temp.CSV')
-        else:
-            self.base_abs = None
-
-        # This has to come after the plotting or else the baseline will be offset
-        self.thickness_microns = thickness_microns
-
-        if show_plot is True:
-            return fig, ax
-        return thickness_microns
-
+#   
+#    def get_thickness_from_SiO(self, show_plot=False, printout=False):
+#        """
+#        Estimates the sample thickness based on area of the Si-O overtones
+#        Using Eq 1 of Matveev and Stachel 2007. 
+#        
+#        If show_plot is set to True, it will show (and return figure and axes 
+#        handlles for) a plot of the line under the Si-O overtones showing the 
+#        area used to estimate the thickness. 
+#        
+#        If printout is set to True, then it will also print the exact
+#        area under that curve.
+#        """
+#        # make temporary baseline under Si-O overtone peaks
+#        try:
+#            if self.base_abs is not None:
+#                self.save_baseline(baseline_ending='baseline-temp.CSV')
+#                retrieveBaseline = True
+#            else:
+#                retrieveBaseline = False
+#        except AttributeError:
+#            retrieveBaseline = False
+#
+#        self.make_baseline(wn_low=1625, wn_high=2150, show_plot=False,
+#                           raw_data=True)
+#        SiOarea = self.get_area_under_curve(show_plot=False, printout=printout)
+#        thickness_microns = SiOarea / 0.6366
+#
+#        if show_plot is True:    
+#            fig, ax = self.plot_showbaseline(size_inches=(6, 6), #pad_top=10.,
+#                                             wn_xlim_left=2200., 
+#                                             wn_xlim_right=1200)
+#                                                         
+#            ax.set_title(''.join((self.fname, '\n',
+#                                    '{:.0f}'.format(thickness_microns),
+#                                    ' $\mu$m thick')))
+#
+#        if retrieveBaseline is True:
+#            self.get_baseline(baseline_ending='baseline-temp.CSV')
+#        else:
+#            self.base_abs = None
+#
+#        # This has to come after the plotting or else the baseline will be offset
+#        self.thickness_microns = thickness_microns
+#
+#        if show_plot is True:
+#            return fig, ax
+#        return thickness_microns
+#
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
                                         wn_mid_range_low=3300.,
                                         relative=True):
@@ -445,10 +443,13 @@ class Spectrum():
             else:
                 th = np.asscalar(self.thickness_microns)
         except AttributeError:
-            print('need thickness. Try get_thickness_from_SiO if not sure')
+            print('Need a thickness estimate.')
+            print('You could try Spectrum.get_thickness_from_SiO')
+            return False
             
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
+
 
     def start_at_zero(self, wn_xlim_left=4000., wn_xlim_right=3000.):
         """
@@ -519,19 +520,19 @@ class Spectrum():
                 self.start_at_zero()
                 absorbance = self.abs_full_cm
 
-#        if self.thickness_microns is not None:
-#            if self.abs_full_cm is None:
-#                check = self.start_at_zero()
-#                if check is False:
-#                    return False
-#            absorbance = self.abs_full_cm
-#        else: 
-#            if self.abs_raw is None:
-#                self.get_data()
-#                check = self.start_at_zero()
-#                if check is False:
-#                    return False
-#            absorbance = self.abs_raw
+        if self.thickness_microns is not None:
+            if self.abs_full_cm is None:
+                check = self.start_at_zero()
+                if check is False:
+                    return False
+            absorbance = self.abs_full_cm
+        else: 
+            if self.abs_raw is None:
+                self.get_data()
+                check = self.start_at_zero()
+                if check is False:
+                    return False
+            absorbance = self.abs_raw
 
         if wn_low is not None:
             self.base_low_wn = wn_low
@@ -560,7 +561,8 @@ class Spectrum():
             
         if abs_low is None:
             if abs_smear_low > 0:
-                gulp_lo_x = list(range(index_lo-abs_smear_low, index_lo+abs_smear_low))
+                gulp_lo_x = list(range(index_lo-abs_smear_low, 
+                                       index_lo+abs_smear_low))
                 gulp_lo_y = absorbance[gulp_lo_x]
                 ylow = np.mean(gulp_lo_y)
             else:
@@ -635,38 +637,46 @@ class Spectrum():
         else:
             return base_abs
 
-    def subtract_baseline(self, linetype='line', bline=None, 
-                          show_plot=False, shiftline=0.02, yhigh=0.1,
-                          wn_low=None, wn_high=None,
-                          baseline_ending='-baseline.CSV'):
-        """Make baseline and return baseline-subtracted absorbance.
-        Preferred baseline used is (1) input bline, (2) self.base_abs, 
-        (3) created based on linetype information"""
-        if self.wn_full is None:
-            self.get_data()
+    def subtract_baseline(self, base_abs=None, wn_low=None, wn_high=None,
+                          show_plot=False):
+        """
+        Returns baseline-subtracted absorbance.
         
-        if wn_low is not None:
-            self.base_low_wn = wn_low
+        First it looks for a baseline that has been passed in directly 
+        through base_abs over a wavenumber range from wn_low to wn_high.
         
-        if wn_high is not None:
-            self.base_high_wn = wn_high
+        Then it looks for a stored baseline in Spectrum.base_abs over
+        a wavenumber range stored in Spectrum.base_low_wn and base_high_wn.
+        
+        If it can't find a baseline, it will make the default line between
+        wavenumbers 3200 and 3700 cm-1.
+        
+        By default tt won't show the plot unless show_plot=True.
+        """
 
-        if bline is not None:
-            base_abs = bline
-        elif self.base_abs is not None:
-#            print 'Subtracting baseline stored in attribute base_abs'
-            base_abs = self.base_abs
-        else:
-            print('Making', linetype, 'baseline')
-            base_abs = self.make_baseline(linetype=linetype, shiftline=shiftline)
+        # get wavenumber range in cm-1
+        if wn_low is None:
+            wn_low = self.base_low_wn # default=3200
         
+        if wn_high is None:
+            wn_high = self.base_high_wn # default = 3700
+
+        # get baseline absorbance
+        if base_abs is None:
+            try:
+                base_abs = self.base_abs
+            except AttributeError:
+                print('Making default linear baseline')
+                print('Use Spectrum.make_baseline for other baseline options')
+                base_abs = self.make_baseline()
+
         index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
         index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()
-#            
-        absorbance = self.absorbance_picker()
-        humps = absorbance[index_lo:index_hi]
 
-        # length check
+        absorbance = self.absorbance_picker()
+        humps = absorbance[index_lo:index_hi] # just the peaks we care about
+
+        # lengths sometimes don't match up exactly because of rounding
         if len(humps) > len(base_abs):
             ndif = len(humps) - len(base_abs)
             humps = humps[0:-ndif]
@@ -674,14 +684,7 @@ class Spectrum():
             ndif = len(base_abs) - len(humps)
             for n in range(ndif):
                 humps = np.append(humps, humps[-1])
-        
-        if len(humps) != len(base_abs):
-            print()
-            print('baseline subtraction failed; returning false')
-            print('len humps', len(humps))
-            print('len base_abs', len(base_abs))
-            return False
-            
+
         abs_nobase_cm = humps - base_abs
 
         if show_plot is True:
@@ -689,28 +692,17 @@ class Spectrum():
 
         return abs_nobase_cm
 
-    def area_under_curve(self, linetype='line', show_plot=True, shiftline=0.02,
-                         printout=True, numformat='{:.1f}', 
-                         require_saved_baseline=False):
-        """Returns area under the curve in cm^2"""
-        if require_saved_baseline is True:
-            self.get_baseline()
-
-        if (self.base_high_wn is None) or (self.base_low_wn is None):
-            print('Need to specify spectrum baseline wavenumber range')
-            return False        
-
-        # Get or make absorbance and wavenumber range for baseline
-        if (self.base_abs is None) or (self.base_wn is None):
-            print('Making baseline...')
-            abs_baseline = self.make_baseline(linetype, shiftline)
-        else:
-#            print ('Using previously fit baseline. ' + 
-#                   'Use make_baseline to change it.')
-            abs_baseline = self.base_abs
-
-        abs_nobase_cm = self.subtract_baseline(bline=abs_baseline,
-                                               show_plot=show_plot)
+    def get_area_under_curve(self, show_plot=False,
+                         printout=True, numformat='{:.1f}'):
+        """
+        Returns area under the curve in cm^2.
+        
+        By default it prints out (printout=True) the fname and area in the
+        format specified by numformat, default 1 number after the decimal. 
+        
+        To plot the baseline at the same time, set show_plot=True.
+        """
+        abs_nobase_cm = self.subtract_baseline(show_plot=show_plot)
 
         dx = self.base_high_wn - self.base_low_wn
         dy = np.mean(abs_nobase_cm)
@@ -723,11 +715,10 @@ class Spectrum():
         return area
 
     def water(self, phase_name='cpx', calibration='Bell', numformat='{:.1f}',
-              show_plot=True, show_water=True, printout_area=False,
+              show_plot=True, show_water=True, printout=False,
               shiftline=None, linetype='line'):
         """Produce water estimate without error for a single FTIR spectrum."""
-        area = self.area_under_curve(linetype, show_plot, shiftline, 
-                                     printout_area)
+        area = self.get_area_under_curve(show_plot, printout)
         w = pynams.area2water(area, phase=phase_name, calibration=calibration)
                         
         # output for each spectrum
@@ -1025,29 +1016,62 @@ class Spectrum():
                 absorbance = self.abs_full_cm
         return absorbance            
         
-    def plot_showbaseline(self, linetype='line', shiftline=None,
-                          wn_baseline=None, abs_baseline=None, 
+    def plot_showbaseline(self, axes=None, 
+                          abs_baseline=None, 
+                          wn_baseline=None, 
                           style=styles.style_spectrum, 
                           style_base=styles.style_baseline,
-                          axes=None, label=None, size_inches=(3., 2.5),
-                          offset=0.0, wn_xlim_left=4000, wn_xlim_right=3000.):
-        """Plot FTIR spectrum and show baseline. 
-        You can pass in your own baseline"""
+                          label=None, 
+                          label_baseline=False,
+                          offset=0.0, 
+                          wn_xlim_left=4000, 
+                          wn_xlim_right=3000.):
+        """
+        Plot FTIR spectrum and show baseline. 
+        
+        If axes is set, it will plot on that axes. Otherwise it will create
+        and return new figure and axes handles. 
+        
+        If you have a curve that you want to pass in and use as a baseline,
+        the absorbances go into abs_baseline, and the wavenumbers go in
+        as wn_baseline. It will draw that baseline first.
+        
+        If no baseline is passed in explicitly, it will look for a baseline
+        that has already been created by Spectrum.make_baseline, which 
+        automatically saves the baseline in Spectrum.base_abs (absorbances)
+        and Spectrum.base_wn (wavenumbers). 
+        
+        If no baseline yet exists, it will create the default linear baseline.
+        
+        You can pass in style dictionaries to change the line style of the
+        curve (style) and the baseline (style_base). 
+        
+        If you later make a legend, the curve will come out labeled as the
+        Spectrum.fname (default) or as the label set here. The baseline
+        won't show up in the legend unless you set label_baseline=True.
+        
+        You can move the curve and baseline together up and down with offset.
+        
+        The default window is from 4000 to 3000 cm-1 wavenumbers and should
+        be zoomed in on the curve. You may need to adjust your axes limits
+        afterward, particularly when plotting multiple spectra.
+        """
+        # which axes to plot on
         if axes is None:
-            fig, ax = styles.plot_spectrum_outline(size_inches=size_inches,
-                                                 wn_xlim_left=wn_xlim_left,
-                                                 wn_xlim_right=wn_xlim_right)
+            fig, ax = styles.plot_spectrum_outline(wn_xlim_left=wn_xlim_left,
+                                                   wn_xlim_right=wn_xlim_right)
         else:
             fig = None
             ax = axes
         
         # Get or make absorbance for baseline
-        if abs_baseline is None:          
-            if self.base_abs is None:
-                print('Making baseline...')
-                abs_baseline = self.make_baseline(linetype, shiftline)
-            else:
+        if abs_baseline is None:
+            try:
                 abs_baseline = self.base_abs
+            except AttributeError:
+                print('Making the default linear baseline.')
+                print('Use Spectrum.make_baseline for other baselines.')
+                abs_baseline = self.make_baseline()
 
         # get baseline wavenumber range
         if wn_baseline is None:
@@ -1058,13 +1082,15 @@ class Spectrum():
                        'either here as wn_baseline or as spectrum.base_wn'))
                 return                
 
+        # labels that would show up in a legend
         if label is None:
             label = self.fname
-            
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
-        style_base['label'] = 'baseline'
+        if label_baseline is True:
+            style_base['label'] = 'baseline'
 
+        # Grab thickness-normalized absorbances or raw if no thickness
         absorbance = self.absorbance_picker()
 
         ax.plot(self.wn_full, absorbance + offset, **style_to_use)
@@ -1072,24 +1098,33 @@ class Spectrum():
         
         if self.thickness_microns is None:
             ax.set_ylabel('Raw absorbance')
+
+        # zoom in on y-axis
+        ylow, yhigh = styles.ylim_picker(self, pad_top=0.2, pad_bot=0.2)
+        yhigh = yhigh + 0.1*yhigh
+        ax.set_ylim(ylow, yhigh)
+            
         return fig, ax
 
-    def plot_subtractbaseline(self, polyorder=1, style=styles.style_spectrum, 
-                              axes=None, label=None, offset=0.,
-                              size_inches=(3, 2.5), 
-                              baseline_ending='-baseline.CSV'):
-        """Make and plot baseline-subtracted spectrum"""
-        abs_nobase_cm = self.subtract_baseline(polyorder)
+    def plot_subtractbaseline(self, 
+                              style=styles.style_spectrum, 
+                              axes=None, 
+                              label=None, 
+                              offset=0.,):
+        """
+        Make and plot baseline-subtracted spectrum. style, axes, label, and
+        offset are the same options as in Spectrum.plot_showbaseline()
+        """
+        abs_nobase_cm = self.subtract_baseline()
         
         if axes is None:
-            fig, ax = styles.plot_spectrum_outline(size_inches=size_inches)
+            fig, ax = styles.plot_spectrum_outline()
         else:
             fig = None
             ax = axes
 
         if label is None:
             label = self.fname
-            
         style_to_use = style.copy()
         style_to_use.update({'label' : label})
             
@@ -1217,7 +1252,7 @@ def water_from_spectra(list3, folder, phase='cpx',
             if show_plots is True:
                 ax.plot(spec.base_wn, base_abs, **styles.style_baseline)
 
-            area = spec.area_under_curve(area_plot=False, printout=False)
+            area = spec.get_area_under_curve(area_plot=False, printout=False)
             area_list = np.append(area_list, area)
             baseline_list[k,:] = base_abs
             pek_list[k,:] = abs_nobase_cm

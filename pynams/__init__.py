@@ -12,9 +12,4 @@ from .spectra import Spectrum
 from .profiles import Profile
 from . import styles
 from . import uncertainties
-try:
-    import lmfit
-except ImportError:
-    print('Sorry. You need to go download lmfit')
-    print('In the command line type "pip install lmfit", no quotes')
 #from .diffusion.arrhenius import Diffusivities
