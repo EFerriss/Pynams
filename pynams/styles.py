@@ -265,7 +265,7 @@ def plot_area_profile_outline(centered=True, peakwn=None,
     ax = SubplotHost(fig, 1,1,1)
     fig.add_subplot(ax)
 
-    ax_ppm = ax.twin()
+    ax_ppm = ax.twinx()
     ax_ppm.axis["top"].major_ticklabels.set_visible(False)
     
     if show_water_ppm is True:

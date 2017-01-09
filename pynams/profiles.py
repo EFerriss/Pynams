@@ -3,6 +3,8 @@ Code for processing and plotting *groups* of FTIR spectra.
 
 The central concept is an object class called Profile, which creates groups 
 of Spectrum objects, which are defined in a separate module.
+
+@author Elizabeth Ferriss
 """
 
 from __future__ import print_function, division, absolute_import
@@ -13,7 +15,7 @@ from . import pynams
 from . import uncertainties
 from .spectra import Spectrum
 from .uncertainties import ufloat
-import lmfit
+#import lmfit
 import gc
 import matplotlib.pyplot as plt
 import os.path
@@ -22,11 +24,11 @@ from matplotlib.ticker import MultipleLocator
 import string as string
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import json
-import matplotlib.lines as mlines
-from matplotlib.backends.backend_pdf import PdfPages
-import xlsxwriter
-from scipy import signal as scipysignal
-import scipy.interpolate as interp
+#import matplotlib.lines as mlines
+#from matplotlib.backends.backend_pdf import PdfPages
+#import xlsxwriter
+#from scipy import signal as scipysignal
+#import scipy.interpolate as interp
 
 
 class Profile():
@@ -374,20 +376,37 @@ class Profile():
             spec.make_composite_peak(peak_idx_list)
         self.get_peak_info()
 
-    def make_baselines(self, linetype='line', shiftline=None, 
-                       wn_high=3700., wn_low=3200., wn_mid=None,
-                       show_fit_values=False, show_plot=False,
-                       size_inches=(3., 2.5), abs_high=None):
+    def make_baselines(self,
+                      raw_data=False, 
+                      wn_low=3200, 
+                      wn_high=3700, 
+                      linetype='line', 
+                      spline_type='quadratic', 
+                      curvature=None, 
+                      force_quadratic_through_wn=None,
+                      show_fit_values=False, 
+                      show_plot=False,
+                      abs_high=None, 
+                      abs_low=None,
+                      abs_smear_high=0, 
+                      abs_smear_low=0,
+                      store_baseline=True
+                      ):
         """Make baselines for all final and initial spectra in profile"""
-        if len(self.spectra) < 1:
-            self.make_spectra()
         for spectrum in self.spectra:
             spectrum.base_high_wn = wn_high
             spectrum.base_low_wn = wn_low
-            spectrum.make_baseline(linetype=linetype, shiftline=shiftline,
-                                    show_fit_values=show_fit_values,
-                                    show_plot=show_plot, wn_mid=wn_mid,
-                                    size_inches=size_inches)
+            spectrum.make_baseline(raw_data=raw_data, wn_low=wn_low, 
+                                   wn_high=wn_high, linetype=linetype, 
+                                   spline_type=spline_type, 
+                                   curvature=curvature,
+                                   force_quadratic_through_wn=force_quadratic_through_wn,
+                                   show_fit_values=show_fit_values,
+                                   show_plot=show_plot, abs_high=abs_high,
+                                   abs_low=abs_low, 
+                                   abs_smear_high=abs_smear_high,
+                                   abs_smear_low=abs_smear_low,
+                                   store_baseline=store_baseline)
 
     def get_baselines(self, initial_too=False, folder=None, delim=',', 
                       baseline_ending='-baseline.CSV'):
@@ -418,16 +437,16 @@ class Profile():
         if printnames is True:
             self.print_names4matlab()
             
-    def make_area_list(self, show_plot=False, set_class=None,
-                       printout_area=False, peak=None):
-        """Make list of areas (no error) under the curve for an FTIR profile.
-        Default is bulk area. Set peak=wavenumber for peak-specific profile"""
-        # You need the list of spectra for the profile
-        if len(self.spectra) < 1:
-            check = self.make_spectra(class_from_module=set_class)
-            if check is False:
-                return False
-              
+    def make_area_list(self,  peak=None, show_plot=False, 
+                       printout_area=False,):
+        """
+        Make list of areas under the curve for an FTIR profile.
+        Default is bulk area. Set peak=wavenumber for peak-specific profile
+        
+        If show_plot and printout_area are set to True, then the plot and
+        areas will show up when it calculates the areas under the curve
+        for each spectrum.
+        """
         areas = []
         if peak is None:
             for spec in self.spectra:
@@ -764,27 +783,62 @@ class Profile():
 
         return style
         
-    def plot_area_profile(self, polyorder=1, centered=True, 
-                          heights_instead=False, figaxis=None, 
-                          bestfitline=False, style_bestfitline=None,
-                          show_FTIR=False, show_water_ppm=True,
-                          show_values=False, set_class=None,
-                          peakwn=None, peak_idx=None, top=None,
-                          style=styles.style_points, show_initial_areas=False,
-                          error_percent=0, wholeblock=False,
-                          label=None, initial_style=None,
-                          initial_label=None, phase='olivine',
-                          calibration='Bell', orientation_factor=3.):
-        """Plot area profile. Centered=True puts 0 in the middle of the x-axis.
-        figaxis sets whether to create a new figure or plot on an existing axis.
+    def plot_area_profile(self, 
+                          axes=None, 
+                          show_water_ppm=True,
+                          wholeblock=False,
+                          peak_idx=None, 
+                          centered=True, 
+                          heights_instead=False, 
+                          bestfitline=False, 
+                          style_bestfitline=None,
+                          show_FTIR=False, 
+                          show_values=False, 
+                          peakwn=None, 
+                          top=None,
+                          style=styles.style_points, 
+                          show_initial_areas=False,
+                          error_percent=0, 
+                          label=None, 
+                          initial_style=None,
+                          initial_label=None, 
+                          phase='olivine',
+                          calibration='Bell', 
+                          orientation_factor=3.):
+        """
+        Plots the area profile. 
+        
+        If axes is not None, it will plot the area profile to axes. 
+        
+        If axes is None (default), it will return three things: 
+            the figure handle, the right-axes handle showing the absorbance,
+            and the left-axes handle showing the rough estimate of the water.
+            
+        If show_water_ppm is set to False, the left-hand axis will not
+        show up, and the third item returned will be None instead of an 
+        axes handle.
+        
+        The water estimate defaults to assuming the phase='olivine' and 
+        the calibration='Bell' for the work of Dave Bell, but you can use
+        any phase and calibration accepted by the function 
+        pynams.absorption_coefficients(). The orientation_factor (default=3)
+        is what the resulting water concentration estimated from the single
+        profile is multiplied by to get a rough water estimate. These 
+        estimates should be viewed with great skepticism, but it's a place to 
+        start. George Rossman's 2006 discussion of how to quantify water in 
+        a Reviews in Mineralogy volume is a good place to start for 
+        background on these issues.
+        
+        Centered=True (default) puts 0 in the middle of the x-axis.
+
         bestfitline=True draws a best-fit line through the data.
-        Set peak=wavenumber for peak-specific profile"""
+        
+        Set peak_idx and whole_block for peak-specific and whole-block 
+        profiles.
+        """
         if wholeblock is True and self.initial_profile is None:
             print('Need to specify an initial profile')
-            return False, False
-        
-        if len(self.spectra) < 1:
-            self.make_spectra()
+            return
         
         # Check for or create positions and areas
         if len(self.positions_microns) < 1:
@@ -796,8 +850,7 @@ class Profile():
             if peakwn is None and peak_idx is None:
                 # bulk hydrogen
                 self.get_baselines()
-                areas = self.make_area_list(polyorder, show_FTIR, 
-                                        set_class, peak=peakwn)
+                areas = self.make_area_list(peak=None)
             else:
                 # peak-specific
                 if self.peak_areas is None:
@@ -840,9 +893,27 @@ class Profile():
             print('positions:', np.shape(self.positions_microns))
             return
 
+        # Set length
+        if self.length_microns is None:
+            leng = self.set_len()
+            if self.length_microns is None:
+                print('Need some information about profile length')
+                return
+        else:
+            leng = self.length_microns
+
+        # Set up plotting styles
+        if style_bestfitline is None:
+            style_bestfitline = self.choose_line_style()
+        if style is None:
+            style = self.choose_marker_style()
+        if label is None:
+            style['label'] = self.profile_name
+        else:
+            style['label'] = label
+
         # Use new or old figure axes
-        if figaxis is None:
-                        
+        if axes is None:
             if top is None:
                 if len(self.areas_list) > 1:
                     top = max(self.areas_list)+0.2*max(self.areas_list)
@@ -863,27 +934,8 @@ class Profile():
                 ax.set_xlim(0, leng)
 
         else:
-            ax = figaxis
+            ax = axes
             show_water_ppm = False
-
-        # Set length
-        if self.length_microns is None:
-            leng = self.set_len()
-            if self.length_microns is None:
-                print('Need some information about profile length')
-                return
-        else:
-            leng = self.length_microns
-
-        # Set up plotting styles
-        if style_bestfitline is None:
-            style_bestfitline = self.choose_line_style()
-        if style is None:
-            style = self.choose_marker_style()
-        if label is None:
-            style['label'] = self.profile_name
-        else:
-            style['label'] = label
 
         # Plot best fit line beneath data points
         if bestfitline is True:
@@ -938,39 +990,24 @@ class Profile():
 
         if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
-                                       ' calibration *', str(orientation_factor))))
-            parasite_tick_locations = np.linspace(ax.get_ylim()[0],
-                                                  ax.get_ylim()[1], 5)
+                                       ' calibration *', 
+                                       str(orientation_factor))))
+
+                
             abs_coeff = pynams.absorption_coefficients(phase=phase, 
                                                        calibration=calibration
                                                        )
-#            ppm_labels = parasite_tick_locations * abs_coeff * orientation_factor
-            ppm_labels = parasite_tick_locations * abs_coeff.n * orientation_factor
+            # change the water axis limits to the appropriate values
+            # based on the absorption coefficient and them multiplied
+            # by the orientation factor            
+            ori = orientation_factor
+            ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
+            ax_ppm.set_ylim(ppm_limits)
+        else:
+            ax_ppm = None
 
-            ax_ppm.set_yticks(parasite_tick_locations)
-#            ax_ppm.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1f'))
-            np.set_printoptions(precision=1)
-            ax_ppm.set_yticklabels(['{:.1f}'.format(i) for i in ppm_labels])
-
-            
-#    parasite_tick_locations = 1e4/(celsius_labels + 273.15)
-#    ax_celsius.set_xticks(parasite_tick_locations)
-#    ax_celsius.set_xticklabels(celsius_labels)
-#    fig.add_subplot(ax)
-#    ax.axis["bottom"].set_label("10$^4$/Temperature (K$^{-1}$)")
-#    ax.axis["left"].set_label("log$_{10}$diffusivity (m$^{2}$/s)")
-#    ax_celsius.axis["top"].set_label("Temperature ($\degree$C)")
-#    ax_celsius.axis["top"].label.set_visible(True)
-#    ax_celsius.axis["right"].major_ticklabels.set_visible(False)
-
-#            max_water = area2water(ax.get_ylim()[1]*3, phase=phase, 
-#                                   calibration=calibration)
-#            ax_ppm.axis["right"].major_ticklabels.set_visible(False) 
-#            ax_ppm.axis["right"].set_label(''.join(("max ppm H$_2$O ~ ", 
-#                                                    str(max_water))))
-         
-        if figaxis is None:
-            return f, ax
+        if axes is None:
+            return f, ax, ax_ppm
         else:
             return
 

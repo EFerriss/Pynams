@@ -8,9 +8,7 @@ A few defaults are set up that are geared toward H in nominally anhydrous
 minerals (NAMs) such a plotting wavenumber range from 3000 to 4000 /cm and
 creating baselines between 3200 and 3700 /cm. 
 
-Copyright (c) 2015 Elizabeth Ferriss
-
-This software was developed using Python 2.7.
+@author Elizabeth Ferriss
 
 """
 from __future__ import print_function, division, absolute_import
@@ -473,14 +471,24 @@ class Spectrum():
             return False
         return self.abs_full_cm
 #
-    def make_baseline(self, raw_data=False, wn_low=3200, wn_high=3700, 
-                      linetype='line', spline_type='quadratic', 
-                      quadratic_shift=0.02, quadratic_wn=None,
-                      show_fit_values=False, show_plot=False,
-                      abs_high=None, abs_low=None,
-                      abs_smear_high=0, abs_smear_low=0):
+    def make_baseline(self, 
+                      raw_data=False, 
+                      wn_low=3200, 
+                      wn_high=3700, 
+                      linetype='line', 
+                      spline_type='quadratic', 
+                      curvature=None, 
+                      force_quadratic_through_wn=None,
+                      show_fit_values=False, 
+                      show_plot=False,
+                      abs_high=None, 
+                      abs_low=None,
+                      abs_smear_high=0, 
+                      abs_smear_low=0,
+                      store_baseline=True
+                      ):
         """
-        Make a baseline under the curve of an FTIR spectrum. 
+        Makes and returns a baseline under the curve of an FTIR spectrum. 
         
         The spectrum can be either the raw absorbance (raw_data=True) or 
         the default, which uses the absorbance that has already been
@@ -491,12 +499,18 @@ class Spectrum():
         Change this range by changing the keywords wn_low and wn_high.
         
         The default shape of the baseline is a line (linetype='line'),
-        but you can also do quadratic or spline. 
+        but you can also do quadratic or spline.  
         
-        For quadratics, the degree of curvature is determined primarily
-        by the variable quadratic_shift, which sets how much to deviate from
-        linearity at the wavenumber quadratic_wn, which if not set, is
-        taken as the wavenumber intermediate between wn_low and wn_high.
+        For quadratics, extent of curvature is determined primarily
+        by the keyword curvature, which sets how much to deviate from
+        the line between wn_low and wn_high.
+        
+        Alternatively, set force_quadratic_through_wn, and a quadratic
+        will be fit through the absorbance at the wavenumber input in cm-1.
+
+        For noisy data, try setting abs_smear_high and low to fit to 
+        average absorbances around wn_low and wn_high. 10 is usually a 
+        good number.
         
         I've had problems with the spline, maybe it's not implemented 
         correctly? My computer tends to take a *really* long time to 
@@ -504,10 +518,6 @@ class Spectrum():
         Dan Rasmussen has had better success with it. You can also set 
         the spline_type, which defaults to 'quadratic'. 
         
-        that is a spline (linetype='spline'; default),
-        a line (linetype='line'), 
-        or quadratic baseline (linetype='quadratic' with 
-        argmument shiftline determining extent of curvature) 
         and return baseline absorption curve. Shiftline value determines
         how much quadratic deviates from linearity
         """
@@ -574,18 +584,25 @@ class Spectrum():
         y = np.array([yhigh, ylow])
         p = np.polyfit(x, y, 1)
         
+        if curvature is not None or force_quadratic_through_wn is not None:
+            linetype = 'quadratic'
+        
         if linetype == 'line':
             base_abs = np.polyval(p, self.base_wn)
 
         elif linetype == 'quadratic':            
             # add in a point to fit curve to
-            if quadratic_wn is not None:      
-                self.base_mid_wn = quadratic_wn
+            if force_quadratic_through_wn is not None:
+                try:
+                    self.base_mid_wn = force_quadratic_through_wn
+                except TypeError:
+                    print('force_quadratic_through_wn must be a number, ')
+                    print('the wavenumber in cm-1 you want to fit through')
                 index_mid = (np.abs(self.wn_full-self.base_mid_wn)).argmin()
                 abs_at_wn_mid = absorbance[index_mid]
                 yadd = abs_at_wn_mid
-            elif quadratic_shift is not None:
-                yshift = quadratic_shift
+            elif curvature is not None:
+                yshift = curvature
                 yadd = np.polyval(p, self.base_mid_wn) - yshift
             else:
                 yshift = self.base_mid_yshift
@@ -611,8 +628,9 @@ class Spectrum():
         else:
             print("linetype must be 'line', 'quadratic', or 'spline'")
             return
-            
-        self.base_abs = base_abs
+        
+        if store_baseline is True:
+            self.base_abs = base_abs
         
         if show_plot is True:
             fig, ax = self.plot_showbaseline()

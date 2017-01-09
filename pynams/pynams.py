@@ -16,8 +16,6 @@ def absorption_coefficients(phase, calibration):
     (Bell or Withers), and it returns the absorption coefficient.
     This is so you don't have to look it up over and over again.
     """
-    x = ufloat(5, 0.2)
-    print(x)
     if (calibration == 'Bell') and (phase=='cpx'):
         absorption_coeff = 1.0 / ufloat(7.09, 0.32)
 
