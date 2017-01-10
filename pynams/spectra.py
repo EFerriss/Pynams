@@ -189,18 +189,22 @@ class Spectrum():
         but if not thickness data are available, then it will revert to
         plotting just the raw absorbance data.
         """
-        if self.thickness_microns is not None:
-            check = self.start_at_zero()
-            if check is False:
-                return
-            absorbance = self.abs_full_cm
-        else:
+        if plot_raw is True:
             absorbance = self.abs_raw
-            plot_raw = True
+        else:
+            try:
+                absorbance = self.abs_full_cm
+            except AttributeError:
+                self.divide_by_thickness()
+                self.start_at_zero()
+                try:
+                    absorbance = self.abs_full_cm
+                except AttributeError:
+                    absorbance = self.abs_raw
+                    plot_raw = True
                 
         if axes is None:
-            fig, ax = styles.plot_spectrum_outline(size_inches=((3., 2.5)),
-                                                   wn_xlim_left=wn_xlim_left,
+            fig, ax = styles.plot_spectrum_outline(wn_xlim_left=wn_xlim_left,
                                                    wn_xlim_right=wn_xlim_right)
         else:
             fig = None
@@ -208,7 +212,9 @@ class Spectrum():
 
         if plot_raw is True:
             ax.set_ylabel('raw absorbance')
-
+        else:
+            self.start_at_zero()
+            
         if label is None:
             label = self.fname
             
@@ -285,53 +291,50 @@ class Spectrum():
 #    time_seconds = None
 #    D_area_wb = None
 #   
-#    def get_thickness_from_SiO(self, show_plot=False, printout=False):
-#        """
-#        Estimates the sample thickness based on area of the Si-O overtones
-#        Using Eq 1 of Matveev and Stachel 2007. 
-#        
-#        If show_plot is set to True, it will show (and return figure and axes 
-#        handlles for) a plot of the line under the Si-O overtones showing the 
-#        area used to estimate the thickness. 
-#        
-#        If printout is set to True, then it will also print the exact
-#        area under that curve.
-#        """
-#        # make temporary baseline under Si-O overtone peaks
-#        try:
-#            if self.base_abs is not None:
-#                self.save_baseline(baseline_ending='baseline-temp.CSV')
-#                retrieveBaseline = True
-#            else:
-#                retrieveBaseline = False
-#        except AttributeError:
-#            retrieveBaseline = False
-#
-#        self.make_baseline(wn_low=1625, wn_high=2150, show_plot=False,
-#                           raw_data=True)
-#        SiOarea = self.get_area_under_curve(show_plot=False, printout=printout)
-#        thickness_microns = SiOarea / 0.6366
-#
-#        if show_plot is True:    
-#            fig, ax = self.plot_showbaseline(size_inches=(6, 6), #pad_top=10.,
-#                                             wn_xlim_left=2200., 
-#                                             wn_xlim_right=1200)
-#                                                         
-#            ax.set_title(''.join((self.fname, '\n',
-#                                    '{:.0f}'.format(thickness_microns),
-#                                    ' $\mu$m thick')))
-#
-#        if retrieveBaseline is True:
-#            self.get_baseline(baseline_ending='baseline-temp.CSV')
-#        else:
-#            self.base_abs = None
-#
-#        # This has to come after the plotting or else the baseline will be offset
-#        self.thickness_microns = thickness_microns
-#
-#        if show_plot is True:
-#            return fig, ax
-#        return thickness_microns
+    def get_thickness_from_SiO(self, show_plot=False, printout=False,
+                               accept_thickness=True):
+        """
+        Estimates the sample thickness based on area of the Si-O overtones
+        Using Eq 1 of Matveev and Stachel 2007. 
+        
+        If show_plot is set to True, it will show (and return figure and axes 
+        handlles for) a plot of the line under the Si-O overtones showing the 
+        area used to estimate the thickness. 
+        
+        If printout is set to True, then it will also print the exact
+        area under that curve.
+        
+        If accept_thickness=True (default), the spectrum thickness will
+        be automatically changed, and the thickness-normalized absorbance
+        will be unpdated. Note that this will screw up any previous baselines.
+        """
+        wn_low = 1625
+        wn_high = 2150
+
+        # indices for absorbance of interest
+        index_lo = (np.abs(self.wn_full-wn_low)).argmin()
+        index_hi = (np.abs(self.wn_full-wn_high)).argmin()        
+
+        # raw absorbance over Si-O overtones
+        SiO_overtones = self.abs_raw[index_lo:index_hi]
+        
+        # temporary linear baseline under Si-O overtones
+        bline = self.make_baseline(wn_low=wn_low, 
+                                   wn_high=wn_high, 
+                                   show_plot=show_plot,
+                                   raw_data=True, 
+                                   store_baseline=False
+                                   )
+        dx = wn_high - wn_low
+        dy = np.mean(SiO_overtones - bline)
+        SiOarea = dx * dy
+        thickness_microns = SiOarea / 0.6366
+        
+        if accept_thickness is True:
+            self.thickness_microns = thickness_microns
+            self.divide_by_thickness()
+            self.start_at_zero()
+        return thickness_microns
 #
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
                                         wn_mid_range_low=3300.,
@@ -422,15 +425,9 @@ class Spectrum():
         self.start_at_zero()
     
     def divide_by_thickness(self):
-        """Divide raw absorbance by thickness"""
-        if self.fname is None:
-            print('Need .fname to know what to call saved file')
-            return False
-            
-        # Get the data from the file
-        if self.wn_full is None or self.abs_raw is None:
-            self.get_data()
-
+        """
+        Divide raw absorbance by thickness
+        """
         # Convert from numpy.float64 to regular python float
         # or else element-wise division doesn't work.
         try:
@@ -447,7 +444,6 @@ class Spectrum():
             
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
-
 
     def start_at_zero(self, wn_xlim_left=4000., wn_xlim_right=3000.):
         """
@@ -475,6 +471,7 @@ class Spectrum():
                       raw_data=False, 
                       wn_low=3200, 
                       wn_high=3700, 
+                      wn_mid=3550,
                       linetype='line', 
                       spline_type='quadratic', 
                       curvature=None, 
@@ -521,43 +518,29 @@ class Spectrum():
         and return baseline absorption curve. Shiftline value determines
         how much quadratic deviates from linearity
         """
+        # get raw or normalized absorbance
         if raw_data is True:
             absorbance = self.abs_raw
         else:
             try:
                 absorbance = self.abs_full_cm
             except AttributeError:
-                self.start_at_zero()
-                absorbance = self.abs_full_cm
-
-        if self.thickness_microns is not None:
-            if self.abs_full_cm is None:
-                check = self.start_at_zero()
-                if check is False:
-                    return False
-            absorbance = self.abs_full_cm
-        else: 
-            if self.abs_raw is None:
-                self.get_data()
-                check = self.start_at_zero()
-                if check is False:
-                    return False
-            absorbance = self.abs_raw
-
-        if wn_low is not None:
-            self.base_low_wn = wn_low
+                try:
+                    self.start_at_zero()
+                    absorbance = self.abs_full_cm
+                except AttributeError:
+                    print('Spectrum has no thickness_microns attribute')
+                    print('Either set raw_data=True or provide thickness')
+                    return
         
-        if wn_high is not None:
-            self.base_high_wn = wn_high
-        
-        index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
-        index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()        
-        self.base_wn = self.wn_full[index_lo:index_hi]
+        # get wavenumber range for baseline
+        index_lo = (np.abs(self.wn_full-wn_low)).argmin()
+        index_hi = (np.abs(self.wn_full-wn_high)).argmin()        
+        base_wn = self.wn_full[index_lo:index_hi]
 
         # Smearing start and stop over a range of wavenumbers
         abs_smear_high=int(abs_smear_high)
         abs_smear_low=int(abs_smear_low)
-        
         if abs_high is None:
             if abs_smear_high > 0:
                 gulp_hi_x = list(range(index_hi-abs_smear_high, 
@@ -567,8 +550,7 @@ class Spectrum():
             else:
                 yhigh = absorbance[index_hi]
         else:
-            yhigh = abs_high
-            
+            yhigh = abs_high            
         if abs_low is None:
             if abs_smear_low > 0:
                 gulp_lo_x = list(range(index_lo-abs_smear_low, 
@@ -588,30 +570,29 @@ class Spectrum():
             linetype = 'quadratic'
         
         if linetype == 'line':
-            base_abs = np.polyval(p, self.base_wn)
+            base_abs = np.polyval(p, base_wn)
 
         elif linetype == 'quadratic':            
             # add in a point to fit curve to
             if force_quadratic_through_wn is not None:
                 try:
-                    self.base_mid_wn = force_quadratic_through_wn
+                    forcewn = force_quadratic_through_wn
+                    index_mid = (np.abs(self.wn_full - forcewn)).argmin()
+                    abs_at_wn_mid = absorbance[index_mid]
+                    xadd = force_quadratic_through_wn
+                    yadd = abs_at_wn_mid                    
                 except TypeError:
                     print('force_quadratic_through_wn must be a number, ')
                     print('the wavenumber in cm-1 you want to fit through')
-                index_mid = (np.abs(self.wn_full-self.base_mid_wn)).argmin()
-                abs_at_wn_mid = absorbance[index_mid]
-                yadd = abs_at_wn_mid
             elif curvature is not None:
                 yshift = curvature
-                yadd = np.polyval(p, self.base_mid_wn) - yshift
-            else:
-                yshift = self.base_mid_yshift
-                yadd = np.polyval(p, self.base_mid_wn) - yshift
-                
-            x = np.insert(x, 1, self.base_mid_wn)
+                xadd = wn_mid
+                yadd = np.polyval(p, wn_mid) - yshift
+
+            x = np.insert(x, 1, xadd)
             y = np.insert(y, 1, yadd)
             p2 = np.polyfit(x, y, 2)
-            base_abs = np.polyval(p2, self.base_wn)
+            base_abs = np.polyval(p2, base_wn)
 
             if show_fit_values == True:
                 print('fitting x values:', x)
@@ -630,10 +611,24 @@ class Spectrum():
             return
         
         if store_baseline is True:
+            self.base_mid_wn = wn_mid
+            self.base_high_wn = wn_high
+            self.base_low_wn = wn_low
             self.base_abs = base_abs
+            self.base_wn = base_wn
         
         if show_plot is True:
-            fig, ax = self.plot_showbaseline()
+            fig, ax = self.plot_spectrum(plot_raw=raw_data, 
+                                         style=styles.style_1)
+            ax.set_ylim(min(absorbance[index_lo:index_hi]), 
+                        max(absorbance[index_lo:index_hi]))
+            ax.set_xlim(wn_high, wn_low)
+            ax.plot(base_wn, base_abs, '-k')
+#            fig, ax = self.plot_showbaseline(abs_baseline=base_abs,
+#                                             wn_baseline=base_wn,
+#                                             wn_xlim_left=wn_high,
+#                                             wn_xlim_right=wn_low)
+            
             if show_fit_values is True:
                 if abs_smear_high > 0:
                     ax.plot(self.wn_full[gulp_hi_x], 
@@ -651,12 +646,10 @@ class Spectrum():
                 else:
                     ax.plot(x, y, 'ro', alpha=0.4)
                     
-            return fig, ax
-        else:
-            return base_abs
+        return base_abs
 
-    def subtract_baseline(self, base_abs=None, wn_low=None, wn_high=None,
-                          show_plot=False):
+    def subtract_baseline(self, baseline_abs=None, wn_low=None, wn_high=None,
+                          show_plot=False, raw_data=False):
         """
         Returns baseline-subtracted absorbance.
         
@@ -680,14 +673,20 @@ class Spectrum():
             wn_high = self.base_high_wn # default = 3700
 
         # get baseline absorbance
-        if base_abs is None:
+        if baseline_abs is None:
             try:
                 base_abs = self.base_abs
             except AttributeError:
                 print('Making default linear baseline')
                 print('Use Spectrum.make_baseline for other baseline options')
-                base_abs = self.make_baseline()
+                base_abs = self.make_baseline(raw_data=raw_data)
+        else:
+            base_abs = baseline_abs
 
+        if base_abs is None:
+            print('No baseline. Try using raw data or check thickness.')
+            return
+            
         index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
         index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()
 
@@ -710,8 +709,9 @@ class Spectrum():
 
         return abs_nobase_cm
 
-    def get_area_under_curve(self, show_plot=False,
-                         printout=True, numformat='{:.1f}'):
+    def get_area_under_curve(self, show_plot=False, raw_data=False,
+                             printout=True, numformat='{:.1f}', 
+                             baseline_abs=None, baseline_wn=None):
         """
         Returns area under the curve in cm^2.
         
@@ -719,10 +719,26 @@ class Spectrum():
         format specified by numformat, default 1 number after the decimal. 
         
         To plot the baseline at the same time, set show_plot=True.
+        
+        You can pass in your own baseline through baseline_abs and 
+        baseline_wn
         """
-        abs_nobase_cm = self.subtract_baseline(show_plot=show_plot)
-
-        dx = self.base_high_wn - self.base_low_wn
+        if baseline_wn is None:
+            wn_high = self.base_high_wn
+            wn_low = self.base_low_wn
+        else:
+            wn_high = max(baseline_wn)
+            wn_low = min(baseline_wn)
+            
+        abs_nobase_cm = self.subtract_baseline(show_plot=show_plot,
+                                               raw_data=raw_data,
+                                               baseline_abs=baseline_abs,
+                                               wn_low=wn_low, wn_high=wn_high)
+        if abs_nobase_cm is None:
+            print('Could not generate area. Check baseline.')
+            return False
+            
+        dx = wn_high - wn_low
         dy = np.mean(abs_nobase_cm)
         area = dx * dy
         if printout is True:
@@ -732,20 +748,29 @@ class Spectrum():
         self.area = area
         return area
 
-    def water(self, phase_name='cpx', calibration='Bell', numformat='{:.1f}',
-              show_plot=True, show_water=True, printout=False,
-              shiftline=None, linetype='line'):
-        """Produce water estimate without error for a single FTIR spectrum."""
-        area = self.get_area_under_curve(show_plot, printout)
-        w = pynams.area2water(area, phase=phase_name, calibration=calibration)
+    def water(self, phase='cpx', calibration='Bell', numformat='{:.1f}',
+              printout=True, scaling_factor=3):
+        """
+        Returns the area under the curve and an associated water estimate 
+        for a single FTIR spectrum.
+        
+        Takes the are under the curve for the existing baseline, and
+        multiplies by the absorption coefficient for the specified phase
+        (e.g., 'olivine' or default 'cpx') and calibration (default 'Bell')
+        and then multiplies by the scaling_factor (default 3). 
+        
+        These estimates are not really to be trusted. See, e.g., Withers 2013.
+        """
+        area = self.get_area_under_curve(show_plot=False, printout=False)
+        w = pynams.area2water(area, phase=phase, calibration=calibration)
                         
         # output for each spectrum
-        if show_water is True:
+        if printout is True:
             print(self.fname)
-            print('area:', numformat.format(area), '/cm^2')
-            print(''.join(('water: ', numformat.format(w), ' ppm H2O; *3 = ', 
+            print(''.join(('water: ', numformat.format(w), ' ppm H2O\n *',
+                           str(scaling_factor), ' = ', 
                     numformat.format(w*3.), ' ppm H2O')))
-        return area, w*3
+        return w*scaling_factor
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
                       folder=None):

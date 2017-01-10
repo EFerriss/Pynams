@@ -36,14 +36,13 @@ def absorption_coefficients(phase, calibration):
 
     return absorption_coeff        
     
-def area2water(area_cm2, phase='cpx', calibration='Bell', peak_idx=None):
+def area2water(area_cm2, phase='cpx', calibration='Bell'):
     """
     Takes the peak area in cm-2, multiplies by the absorption coefficient, 
     and return the water concentration in ppm H2O
     """
     absorption_coeff = absorption_coefficients(phase=phase, 
-                                               calibration=calibration,
-                                               peak_idx=peak_idx)
+                                               calibration=calibration)
     w = absorption_coeff * area_cm2
     return w
         

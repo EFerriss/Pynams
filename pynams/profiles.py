@@ -32,152 +32,146 @@ import json
 
 
 class Profile():
-    def __init__(self, fnames=[], 
-                 positions_microns = np.array([]),profile_name=None,
+    def __init__(self, profile_name=None,
+                 fnames=[], 
                  folder='',
-                 time_seconds=None, 
-                 
-                 sample=None, direction=None, raypath=None, short_name=None,
-                 spectra=[], set_thickness=False,
-                 initial_profile=None, base_low_wn=None, base_high_wn=None,
-                 diffusivity_log10m2s=None, diff_error=None, 
+                 positions_microns = np.array([]),
                  length_microns=None,
-                 peak_diffusivities=[], peak_diff_error=[], 
-                 thickness_microns=None):
+                 thicknesses_microns=None,
+                 time_seconds=None, 
+                 sample=None, 
+                 direction=None, 
+                 raypath=None, 
+                 initial_profile=None, 
+                 base_low_wn=None, 
+                 base_high_wn=None,
+                 diffusivity_log10m2s=None, 
+                 diff_error=None, 
+                 peak_diffusivities=[], 
+                 peak_diff_error=[], 
+                 ):
         """
         Creates a group of FTIR Spectrum objects that can be handled
         and interpreted together.
         
-        fnames = list of spectra filenames without the .CSV or 
+        profile_name is a description automatically used for labeling plots.
+        
+        fnames must be a *list* of spectra filenames without the .CSV or 
         .txt extension, just like the fname when making a Spectrum.
         
+        folder specifies the location of the FTIR files.
+        
+        positions_microns is a *list* of locations in the same order as the
+        fnames
+        
+        The thickness of the spectra can be specified now with 
+        thicknesses_microns, either using a float or integer, or a list 
+        of thicknesses, 
+        
         Raypath and direction expressed as 'a', 'b', 'c' with thickness/length
-        info contained in sample's length_a_microns, length_b_microns, and length_c_microns.
-        base_low_wn and base_high_wn can be used to set the wavenumber
-        range of the baseline for the spectra.
+        info contained in sample's length_a_microns, length_b_microns, 
+        and length_c_microns.
         
         """
         self.profile_name = profile_name
-        self.spectra = spectra
         self.folder = folder
         self.fnames = fnames
         self.positions_microns = positions_microns
+        self.thicknesses_microns = thicknesses_microns
         self.sample = sample
         self.length_microns = length_microns
         self.direction = direction
         self.raypath = raypath
         self.initial_profile = initial_profile
-        self.short_name = short_name
         self.time_seconds = time_seconds
         self.diffusivity_log10m2s = diffusivity_log10m2s
         self.diff_error = diff_error
         self.peak_diffusivities = peak_diffusivities
         self.peak_diff_error = peak_diff_error
-        self.thickness_microns = thickness_microns
         
-#        if (self.fnames is not None) and (self.sample is not None):
-        if base_low_wn is not None:
-            for spectrum in self.spectra:
-                spectrum.base_low_wn = base_low_wn
+        try:
+            if (self.raypath is not None) and (self.raypath == self.direction):
+                print("raypath cannot be the same as profile direction")
+                return False
+        except AttributeError:
+            self.raypath = None
 
-        if base_high_wn is not None:
-            for spectrum in self.spectra:
-                spectrum.base_low_wn = base_high_wn
+        # Create list of spectra in profile.spectra
+        # construct each spectrum from fnames
+        if len(self.fnames) == 0:
+            print('Need fnames')
+            return False                
+        fspectra_list = []
+        for x in self.fnames:
+            newspec = Spectrum(fname=x, folder=self.folder)
+            newspec.fname = x
+            fspectra_list.append(newspec)
+        self.spectra = fspectra_list
 
-        self.make_spectra(set_thickness=set_thickness)
+        # set sample, raypath, low and high baseline wavenumber for all
+        for spec in self.spectra:
+            spec.sample = self.sample
+            spec.raypath = self.raypath
 
-    short_name = None # short string for saving diffusivities, etc.
-    thickness_microns_list = None
+        # set thicknesses if thickness information is available
+        th = self.thicknesses_microns
+        if (isinstance(th, float)) or (isinstance(th, int)):
+            for spec in self.spectra:
+                spec.thickness_microns = th
+        elif isinstance(th, list):
+            if len(th) == len(self.fnames):
+                for idx, spec in enumerate(self.spectra):
+                    spec.thickness_microns = th[idx]
+            else:
+                print('length of thicknesses_microns not equal length fnames')
+            
+        # set or guess profile length
+        if self.length_microns is None:
+            if (self.sample is not None) and (self.direction is not None):
+                self.set_length_from_sampledirection()
+            else:
+                if self.positions_microns is not None:
+                    maxlen = max(list(self.positions_microns))
+                    self.length_microns = maxlen + 0.1*maxlen
+                
+    def get_thicknesses_from_SiO(self, show_plots=False, printout=False,
+                               accept_thickness=True):
+        """
+        Individually set thicknesses for all spectra based on the area
+        under their Si-O overtone peaks
+        """
+        for spec in self.spectra:
+            spec.get_thickness_from_SiO(show_plot=show_plots,
+                                        printout=printout,
+                                        accept_thickness=accept_thickness)
+        if accept_thickness is True:
+            self.update_profile_thicknesses_from_spectra()
 
-    
-    # for constructing whole-block profiles
-
-    # The actual list of spectra is made automatically by make_spectra.
-    # Set spectrum_class_name to use non-default spectra classes
-    # e.g., to set different baseline limits consistently
-    spectra = []
-    spectrum_class_name = None 
-    avespec = None # averaged spectra made by self.average_spectra()
-    iavespec = None # initial averaged spectra
-    length_microns = None # length, but I usually use set_len() directly each time
-    waters_list = []
-    waters_errors = []
-    areas_list = None
-    bestfitline_areas = None
-    # Bulk whole-block 3D-WB information and diffusivities if applicable
-    wb_areas = None 
-    wb_water = None
-    # for plotting 
-    style_base = styles.style_profile
-    style_x_marker = None
-    style_y_marker = None
-    style_z_marker = None
-    style_x_line = None
-    style_y_line = None
-    style_z_line = None
-    # peak fitting. i = initial
-    peakpos = None
-    peak_heights = None
-    peak_widths = None
-    peak_areas = None
-    peak_iheights = None
-    peak_iwidths = None
-    peak_iareas = None
-    peak_wb_areas = None
-    peak_wb_heights = None
-    peak_wb_widths = None
-    peak_initial_wb_ratio = 1.0    
-    # Maximum values to scale up to with diffusion curves
-    maximum_area = None
-    maximum_wb_area = 1.0
-    peak_maximum_areas = None
-    peak_maximum_heights = None
-    peak_maximum_areas_wb = None
-    peak_maximum_heights_wb = None
-    
-    # Diffusivities (D) and associated errors all in log10 m2/s
-    # D's can be derived from any or all of the following
-    # - absolute area bulk H: D_area
-    # - absolute area peak-specific: D_peakarea
-    # - absolute height peak-specific: D_height
-    # - whole-block area bulk: D_area_wb 
-    # - whole-block area peak-specific: D_peakarea_wb
-    # - whole-block height peak-specific: D_height_wb
-
-    # absolute value-derived diffusivities
-    D_area = 0.
-    D_peakarea = None
-    D_height = None
-
-    D_area_error = 0.
-    D_peakarea_error = None
-    D_height_error = None
-
-    # whole-block-derived diffusivities
-    D_area_wb = 0.
-    D_peakarea_wb = None
-    D_height_wb = None
-
-    D_area_wb_error = 0.
-    D_peakarea_wb_error = None
-    D_height_wb_error = None
-    
-#    def set_all_thicknesses_from_SiO(self):
-#        """Individually set thicknesses for all spectra based on the area
-#        under their Si-O overtone peaks"""
-#        self.make_spectra()
-#
-    def set_len(self):
-        """Set profile.length_microns from profile.direction and 
-        profile.sample.thickness_microns""" 
-
+    def update_profile_thicknesses_from_spectra(self):
+        """
+        Gathers thicknesses from spectra into list profile.thicknesses_microns
+        """
+        thicknesses = []
+        for spec in self.spectra:
+            try:
+                thick = spec.thickness_microns
+            except AttributeError:
+                print('Spectrum has no thickness. Cannot update profile.')
+                return
+            thicknesses.append(thick)            
+            self.thicknesses_microns = thicknesses        
+            
+    def set_length_from_sampledirection(self):
+        """
+        Set profile.length_microns from profile.direction and 
+        profile.sample.thickness_microns
+        """ 
         if self.sample is None:
             print('\n', self.profile_name)
             print('Need to specify profile sample\n')
             return False
         else:
             s = self.sample
-
         if self.direction == 'a':
            self.length_microns = s.thickness_microns[0]
         elif self.direction == 'b':
@@ -189,9 +183,11 @@ class Profile():
 
         return self.length_microns
 
-    def set_thick(self):
-        """Set profile.thickness_microns from profile.raypath and
-        profile.sample.thickness_microns"""
+    def set_thickness_from_sample(self):
+        """
+        Set profile.thickness_microns from profile.raypath and
+        profile.sample.thickness_microns
+        """
         if self.sample is None:
             print('Need to specify profile sample or thickness')
             return False
@@ -226,58 +222,6 @@ class Profile():
                     max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
 
-    def make_spectra(self, set_thickness=True):
-        """Set profile length and generate spectra 
-        with key attributes"""
-        try:
-            if (self.raypath is not None) and (self.raypath == self.direction):
-                print("raypath cannot be the same as profile direction")
-                return False
-        except AttributeError:
-            self.raypath = None
-
-        # construct each spectrum from fnames
-        if len(self.spectra) == 0:
-            if len(self.fnames) == 0:
-                print('Need fnames')
-                return False                
-            fspectra_list = []
-            for x in self.fnames:
-                newspec = Spectrum(fname=x, folder=self.folder)
-                newspec.fname = x
-                newspec.thickness_microns = self.thickness_microns
-                fspectra_list.append(newspec)
-            self.spectra = fspectra_list
-
-        # set sample, raypath for all
-        for spec in self.spectra:
-            spec.sample = self.sample
-            spec.raypath = self.raypath
-
-        if set_thickness is True:
-            self.set_thicknesses()
-        return
-
-    def set_thicknesses(self):
-        """Sets thickness for each spectrum and makes list of thickness for profile"""
-#        if self.thickness_microns_list is None:
-#            self.thickness_microns_list = []
-        thickness_list = []
-        for spec in self.spectra:
-            thickness_list.append(spec.thickness_microns)
-        self.thickness_microns_list = thickness_list
-        if len(self.thickness_microns_list) < len(self.spectra):
-            if self.thickness_microns is not None:      
-                spec.thickness_microns = self.thickness_microns
-            elif spec.thickness_microns is None:
-                print('Need thickness information!')
-#                spec.get_thickness_from_SiO()
-            self.thickness_microns_list.append(spec.thickness_microns)   
-
-    def set_length(self):
-        if self.length_microns is None:
-            self.length_microns = max(self.thickness_microns_list) + 50.
-
     def average_spectra(self):
         """Creates and returns averaged spectrum and stores it in
         attribute avespec"""
@@ -304,64 +248,20 @@ class Profile():
         """Plot averaged spectrum across profile. Returns figure and axis."""
         for spec in self.spectra:
             spec.plot_spectrum()
-#        if self.spectra is None or len(self.spectra) < 1:
-#            self.make_spectra()
-#
-#        if show_initial_ave is True or initial_and_final_together is True:
-#            if self.initial_profile is None:
-#                print 'No initial_profile attribute specified'
-#                show_initial_ave = False
-#                initial_and_final_together = False
-#        
-#        f = None
-#        ax = None
-#        
-#        if plot_all is True:
-#            for spec in self.spectra:
-#                if show_baseline is True:
-#                    spec.plot_showbaseline(style=style)
-#                else:
-#                    spec.plot_spectrum(style=style, wn=wn)
-#            if show_initial_ave is True:
-#                for spec in self.initial_profile.spectra:
-#                    if show_baseline is True:
-#                        spec.plot_showbaseline(style=stylei)
-#                    else:
-#                        spec.plot_spectrum(style=stylei, wn=wn)
-#                        
-#        if show_final_ave is True or initial_and_final_together is True:
-#            avespec = self.average_spectra()
-#        
-#        if show_initial_ave is True or initial_and_final_together is True:
-#            initspec = self.initial_profile.average_spectra()
-#            
-#        # Plot initial average
-#        if show_initial_ave is True:
-#            if show_baseline is True:
-#                initspec.plot_showbaseline(style=stylei)
-#            else:
-#                initspec.plot_spectrum(style=stylei, wn=wn)
-#
-#        # Plot final average
-#        if show_final_ave is True:
-#            if show_baseline is True:
-#                f, ax = avespec.plot_showbaseline(style=style)
-#            else:            
-#                f, ax = avespec.plot_spectrum(style=style, wn=wn)
-#        
-#        # Plot average spectra together
-#        if initial_and_final_together is True:
-#            f, ax = avespec.plot_spectrum_outline()
-#            ax.plot(avespec.wn_full, avespec.abs_full_cm, label='Final', **style)
-#            ax.plot(initspec.wn_full, initspec.abs_full_cm, label='Initial', **stylei)            
-#            ax.legend()
-#            tit = self.profile_name + '\nAverage profiles'
-#            ax.set_title(tit)
-#            if wn is not None:
-#                ax.plot([wn, wn], [ax.get_ylim()[0], ax.get_ylim()[1]], 
-#                        color='r')
-#        return f, ax
-
+            
+    def plot_showbaselines(self, axes=None, style=styles.style_spectrum, 
+                          style_base=styles.style_baseline,
+                          label=None, label_baseline=False,
+                          offset=0.0):
+        """
+        Plot all spectra with baselines in profile
+        """
+        for spec in self.spectra:
+                spec.plot_showbaseline(axes=axes, style=style, 
+                                       style_base=style_base, label=label,
+                                       label_baseline=label_baseline,
+                                       offset=offset)
+            
     def change_baseline(self, highwn=3800, lowwn=3000, shift=None):
         """Change baseline parameters for all spectra, final and initial"""
         for spectrum in self.spectra + self.initial_profile.spectra:
@@ -437,7 +337,7 @@ class Profile():
         if printnames is True:
             self.print_names4matlab()
             
-    def make_area_list(self,  peak=None, show_plot=False, 
+    def make_area_list(self, peak=None, show_plot=False, 
                        printout_area=False,):
         """
         Make list of areas under the curve for an FTIR profile.
@@ -453,7 +353,7 @@ class Profile():
                 a = spec.get_area_under_curve(show_plot=show_plot, 
                                               printout=printout_area)
                 areas.append(a)            
-            self.areas_list = np.array(areas)
+            self.areas = np.array(areas)
             
         else:
             peaklist = list(self.spectra[0].peakpos)
@@ -617,21 +517,21 @@ class Profile():
             init = self.initial_profile
             fin = self
             for prof in [init, fin]:
-                if prof.areas_list is None:
+                if prof.areas is None:
                     check = prof.make_area_list(1, show_plot=False)
                     if check is False:
                         return False
 
-                if ((len(init.areas_list) == 2) and 
+                if ((len(init.areas) == 2) and 
                     (init.positions_microns[0] == init.positions_microns[1])):
-                    p = (0, np.mean(init.areas_list))
-                elif len(init.areas_list) > 1:
-                    p = np.polyfit(init.positions_microns, init.areas_list, 1)
+                    p = (0, np.mean(init.areas))
+                elif len(init.areas) > 1:
+                    p = np.polyfit(init.positions_microns, init.areas, 1)
                 else:
-                    p = (0, init.areas_list[0])
+                    p = (0, init.areas[0])
             
             init_line = np.polyval(p, self.positions_microns)
-            area_ratio = self.areas_list / init_line
+            area_ratio = self.areas / init_line
             self.wb_areas = area_ratio
         if peakfit is False:
             return area_ratio
@@ -746,43 +646,6 @@ class Profile():
             self.style_z_marker.update({'marker' : styles.style_Rz['marker']})
         return
 
-    def choose_line_style(self):
-        """Returns line style with direction information"""
-        if self.style_base is None:
-            print('Using default styles. Set profile style_base to change')
-            self.style_base = styles.style_profile            
-        if self.style_x_line is None:
-            self.make_style_subtypes()
-        if self.direction == 'a':
-            style_bestfitline = self.style_x_line
-        elif self.direction == 'b':
-            style_bestfitline = self.style_y_line
-        elif self.direction == 'c':
-            style_bestfitline = self.style_z_line
-        else:
-            style_bestfitline = {'linestyle' : '-'}
-        return style_bestfitline
-    
-    def choose_marker_style(self):
-        """Returns marker style with direction and ray path information"""
-        if self.style_base is None:
-            print('Using default styles. Set profile style_base to change')
-            self.style_base = styles.style_profile
-
-        if self.style_x_marker is None:
-            self.make_style_subtypes()
-
-        if self.direction == 'a':
-            style = self.style_x_marker
-        elif self.direction == 'b':
-            style = self.style_y_marker
-        elif self.direction == 'c':
-            style = self.style_z_marker
-        else:
-            style = self.style_base
-
-        return style
-        
     def plot_area_profile(self, 
                           axes=None, 
                           show_water_ppm=True,
@@ -804,7 +667,7 @@ class Profile():
                           initial_label=None, 
                           phase='olivine',
                           calibration='Bell', 
-                          orientation_factor=3.):
+                          scaling_factor=3.):
         """
         Plots the area profile. 
         
@@ -821,7 +684,7 @@ class Profile():
         The water estimate defaults to assuming the phase='olivine' and 
         the calibration='Bell' for the work of Dave Bell, but you can use
         any phase and calibration accepted by the function 
-        pynams.absorption_coefficients(). The orientation_factor (default=3)
+        pynams.absorption_coefficients(). The scaling_factor (default=3)
         is what the resulting water concentration estimated from the single
         profile is multiplied by to get a rough water estimate. These 
         estimates should be viewed with great skepticism, but it's a place to 
@@ -836,11 +699,7 @@ class Profile():
         Set peak_idx and whole_block for peak-specific and whole-block 
         profiles.
         """
-        if wholeblock is True and self.initial_profile is None:
-            print('Need to specify an initial profile')
-            return
-        
-        # Check for or create positions and areas
+        # Check for position information
         if len(self.positions_microns) < 1:
             print('Need positions_microns for profile')
             return
@@ -849,7 +708,6 @@ class Profile():
         if wholeblock is False:
             if peakwn is None and peak_idx is None:
                 # bulk hydrogen
-                self.get_baselines()
                 areas = self.make_area_list(peak=None)
             else:
                 # peak-specific
@@ -869,6 +727,10 @@ class Profile():
 
         # whole-block
         else:
+            if self.initial_profile is None:
+                print('Need to specify an initial profile')
+                return
+        
             # bulk hydrogen
             if peak_idx is None:
                 if self.wb_areas is None:
@@ -889,24 +751,25 @@ class Profile():
 
         if np.shape(areas) != np.shape(self.positions_microns):
             print('Area and positions lists are not the same size!')
-            print('area:', np.shape(self.areas_list))
+            print('area:', np.shape(self.areas))
             print('positions:', np.shape(self.positions_microns))
             return
 
         # Set length
         if self.length_microns is None:
-            leng = self.set_len()
-            if self.length_microns is None:
-                print('Need some information about profile length')
-                return
+            if self.sample is not None:
+                leng = self.set_len()
+            else:
+                longest = max(self.positions_microns)
+                leng = longest + 0.1*longest
         else:
             leng = self.length_microns
 
         # Set up plotting styles
         if style_bestfitline is None:
-            style_bestfitline = self.choose_line_style()
+            style_bestfitline = styles.style_baseline
         if style is None:
-            style = self.choose_marker_style()
+            style = styles.style_spectrum
         if label is None:
             style['label'] = self.profile_name
         else:
@@ -915,8 +778,8 @@ class Profile():
         # Use new or old figure axes
         if axes is None:
             if top is None:
-                if len(self.areas_list) > 1:
-                    top = max(self.areas_list)+0.2*max(self.areas_list)
+                if len(self.areas) > 1:
+                    top = max(self.areas)+0.2*max(self.areas)
                 else:
                     top = 1.
             
@@ -924,10 +787,6 @@ class Profile():
                             peakwn, heights_instead=heights_instead, 
                             wholeblock=wholeblock, top=top,
                             show_water_ppm=show_water_ppm)
-            if self.length_microns is None:
-                leng = self.set_len()
-            else:
-                leng = self.length_microns
             if centered is True:
                 ax.set_xlim(-leng/2.0, leng/2.0)
             else:
@@ -937,6 +796,19 @@ class Profile():
             ax = axes
             show_water_ppm = False
 
+        # Plot data
+        if centered is True:
+            x = np.array(self.positions_microns) - leng/2.0
+        else:
+            x = self.positions_microns            
+        
+        yerror = np.array(areas)*error_percent/100.
+        
+        if error_percent == 0:
+            ax.plot(x, areas, **style)
+        else:
+            ax.errorbar(x, areas, yerr=yerror, **style)
+            
         # Plot best fit line beneath data points
         if bestfitline is True:
             if ((len(areas) == 2) and 
@@ -955,19 +827,6 @@ class Profile():
             else:
                 ax.plot(x, y, **style_bestfitline)
 
-        # Plot data
-        if centered is True:
-            x = np.array(self.positions_microns) - leng/2.0
-        else:
-            x = self.positions_microns            
-        
-        yerror = np.array(areas)*error_percent/100.
-        
-        if error_percent == 0:
-            ax.plot(x, areas, **style)
-        else:
-            ax.errorbar(x, areas, yerr=yerror, **style)
-            
         # Plot initial profile areas
         if show_initial_areas is True:
             if initial_style is None:
@@ -991,7 +850,7 @@ class Profile():
         if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
                                        ' calibration *', 
-                                       str(orientation_factor))))
+                                       str(scaling_factor))))
 
                 
             abs_coeff = pynams.absorption_coefficients(phase=phase, 
@@ -1000,7 +859,7 @@ class Profile():
             # change the water axis limits to the appropriate values
             # based on the absorption coefficient and them multiplied
             # by the orientation factor            
-            ori = orientation_factor
+            ori = scaling_factor
             ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
         else:
@@ -1049,9 +908,9 @@ class Profile():
                 else:
                     y = self.peak_wb_heights[peak_idx]
         else:
-            if self.areas_list is None:
+            if self.areas is None:
                 self.make_area_list()
-            y = self.areas_list
+            y = self.areas
         return y
 
     def D_picker(self, wholeblock=True, heights_instead=False, peak_idx=None):
@@ -1125,12 +984,12 @@ class Profile():
         else: 
             # bulk water                
             if peak_idx is None:
-                if len(self.areas_list) < 1:
+                if len(self.areas) < 1:
                     self.make_area_list()
                 if self.maximum_area is not None:
                     scaling_factor = self.maximum_area
                 else:
-                    scaling_factor = np.max(self.areas_list)
+                    scaling_factor = np.max(self.areas)
                     self.maximum_area = scaling_factor
         
             # peak-specific heights                
@@ -1313,7 +1172,7 @@ class Profile():
 #            print('Need to set profile positions')
 #            return
 #
-#        if self.areas_list is None:
+#        if self.areas is None:
 #            self.make_area_list()
 #        
 #        ### Choose y data to fit to ###
@@ -1638,9 +1497,9 @@ class TimeSeries(Profile):
         x = self.times_hours
         if y is None:
             if peak_idx is None:
-                if len(self.areas_list) < 1:
+                if len(self.areas) < 1:
                     self.make_area_list()
-                C = self.areas_list
+                C = self.areas
             else:
                 print('not ready for peak-specific yet')
             C0 = C[idx_C0]
@@ -1881,7 +1740,7 @@ def make_3DWB_area_profile(final_profile,
                 return False
         if fin.length_microns is None:
             fin.set_len()
-        if len(fin.areas_list) == 0:
+        if len(fin.areas) == 0:
             print('making area list for profile')
             fin.make_area_list(show_plot=False)
     
@@ -1895,11 +1754,11 @@ def make_3DWB_area_profile(final_profile,
                 return False
             # Make sure area lists are populated
             for profile in [init, fin]:
-                if len(profile.areas_list) == 0:
+                if len(profile.areas) == 0:
                     print(profile.profile_name)
                     print('making area list for profile')
                     profile.make_area_list(show_plot=False)
-            A0 = init.areas_list
+            A0 = init.areas
             positions0 = init.positions_microns           
     
         elif initial_profile is not None:
@@ -1910,10 +1769,10 @@ def make_3DWB_area_profile(final_profile,
                 return False
             # Make sure area lists are populated
             for profile in [init, fin]:
-                if len(profile.areas_list) == 0:
+                if len(profile.areas) == 0:
                     print('making area list for profile')
                     profile.make_area_list(show_plot=False)
-            A0 = init.areas_list
+            A0 = init.areas
             positions0 = init.positions_microns
     
         elif initial_area_list is not None:
@@ -1922,7 +1781,7 @@ def make_3DWB_area_profile(final_profile,
                 return False
             A0 = initial_area_list
             positions0 = initial_area_positions_microns
-            if len(fin.areas_list) == 0:
+            if len(fin.areas) == 0:
                 print('making area list for final profile')
                 fin.make_area_list(show_plot=False)
         else:
@@ -1930,9 +1789,9 @@ def make_3DWB_area_profile(final_profile,
             return False
     
         # More initial checks
-        if len(fin.areas_list) != len(fin.positions_microns):
+        if len(fin.areas) != len(fin.positions_microns):
             print('area and position lists do not match')
-            print('length areas_list:', len(fin.areas_list))
+            print('length areas:', len(fin.areas))
             print('length positions list:', len(fin.positions_microns))
             return False    
         if len(A0) < 1:        
@@ -1949,8 +1808,8 @@ def make_3DWB_area_profile(final_profile,
         # Use best-fit line through initial values to normalize final data
         p = np.polyfit(positions0-(leng/2.), A0, 1)
         
-        normalizeto = np.polyval(p, fin.areas_list)
-        wb_areas = fin.areas_list / normalizeto
+        normalizeto = np.polyval(p, fin.areas)
+        wb_areas = fin.areas / normalizeto
          
         # Save whole-block areas as part of profile
         fin.wb_areas = wb_areas    
