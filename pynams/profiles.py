@@ -308,16 +308,12 @@ class Profile():
                                    abs_smear_low=abs_smear_low,
                                    store_baseline=store_baseline)
 
-    def get_baselines(self, initial_too=False, folder=None, delim=',', 
-                      baseline_ending='-baseline.CSV'):
+    def get_baselines(self, folder=None, delim=',', 
+                     baseline_ending='-baseline.CSV'):
         """Get previously saved baselines for all spectra in profile"""
         for spectrum in self.spectra:
-            spectrum.get_baseline(baseline_ending=baseline_ending,
-                                  folder=folder, delim=delim)
-            
-        if initial_too is True:
-            for spectrum in self.initial_profile.spectra:
-                spectrum.get_baseline()
+            spectrum.get_baseline(folder=folder, delim=delim, 
+                                  baseline_ending=baseline_ending)
 
     def matlab(self):
         """Print out spectra fnames for FTIR_peakfit_loop.m"""
@@ -329,14 +325,13 @@ class Profile():
         print('\nfilenames ready for FTIR_peakfit_loop.m:')
         print(string)
                         
-    def save_baselines(self, printnames=True):
+    def save_baselines(self, folder=None, delim=',',
+                      baseline_ending='-baseline.CSV'):
         """Save all baselines in profile"""
         for spectrum in self.spectra:
-            spectrum.save_baseline()
+            spectrum.save_baseline(folder=folder, delim=delim,
+                                   baseline_ending=baseline_ending)
         
-        if printnames is True:
-            self.print_names4matlab()
-            
     def make_area_list(self, peak=None, show_plot=False, 
                        printout_area=False,):
         """

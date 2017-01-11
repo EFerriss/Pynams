@@ -863,7 +863,7 @@ class Spectrum():
         data = np.genfromtxt(filename, delimiter=',', dtype='float', 
                              skip_header=1)
 
-        print('Baseline information taken from file', baseline_ending)
+        print('Got baseline', filename)
         self.base_wn = data[:, 0]
         self.base_abs = data[:, 1]
         self.abs_nobase_cm = data[:, 2]
