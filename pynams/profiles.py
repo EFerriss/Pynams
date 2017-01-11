@@ -114,16 +114,7 @@ class Profile():
             spec.raypath = self.raypath
 
         # set thicknesses if thickness information is available
-        th = self.thicknesses_microns
-        if (isinstance(th, float)) or (isinstance(th, int)):
-            for spec in self.spectra:
-                spec.thickness_microns = th
-        elif isinstance(th, list):
-            if len(th) == len(self.fnames):
-                for idx, spec in enumerate(self.spectra):
-                    spec.thickness_microns = th[idx]
-            else:
-                print('length of thicknesses_microns not equal length fnames')
+        self.update_spectra_thicknesses_from_profile()
             
         # set or guess profile length
         if self.length_microns is None:
@@ -160,6 +151,23 @@ class Profile():
                 return
             thicknesses.append(thick)            
             self.thicknesses_microns = thicknesses        
+
+    def update_spectra_thicknesses_from_profile(self):
+        """
+        Updates spectra thickness information based on what is in 
+        profile.thicknesses_microns
+        """
+        th = self.thicknesses_microns
+        if (isinstance(th, float)) or (isinstance(th, int)):
+            for spec in self.spectra:
+                spec.thickness_microns = th
+        elif isinstance(th, list):
+            if len(th) == len(self.fnames):
+                for idx, spec in enumerate(self.spectra):
+                    spec.thickness_microns = th[idx]
+            else:
+                print('length of thicknesses_microns not equal length fnames')
+
             
     def set_length_from_sampledirection(self):
         """
