@@ -14,11 +14,13 @@ creating baselines between 3200 and 3700 /cm.
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import os
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pynams.styles as styles
 import scipy.interpolate as interp
 from .uncertainties import ufloat
 from . import pynams
+from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #import diffusion
 import gc
 #import matplotlib.lines as mlines
@@ -232,65 +234,66 @@ class Spectrum():
         ax.set_title(self.fname)
         return fig, ax
 
-    def orientation(self, top=None):
-        """guess orientation based on Si-O overtones in FTIR spectrum"""
-        print('\nOrientations for olivine only. See Lemaire et al. 2004 Figure 1.')
-        fig, ax = self.plot_spectrum(pad_top=0.4, wn_xlim_left=2200., 
-                                     wn_xlim_right=1200)
-        fig.set_size_inches(6, 6)
-                                                    
-        if top is not None:
-            ax.set_ylim(0, top)
+    def orientation(self, label=None):
+        """
+        Returns a figure comparing your spectrum in the wavenumber range
+        2200-1200 with spectra for oriented olivine with polarized radation
+        in different directions to help guess the olivine orientation.
+        
+        Use label keyword to change the title on your spectrum from the fname.
+        
+        """
+        # get the image from Lemaire et al. 2004
+        thisfolder = os.path.dirname(__file__)
+        img_file = '\\'.join((thisfolder, 'Lemaire2004Figure1a.png'))
+        img=mpimg.imread(img_file)
+        
+        # set up subplots and figure
+        fig = plt.figure()
+        ax1 = SubplotHost(fig, 1,2,1)
+        ax2 = SubplotHost(fig, 1,2,2)
+        fig.add_subplot(ax1)
+        fig.add_subplot(ax2)
+        
+        # show the image
+        plt.imshow(img)
+        plt.axis('off')
+        ax2.set_title('Oriented olivine\nLemaire et al. 2004')
+        
+        # show the spectrum with the same scale
+        wn_high = 2200.
+        wn_low = 1200.
+
+        self.plot_spectrum(pad_top=0.4, wn_xlim_left=wn_high, axes=ax1,
+                           wn_xlim_right=wn_low, plot_raw=True)
+        
+        # zoom in on Si overtone areas
+        index_lo = (np.abs(self.wn_full-wn_low)).argmin()
+        index_hi = (np.abs(self.wn_full-wn_high)).argmin()        
+        SiO = self.abs_raw[index_lo:index_hi]
+        ax1.set_ylim(min(SiO), max(SiO)+0.2*max(SiO))
+        
+        # set spectrum title
+        if label is None:
+            ax1.set_title(self.fname)
         else:
-            ctop = ax.get_ylim()[1]
-            ax.set_ylim(0, ctop + 0.5*ctop)
+            ax1.set_title(label)
 
-        ytext = ax.get_ylim()[1] - 0.1*ax.get_ylim()[1]
-        labels = ['E || a', 'E || b', 'E || c']
-        for idx, wn in enumerate([2035, 1670, 1785,]):
-            ax.plot([wn, wn], ax.get_ylim(), '-r')
-            ax.text(wn, ytext, labels[idx], rotation=90, backgroundcolor='w',
+        fig.set_size_inches(8, 4)
+        
+        ytext = ax1.get_ylim()[1] - 0.1*ax1.get_ylim()[1]
+        wns = [2035, 1925, 1840, 1785, 1670, 1600]
+        for idx, wn in enumerate(wns):
+#            print(wn)
+            ax1.plot([wn, wn], ax1.get_ylim(), '-r')
+            ax1.text(wn, ytext, str(wn), rotation=90, backgroundcolor='w',
                     va='center', ha='center', fontsize=12)
-        return fig, ax
+        
+        ax1.set_xlabel('Wavenumber (cm$^{-1}$)')
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=-0.1)
+        return fig
 
-#    # full range of measured wavenumber and absorbances
-#    wn_full = None
-#    abs_raw = None
-#    abs_full_cm = None
-#
-#    # other metadata with a few defaults
-#    position_microns_a = None
-#    position_microns_b = None
-#    position_microns_c = None
-#    instrument = None
-#    spot_size_x_microns = 100
-#    spot_size_y_microns = 100
-#    resolution_cm = 4
-#    nscans = 100
-#    date = None
-#    other_name = None
-#    # default baseline range
-#    base_wn = None
-#    base_abs = None
-#    # need these for quadratic baseline
-#    base_mid_yshift = 0.04
-#    base_w_small = 0.02
-#    base_w_large = 0.02
-#    # calculated after baseline set in subtract_baseline
-#    abs_nobase_cm = None
-#    area = None
-#    # peak fit information
-#    peakpos = None
-#    numPeaks = None
-#    peak_heights = None
-#    peak_widths = None
-#    peak_areas = None
-#    peakshape = None        
-#    # Experimental information if applicable
-#    temperature_celsius = None
-#    time_seconds = None
-#    D_area_wb = None
-#   
     def get_thickness_from_SiO(self, show_plot=False, printout=False,
                                accept_thickness=True):
         """
@@ -372,28 +375,32 @@ class Spectrum():
         return WN_MID
     
 
-    def find_peaks(self, widths=np.arange(1,40), 
-                   linetype='line', shiftline=0.):
-        """Locate wavenumbers of npeaks number of most prominent peaks
-        in wavenumber range of interest wn_high to wn_low"""
-        if self.abs_nobase_cm is None:
-            self.make_baseline(linetype=linetype, 
-                               shiftline=shiftline, show_plot=False)
-        else:
-            print("Using previously fit baseline-subtracted absorbance")
-
-        self.abs_nobase_cm = self.subtract_baseline()               
-        peak_idx = scipysignal.find_peaks_cwt(self.abs_nobase_cm, widths)
-        print('change widths=np.arange(1,40) to alter sensitivity')
+    def find_peaks(self, sensitivity=40):
+        """
+        Locate wavenumbers of the most prominent peaks in wavenumber range of 
+        the existing baseline. 
+        
+        Play with the sensivitity keyword (default=40) to change how many
+        peaks it picks up. Higher sensitivity gives you fewer peaks - sorry.
+        """
+        abs_nobase_cm = self.subtract_baseline()
+        if abs_nobase_cm is None:
+            return
+            
+        widths = np.arange(1, sensitivity)
+        peaks = scipysignal.find_peaks_cwt(abs_nobase_cm, widths)
+        
         print('peaks found at the following wavenumbers:')
-        print(self.base_wn[peak_idx])
+        print(self.base_wn[peaks])
+        print('change sensitivity to find more or fewer peaks')
 
         fig, ax = self.plot_subtractbaseline()
-        for idx in peak_idx:
+        for idx in peaks:
             wn = self.base_wn[idx]
-            ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)
-        
+            ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
 
+        return peaks
+        
     def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""       
