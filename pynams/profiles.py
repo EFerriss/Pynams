@@ -223,8 +223,10 @@ class Profile():
         return fig, ax            
 
     def average_spectra(self):
-        """Creates and returns averaged spectrum and stores it in
-        attribute avespec"""
+        """
+        Creates and returns a spectrum that is the average of all spectra
+        in the profile
+        """
         spec_list = self.spectra
         avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list, folder=self.folder)
@@ -233,11 +235,6 @@ class Profile():
             avespec.fname = (self.profile_name + '\naverage profile')
         else:
             avespec.fname = 'average profile'
-            
-        avespec.base_high_wn = spec_list[0].base_high_wn
-        avespec.base_low_wn = spec_list[0].base_low_wn
-        avespec.start_at_zero()
-        self.avespec = avespec
         return avespec
 
     def plot_spectra(self, show_baseline=True, show_initial_ave=True, 
