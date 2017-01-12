@@ -383,7 +383,7 @@ class Spectrum():
 
     def find_peaks(self, sensitivity=40):
         """
-        Locate wavenumbers of the most prominent peaks in wavenumber range of 
+        Returns wavenumbers of the most prominent peaks in wavenumber range of 
         the existing baseline. 
         
         Play with the sensivitity keyword (default=40) to change how many
@@ -405,7 +405,7 @@ class Spectrum():
             wn = self.base_wn[idx]
             ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
 
-        return peaks
+        return self.base_wn[peaks]
         
     def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)

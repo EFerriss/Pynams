@@ -32,15 +32,15 @@ style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 #style_profile_default = {'markeredgecolor' : 'blue', 'linestyle' : 'none', 
 #                         'marker' : 's', 'fillstyle' : 'none', 
 #                         'markersize' : 10, 'alpha' : 0.5}
-style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 10,
-                 'fillstyle' : 'none', 'linestyle' : 'none', 
-                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'w'}
-style_points1 = {'color' : 'violet', 'marker' : 'o', 'markersize' : 4,
+style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 6,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-                 'markerfacecolor' : 'violet'}
-style_points2 = {'color' : 'indigo', 'marker' : '^', 'markersize' : 6,
+                 'markerfacecolor' : 'k'}
+style_points1 = {'color' : 'red', 'marker' : '^', 'markersize' : 6,
+                 'fillstyle' : 'full', 'linestyle' : 'none', 
+                 'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
+                 'markerfacecolor' : 'red'}
+style_points2 = {'color' : 'indigo', 'marker' : 'o', 'markersize' : 6,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
                  'markerfacecolor' : 'w'}
@@ -57,7 +57,7 @@ style_points5 = {'color' : 'darkgoldenrod', 'marker' : 'D', 'markersize' : 4,
 style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
                  'fillstyle' : 'none', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-style_points7 = {'color' : 'red', 'marker' : 'v', 'markersize' : 7,
+style_points7 = {'color' : 'violet', 'marker' : 'v', 'markersize' : 7,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
 #
