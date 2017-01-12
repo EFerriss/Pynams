@@ -565,7 +565,14 @@ class Spectrum():
 
         x = np.array([self.wn_full[index_hi], self.wn_full[index_lo]])
         y = np.array([yhigh, ylow])
-        p = np.polyfit(x, y, 1)
+        try:
+            p = np.polyfit(x, y, 1)
+        except ValueError:
+            print(self.fname)
+            print('failed to create a line across wavenumber range')
+            print('wavenumbers:', x)
+            print('absorbances:', y)
+            return
         
         if curvature is not None or force_quadratic_through_wn is not None:
             linetype = 'quadratic'
