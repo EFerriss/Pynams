@@ -10,7 +10,9 @@ Pynams includes tools for
 * Estimating water concentrations
 * Handling diffusion profile data, including that from uncut ("whole-block") samples  
  
-Here are [simple examples and explanations](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb). For more advanced examples, check out the [HydrogenCpx project](https://github.com/EFerriss/HydrogenCpx). You can also [contact me](mailto: elizabeth.ferriss@gmail.com) directly.  
+Here are [simple examples and explanations](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb) in a jupyter notebook. That file also doubles as a test file, so if you change anything in the code, it's a good idea to try re-running the jupyter notebook to make sure you didn't break anything. 
+
+You can [contact me](mailto: elizabeth.ferriss@gmail.com) directly for questions.  
 
 Please cite this code as  
 Ferriss, E. (2015); pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.1.0; DOI: 10.5281/zenodo.32056
