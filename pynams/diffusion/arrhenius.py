@@ -62,8 +62,10 @@ def solve_Ea_D0(log10D_list, celsius_list):
     return Ea_extra, D0_extra
 
 def whatIsD(Ea, D0, celsius, printout=True):
-    """ Takes activation energy in kJ/mol, D0 in m2/s and 
-    temperature in celsius. Returns log10 diffusivity in m2/s"""
+    """
+    Takes activation energy in kJ/mol, D0 in m2/s and 
+    temperature in celsius. Returns log10 diffusivity in m2/s
+    """
     T = celsius + 273.15
     D = D0 * np.exp(-Ea / (GAS_CONSTANT * T))
     if printout is True:
@@ -182,6 +184,8 @@ class Diffusivities():
                 if len(self.logD[idx]) > 0:
                     Ea_and_D0 = self.solve_Ea_D0(orient=direction)
                     if Ea_and_D0 is not None:
+                        if printout is True:
+                            print('||', direction)
                         xD = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, 
                                      celsius, printout=printout)
                         D.append(xD)

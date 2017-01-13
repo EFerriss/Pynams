@@ -23,19 +23,19 @@ markersizefloat = 8
 #%% olivine
 Wanamaker_Si = Diffusivities(
                description = "San Carlos ol. $V''''_{Si}$\nWanamaker 1994",
-               celsius_unoriented = [1100., 1200.], 
-               logD_unoriented = [-10.4, -9.99],
+               celsius_u= [1100., 1200.], 
+               logDu = [-10.4, -9.99],
                basestyle = {'color' : 'k', 'marker' : '*', 'alpha' : 0.5,
                             'linestyle' : 'none', 'markersize' : 10})
 
 Wanamaker_Mg = Diffusivities(
                description = "San Carlos ol. $V''_{Me}$\nWanamaker 1994",
-               celsius_unoriented = [1100., 1200., 1300.],
-               logD_unoriented = [-11.20, -10.8, -10.3],
+               celsius_u = [1100., 1200., 1300.],
+               logDu = [-11.20, -10.8, -10.3],
                basestyle = {'color' : 'g', 'marker' : '*', 'alpha' : 0.5,
                             'fillstyle' : 'none',
                             'linestyle' : 'none', 'markersize' : 10})
-                            
+
 DM03 = Diffusivities(
        description = 'bulk H forsterite\nDemouchy & Mackwell 2003',
        celsius_x = [1100, 1058, 1056, 1015], 
@@ -43,8 +43,9 @@ DM03 = Diffusivities(
        celsius_z = [1109, 1060, 1057, 999, 949, 899, 898],
        logDx = [-12.2829, -12.6956, -12.6956, -12.9896],
        logDy = [-11.7728, -11.9740, -11.9688, -12.2108, -12.5100],
-       logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, -12.5924, -12.6800],
-       Fe2=0., Fe3=0., Al=0., Mg=2.0, Ti=0.,
+       logDz = [-11.4380, -11.5100, -11.6748, -11.9740, -12.1440, -12.5924, 
+                -12.6800],
+       sample=Sample(Fe2=0., Fe3=0., Al=0., Mg=2.0, Ti=0.),
        basestyle = {'color' : 'green', 'marker' : 'v', 'alpha' : 0.5,
                     'linestyle' : 'none', 'markersize' : markersizefloat})
 
@@ -52,24 +53,24 @@ DM03 = Diffusivities(
 # [Si]: 3613 peak in MgO-buffered Fo, [Si]-[Ti]: 3613 peak in Ti-doped sample
 # [Ti]: 3525 peak, [Mg]: 3220 peak
 pnav_Si = Diffusivities(description = 'forsterite, [Si]', 
-          celsius_unoriented = [1000, 1100, 1200],
-          logD_unoriented = [-15.66, -14.17, -13.02],
+          celsius_u = [1000, 1100, 1200],
+          logDu = [-15.66, -14.17, -13.02],
           basestyle={'color':'cornflowerblue', 'marker':'o', 'fillstyle':'full',
                      'markersize':10})
 
 pnav_SiTi = Diffusivities(description = 'forsterite, [Si-Ti]',
-            celsius_unoriented = [1000, 900, 800],
-            logD_unoriented = [-13.35, -14.3, -15.29],)
+            celsius_u = [1000, 900, 800],
+            logDu = [-13.35, -14.3, -15.29],)
 
 pnav_Ti = Diffusivities(description = 'forsterite, [Ti]',
-          celsius_unoriented = [1000, 900, 800],
-          logD_unoriented = [-13.16, -14.1, -15.26],
+          celsius_u = [1000, 900, 800],
+          logDu = [-13.16, -14.1, -15.26],
           basestyle={'color':'orange', 'marker':'s', 'fillstyle':'full',
                      'markersize':10})
                         
 pnav_Mg = Diffusivities(description = 'forsterite, [Mg]',
-          celsius_unoriented = [1000, 900, 800],
-          logD_unoriented = [-12.66, -13.7, -14.29],)
+          celsius_u = [1000, 900, 800],
+          logDu = [-12.66, -13.7, -14.29],)
 
 # Du Frane & Tybursky 2012 self-diffusion in olivine
 DuFrane = Diffusivities(
@@ -141,10 +142,11 @@ Ferriss_slow = Diffusivities(
 # Loihi, Hawaii: Hauri 2002 Part 2
 # Chemistry estimated from Garcia 1995 Table 2; Al and Ti not measured
 Hauri02 = Diffusivities(description = 'Hauri 2002', 
-                        celsius_unoriented = [1275], 
-                        logD_unoriented = [np.log10(4e-9)], 
+                        celsius_u = [1275], 
+                        logDu = [np.log10(4e-9)], 
                         logDu_error = [], 
-                        Fe3=0.004, Fe2=0.261, Mg=1.727, Al=0., Ti=0.,
+                        sample=Sample(Fe3=0.004, Fe2=0.261, Mg=1.727, 
+                                      Al=0., Ti=0.,),
                         basestyle = {'marker' : '+', 'color' : 'darkorange', 
                                      'markersize' : 12,
                                      'markeredgewidth' : '2'})
@@ -153,8 +155,8 @@ Hauri02 = Diffusivities(description = 'Hauri 2002',
 # See Supplementary Materials. Al and Ti not measured in host olivines
 Portnyagin = Diffusivities(
              description = 'Portnyagin et al. 2008\nMironov et al. 2015',
-             celsius_unoriented = [1140.], logD_unoriented = [np.log10(5e-12)],
-             Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.,
+             celsius_u = [1140.], logDu = [np.log10(5e-12)],
+             sample = Sample(Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.),
              basestyle = {'marker' : 's', 'color' : 'darkmagenta', 
                           'markerfacecolor' : 'white',
                           'markeredgecolor' : 'darkmagenta',
@@ -164,11 +166,12 @@ Portnyagin = Diffusivities(
 # Chen et al. 2011
 # Chemistry from Le Voyer 2014 Table 1 SOM1 olivine; Al and Ti not measured...
 Chen11 = Diffusivities(description = 'Chen et al. 2011',
-                       celsius_unoriented = [1533.-273.15, 1471.-273.15, 
+                       celsius_u = [1533.-273.15, 1471.-273.15, 
                                              1437.-273.15, 1561.-273.15],
-                       logD_unoriented  = [np.log10(2e-11), np.log10(2.5e-11), 
+                       logDu  = [np.log10(2e-11), np.log10(2.5e-11), 
                                            np.log10(0.5e-11), np.log10(2.5e-11)],
-                       Fe3=0.0, Fe2=0.192, Mg=1.784, Al=0., Ti=0.,
+                       sample = Sample(Fe3=0.0, Fe2=0.192, Mg=1.784, 
+                                       Al=0., Ti=0.,),
                        basestyle = {'marker' : 'x', 'color' : 'black',
                                      'markersize' : markersizefloat,
                                      'markeredgewidth' : '1'})
@@ -178,9 +181,10 @@ Chen11 = Diffusivities(description = 'Chen et al. 2011',
 # MID-1 data in Supplement, Ti and Al not measured...
 # *** Si deficiency ***
 Gaetani12 = Diffusivities(description = 'Gaetani et al., 2012',
-                          celsius_unoriented = [1250.],
-                          logD_unoriented = [np.log10(1.7e-11)],
-                          Fe3=0.036, Fe2=0.206, Mg=1.769, Al=0., Ti=0.,
+                          celsius_u = [1250.],
+                          logDu = [np.log10(1.7e-11)],
+                          sample=Sample(Fe3=0.036, Fe2=0.206, Mg=1.769, 
+                                        Al=0., Ti=0.),
                           basestyle = {'marker' : 'h', 'color' : 'red',
                                        'markeredgecolor' : 'red', 
                                        'markersize' : 10,
@@ -207,7 +211,7 @@ H_CrDiopside_Ingrin95 = Diffusivities(
 
 H_cpx_Wade2008 = Diffusivities(
                  description = 'H in cpx phenocryst\nWade et al. 2008',
-                 celsius_all = [1100], logD_unoriented = [-13.],
+                 celsius_all = [1100], logDu = [-13.],
                  basestyle = {'color' : 'indigo', 'marker' : '$\clubsuit$', 
                             'markersize' :  12,
                             'markeredgewidth' : 0,
@@ -265,11 +269,11 @@ H_diopside_Sundvall = Diffusivities(
 
 Fe_diopside = Diffusivities()
 Fe_diopside.description = 'Fe in diopside\nAzough & Freer 2000'
-Fe_diopside.celsius_unoriented = np.array([950., 1100.])
+Fe_diopside.celsius_u = np.array([950., 1100.])
 Fe_diopside.activation_energy_kJmol = 161.5
 Fe_diopside.D0_m2s = 6.22E-15
-Fe_diopside.logD_unoriented = Fe_diopside.makelines_Ea_D0(Ea=161.5, log10D0=10.**(6.22E-15), 
-                                  celsius_list=Fe_diopside.celsius_unoriented)
+#Fe_diopside.logDu = Fe_diopside.makelines_Ea_D0(Ea=161.5, log10D0=10.**(6.22E-15), 
+#                                celsius_list=Fe_diopside.celsius_u)
 Fe_diopside.basestyle = {'color' : 'k', 'marker' : 'None', 
                          'linestyle' : '-', 'alpha' : 1.}
 
@@ -385,9 +389,9 @@ Ce_diopside.basestyle = {'color' : 'lime', 'marker' : 'o',
 
 Al_diopside = Diffusivities()
 Al_diopside.description = 'Al in diopside; Sautter\net al. EPSL 1988'
-Al_diopside.logD_unoriented = [-18.495]
+Al_diopside.logDu = [-18.495]
 #Al_diopside.logDu_error = [0.66]
-Al_diopside.celsius_unoriented = [1180.]
+Al_diopside.celsius_u = [1180.]
 Al_diopside.basestyle = {'color' : 'g', 'marker' : 'x',
                          'fillstyle' : 'full'}
 
@@ -410,7 +414,7 @@ CaMg_diopside_2010.basestyle = {'color' : 'orange', 'marker' : 's',
 
 CaMg_diopside_1983 = Diffusivities()
 CaMg_diopside_1983.description = 'Ca-Mg interdiffusion in cpx\nBrady & McCallister 1983'
-CaMg_diopside_1983.logD_unoriented = np.array([np.log10(1.4E-16), np.log10(6.9E-17), np.log10(5.6E-17),
+CaMg_diopside_1983.logDu = np.array([np.log10(1.4E-16), np.log10(6.9E-17), np.log10(5.6E-17),
                                  np.log10(2.0E-17), np.log10(5.7E-18), np.log10(5.6E-16),
                                  np.log10(2.8E-16), np.log10(1.7E-16), np.log10(6.9E-17),
                                  np.log10(8.3E-16), np.log10(4.2E-16), np.log10(5.6E-16)]) - 2.
@@ -476,14 +480,14 @@ Ti_diopside.basestyle = {'color' : 'b', 'marker' : 'o',
                            'fillstyle' : 'right', 'alpha' : 0.5}
 He_cpx = Diffusivities()
 He_cpx.description = 'He in cpx\nTrull & Kurz 1993'
-He_cpx.logD_unoriented = np.array([np.log10(1.26E-10), np.log10(1.34E-10), 
+He_cpx.logDu = np.array([np.log10(1.26E-10), np.log10(1.34E-10), 
                                    np.log10(1.32E-10), np.log10(1.17E-10),
                                    np.log10(7.24E-10), np.log10(9.29E-10), 
                                    np.log10(8.04E-10), np.log10(6.52E-10),
                                    np.log10(1.47E-8), np.log10(1.48E-8), 
                                    np.log10(9.19E-9), np.log10(5.06E-9), 
                                    np.log10(4.12E-9)]) - 2.
-He_cpx.celsius_unoriented = [965., 965., 965., 965., 1070., 1070., 1070., 1070.,
+He_cpx.celsius_u = [965., 965., 965., 965., 1070., 1070., 1070., 1070.,
                              1170., 1170., 1170., 1170., 1170.]
 He_cpx.basestyle = {'color' : 'lawngreen', 'marker' : '$\spadesuit$', 
                     'linestyle' : 'none', 
@@ -491,17 +495,17 @@ He_cpx.basestyle = {'color' : 'lawngreen', 'marker' : '$\spadesuit$',
 
 Li_cpx_interstitial = Diffusivities()
 Li_cpx_interstitial.description = 'Li in cpx as interstitial\nRichter et al. 2014'
-Li_cpx_interstitial.logD_unoriented = np.log10(np.array([9.2E-10, 1.6E-9, 1.6E-9, 
+Li_cpx_interstitial.logDu = np.log10(np.array([9.2E-10, 1.6E-9, 1.6E-9, 
                                      3.3E-8, 3.7E-8, 1.2E-8, 4.6E-10, 6.4E-12]))
-Li_cpx_interstitial.celsius_unoriented = [900.]*len(Li_cpx_interstitial.logD_unoriented)
+Li_cpx_interstitial.celsius_u = [900.]*len(Li_cpx_interstitial.logDu)
 Li_cpx_interstitial.basestyle = {'color' : 'darkorchid', 'marker' : '+', 
                                  'linestyle' : 'none', 
                                  'markersize' : 10, 'alpha' : 1.}
                              
 Li_cpx_effective = Diffusivities()
 Li_cpx_effective.description = 'effective Li in cpx\nRichter et al. 2014'
-Li_cpx_effective.logD_unoriented = np.log10(np.array([1.8E-10, 2.6E-10, 2.5E-9, 2.1E-9]))
-Li_cpx_effective.celsius_unoriented = [900.]*len(Li_cpx_effective.logD_unoriented)
+Li_cpx_effective.logDu = np.log10(np.array([1.8E-10, 2.6E-10, 2.5E-9, 2.1E-9]))
+Li_cpx_effective.celsius_u = [900.]*len(Li_cpx_effective.logDu)
 Li_cpx_effective.basestyle = {'color' : 'darkorchid', 'marker' : '+', 
                                  'linestyle' : 'none', 'mew' : 3,
                                  'markersize' : 10, 'alpha' : 1.}
