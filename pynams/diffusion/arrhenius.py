@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-from pynams.uncertainties import ufloat
+from uncertainties import ufloat
 import sys
 
 GAS_CONSTANT = 0.00831 # kJ/mol K

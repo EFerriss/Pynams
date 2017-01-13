@@ -12,12 +12,9 @@ import numpy as np
 from . import styles
 from . import diffusion
 from . import pynams
-from . import uncertainties
 from .spectra import Spectrum
+import uncertainties
 from uncertainties import ufloat
-#from .uncertainties import ufloat
-#from .uncertainties import ufloat
-#import lmfit
 import gc
 import matplotlib.pyplot as plt
 import os.path
@@ -26,6 +23,7 @@ from matplotlib.ticker import MultipleLocator
 import string as string
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import json
+#import lmfit
 #import matplotlib.lines as mlines
 #from matplotlib.backends.backend_pdf import PdfPages
 #import xlsxwriter

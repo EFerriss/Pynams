@@ -32,7 +32,7 @@ Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
 from __future__ import print_function, division, absolute_import
 import pynams.styles as styles
 import numpy as np
-import pynams.diffusion.lmfit as lmfit
+import lmfit
 import scipy
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost

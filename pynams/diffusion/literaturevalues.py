@@ -13,10 +13,11 @@ bulk H mechanisms in olivine relative progress
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-from ..uncertainties import ufloat
+from uncertainties import ufloat
 import pynams.styles as st
-from pynams import Sample, Diffusivities
+from pynams import Sample
 from pynams.diffusion.models import diffusion3Dnpi
+from pynams.diffusion.arrhenius import Diffusivities
 markersizefloat = 8
 
 #%% olivine
