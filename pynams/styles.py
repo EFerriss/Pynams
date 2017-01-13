@@ -75,7 +75,7 @@ style_points7 = {'color' : 'violet', 'marker' : 'v', 'markersize' : 7,
 ##                'markerfacecolor' : 'w'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
 style_spectrum = {'color' : 'b', 'linewidth' : 3}
-#style_spectrum_red = {'color' : 'r'}
+style_spectrum_red = {'color' : 'r'}
 style_fitpeak = {'color' : 'g', 'linewidth' : 1}
 style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 

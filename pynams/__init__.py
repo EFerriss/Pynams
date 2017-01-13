@@ -10,6 +10,7 @@ from __future__ import print_function
 from .samples import Sample
 from .spectra import Spectrum
 from .profiles import Profile
+from .wholeblock import WholeBlock
 from . import styles
 from . import uncertainties
 #from .diffusion.arrhenius import Diffusivities

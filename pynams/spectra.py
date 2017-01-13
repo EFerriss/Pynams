@@ -781,30 +781,41 @@ class Spectrum():
         return w*scaling_factor
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
-                      folder=None):
-        """Save entire spectrum divided by thickness to file with headings.
+                      folder=None, raw_data=False):
+        """
+        Save entire spectrum divided by thickness to file with headings.
         1st column: wavenumber /cm; 2nd column: absorbance /cm.
-        Formatted for upload to PULI"""
+        Default is the format ready for upload to PULI database 
+        (http://puli.mfgi.hu/), but to save, e.g.,
+        a spectrum that is the average of a profile, change the delimiter
+        (delim), file_ending to '.CSV', and set raw_data=True if you don't
+        want it to normalize to thickness if possible.
+        """
         if self.fname is None:
             print('Need .fname to know what to call saved file')
             return
-        if self.abs_full_cm is None:
-            self.divide_by_thickness(folder=folder)
 
+        if raw_data is True:
+            absorbance = self.abs_raw
+        else:
+            try:            
+                absorbance = self.abs_full_cm
+            except AttributeError:
+                self.divide_by_thickness()
+                try:
+                    absorbance = self.abs_full_cm
+                except AttributeError:
+                    print('Saving raw absorbances.')
+                    absorbance = self.abs_raw
+                    
         if folder is None:
             folder = self.folder
             
-        abs_filename = folder + self.fname + file_ending
-        print('Saving:')
-        print(abs_filename)
-#        t = ['wavenumber (/cm)', 'absorbance (/cm)']
-#        with open(abs_filename, 'w') as abs_file:
-#            for item in t:
-#                abs_file.write(item+delim)
-#            abs_file.write('\n')
-        a = np.transpose(np.vstack((self.wn_full, self.abs_full_cm)))
+        abs_filename = ''.join((folder, self.fname, file_ending))
+        a = np.transpose(np.vstack((self.wn_full, absorbance)))
         with open(abs_filename, 'w') as abs_file:
             np.savetxt(abs_file, a, delimiter=delim)
+        print('Saved', abs_filename)
         
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):

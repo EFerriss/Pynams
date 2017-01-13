@@ -240,9 +240,9 @@ class Profile():
         avespec.make_average_spectra(spec_list, folder=self.folder)
         
         if self.profile_name is not None:
-            avespec.fname = (self.profile_name + '\naverage profile')
+            avespec.fname = (self.profile_name + '\naveraged across profile')
         else:
-            avespec.fname = 'average profile'
+            avespec.fname = 'averaged across profile'
         return avespec
 
     def plot_spectra(self, show_baseline=True, show_initial_ave=True, 
