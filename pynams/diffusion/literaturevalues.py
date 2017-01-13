@@ -280,53 +280,53 @@ Fe_diopside.basestyle = {'color' : 'k', 'marker' : 'None',
 
 # H in Kunlun diopside
 # 1000 C, in whole-block paper, label: K5
-Dx_wholeblock = ufloat(-13.2, 0.2)
-Dy_wholeblock = ufloat(-13.4, 0.2)
-Dz_wholeblock = ufloat(-13.6, 0.3)
-Dy_slice_FTIR = ufloat(-13.1, 0.3)
-Dz_slice_FTIR = ufloat(-13.1, 0.2)
-Dy_slice_SIMS = ufloat(-13.3, 0.4)
-Dz_slice_SIMS = ufloat(-13.2, 0.4)
-Dy_ave = np.mean([Dy_slice_FTIR, Dy_slice_SIMS, Dy_wholeblock])
-Dz_ave = np.mean([Dz_slice_FTIR, Dz_slice_SIMS, Dz_wholeblock])
-
-
-Kunlun_bulkH = Diffusivities()
-Kunlun_bulkH.description = 'Kunlun diopside\nbulk H, QFM'
-Kunlun_bulkH.celsius_all = [1000.]
-Kunlun_bulkH.logDx = [-13.0]
-Kunlun_bulkH.logDy = [-13.5]
-Kunlun_bulkH.logDz = [-13.5]
-Kunlun_bulkH.basestyle = {'color' : 'black', 'marker' : 'D', 
-                          'markersize' :  markersizefloat, 
-                          'linestyle' : 'none', 'alpha' : 0.5,}
-Kunlun_bulkH.logDx_error = [0.1]
-Kunlun_bulkH.logDy_error = [0.1]
-Kunlun_bulkH.logDz_error = [0.1]
-
-Kunlun_peak3617 = Diffusivities()
-Kunlun_peak3617.description = 'Kunlun diopside\nPeak at 3617 cm$^{-1}$'
-Kunlun_peak3617.celsius_all = [1000.]
-Kunlun_peak3617.logDx = [-13.4]
-Kunlun_peak3617.logDy = [-12.3]
-Kunlun_peak3617.logDz = [-13.5]
-Kunlun_peak3617.logDx_error = [0.4]
-Kunlun_peak3617.logDy_error = [0.03]
-Kunlun_peak3617.logDz_error = [0.2]
-Kunlun_peak3617.basestyle = dict(Kunlun_bulkH.basestyle.items())
-Kunlun_peak3617.basestyle['color'] = 'red'
-
-Kunlun_peak3540 = Diffusivities()
-Kunlun_peak3540.description = 'Kunlun diopside\nPeak at 3540 cm$^{-1}$'
-Kunlun_peak3540.celsius_all = [1000.]
-Kunlun_peak3540.logDx = [-12.7]
-Kunlun_peak3540.logDy = [-12.2]
-Kunlun_peak3540.logDz = [-12.7]
-Kunlun_peak3540.logDx_error = [0.3]
-Kunlun_peak3540.logDy_error = [0.1]
-Kunlun_peak3540.logDz_error = [0.3]
-Kunlun_peak3540.basestyle = dict(Kunlun_bulkH.basestyle.items())
-Kunlun_peak3540.basestyle['color'] = 'blue'
+#Dx_wholeblock = ufloat(-13.2, 0.2)
+#Dy_wholeblock = ufloat(-13.4, 0.2)
+#Dz_wholeblock = ufloat(-13.6, 0.3)
+#Dy_slice_FTIR = ufloat(-13.1, 0.3)
+#Dz_slice_FTIR = ufloat(-13.1, 0.2)
+#Dy_slice_SIMS = ufloat(-13.3, 0.4)
+#Dz_slice_SIMS = ufloat(-13.2, 0.4)
+#Dy_ave = np.mean([Dy_slice_FTIR, Dy_slice_SIMS, Dy_wholeblock])
+#Dz_ave = np.mean([Dz_slice_FTIR, Dz_slice_SIMS, Dz_wholeblock])
+#
+#
+#Kunlun_bulkH = Diffusivities()
+#Kunlun_bulkH.description = 'Kunlun diopside\nbulk H, QFM'
+#Kunlun_bulkH.celsius_all = [1000.]
+#Kunlun_bulkH.logDx = [-13.0]
+#Kunlun_bulkH.logDy = [-13.5]
+#Kunlun_bulkH.logDz = [-13.5]
+#Kunlun_bulkH.basestyle = {'color' : 'black', 'marker' : 'D', 
+#                          'markersize' :  markersizefloat, 
+#                          'linestyle' : 'none', 'alpha' : 0.5,}
+#Kunlun_bulkH.logDx_error = [0.1]
+#Kunlun_bulkH.logDy_error = [0.1]
+#Kunlun_bulkH.logDz_error = [0.1]
+#
+#Kunlun_peak3617 = Diffusivities()
+#Kunlun_peak3617.description = 'Kunlun diopside\nPeak at 3617 cm$^{-1}$'
+#Kunlun_peak3617.celsius_all = [1000.]
+#Kunlun_peak3617.logDx = [-13.4]
+#Kunlun_peak3617.logDy = [-12.3]
+#Kunlun_peak3617.logDz = [-13.5]
+#Kunlun_peak3617.logDx_error = [0.4]
+#Kunlun_peak3617.logDy_error = [0.03]
+#Kunlun_peak3617.logDz_error = [0.2]
+#Kunlun_peak3617.basestyle = dict(Kunlun_bulkH.basestyle.items())
+#Kunlun_peak3617.basestyle['color'] = 'red'
+#
+#Kunlun_peak3540 = Diffusivities()
+#Kunlun_peak3540.description = 'Kunlun diopside\nPeak at 3540 cm$^{-1}$'
+#Kunlun_peak3540.celsius_all = [1000.]
+#Kunlun_peak3540.logDx = [-12.7]
+#Kunlun_peak3540.logDy = [-12.2]
+#Kunlun_peak3540.logDz = [-12.7]
+#Kunlun_peak3540.logDx_error = [0.3]
+#Kunlun_peak3540.logDy_error = [0.1]
+#Kunlun_peak3540.logDz_error = [0.3]
+#Kunlun_peak3540.basestyle = dict(Kunlun_bulkH.basestyle.items())
+#Kunlun_peak3540.basestyle['color'] = 'blue'
 
 # Jaipur diopside, Woods et al. 2001
 Jaipur_bulk = Diffusivities()
