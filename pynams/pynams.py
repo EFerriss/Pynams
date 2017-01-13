@@ -7,7 +7,8 @@ but they both use functions stored here.
 
 """
 from __future__ import print_function, division, absolute_import
-from .uncertainties import ufloat
+#from .uncertainties import ufloat
+from uncertainties import ufloat
 import numpy as np
 
 def absorption_coefficients(phase, calibration):

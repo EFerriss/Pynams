@@ -14,7 +14,9 @@ from . import diffusion
 from . import pynams
 from . import uncertainties
 from .spectra import Spectrum
-from .uncertainties import ufloat
+from uncertainties import ufloat
+#from .uncertainties import ufloat
+#from .uncertainties import ufloat
 #import lmfit
 import gc
 import matplotlib.pyplot as plt

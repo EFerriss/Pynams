@@ -15,5 +15,5 @@ setup(
     version = "0.2.0",
     packages = ['pynams', 'pynams.uncertainties', 'pynams.diffusion'],
     name = "pynams",
-    install_requires = ['lmfit==0.8.0']
+    install_requires = ['lmfit==0.8.0', 'uncertainties==3.0.1']
 )

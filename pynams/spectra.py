@@ -18,7 +18,8 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pynams.styles as styles
 import scipy.interpolate as interp
-from .uncertainties import ufloat
+#from .uncertainties import ufloat
+from uncertainties import ufloat
 from . import pynams
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #import diffusion

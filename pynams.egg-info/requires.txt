@@ -1,1 +1,2 @@
 lmfit==0.8.0
+uncertainties==3.0.1

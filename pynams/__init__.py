@@ -12,5 +12,6 @@ from .spectra import Spectrum
 from .profiles import Profile
 from .wholeblock import WholeBlock
 from . import styles
-from . import uncertainties
+import uncertainties
+#from . import uncertainties
 #from .diffusion.arrhenius import Diffusivities

@@ -5,6 +5,7 @@ pynams/pynams.py
 pynams/samples.py
 pynams/spectra.py
 pynams/styles.py
+pynams/wholeblock.py
 pynams.egg-info/PKG-INFO
 pynams.egg-info/SOURCES.txt
 pynams.egg-info/dependency_links.txt
