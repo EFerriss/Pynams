@@ -40,9 +40,12 @@ from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 #%% 1D Diffusion in a thin slab; Eq 4.18 in Crank, 1975
 def diffusionThinSlab(log10D_m2s, thickness_microns, max_time_hours=2000, 
                       infinity=200, timesteps=300):
-    """ Takes log10 of the diffusivity D in m2/s, thickness in microns,
-    and maximum time in hours, and returns time array in hours and corresponding 
-    curve of C/C0, the concentration divided by the initial concentration
+    """ 
+    Eq 4.18 in Crank, 1975
+    Takes log10 of the diffusivity D in m2/s, thickness in microns,
+    and maximum time in hours, and returns time array in hours and 
+    corresponding curve of C/C0, the concentration divided by the 
+    initial concentration.
     """
     t_hours = np.linspace(0., max_time_hours, timesteps)
     t_seconds = t_hours * 3600.
@@ -80,7 +83,8 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
 def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None, 
                  erf_or_sum='erf', need_to_center_x_data=True,
                  infinity=100, points=50):
-    """Function set up to follow lmfit fitting requirements.
+    """
+    Function set up to follow lmfit fitting requirements.
     Requires input as lmfit parameters value dictionary 
     passing in key information as 'length_microns',
     'time_seconds', 'log10D_m2s', and 'initial_unit_value'. 
@@ -193,7 +197,9 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
                      fighandle=None, axishandle=None, top=1.2,
                      style=None, fitting=False, show_km_scale=False,
                      show_initial=True):
-    """Takes x and y diffusion data and plots 1D diffusion profile input"""
+    """
+    Takes x and y diffusion data and plots 1D diffusion profile input
+    """
     a_microns = (max(x_microns) - min(x_microns)) / 2.
     a_meters = a_microns / 1e3
     
@@ -221,7 +227,8 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
         ax.plot((x_km) + a_meters/1e3, model, **style)
     else:                
         ax.set_xlabel('position ($\mu$m)')
-        ax.set_xlim(-a_microns, a_microns)
+        ax.set_xlim(min(x_microns), max(x_microns))
+#        ax.set_xlim(min(x_microns, max(x_microns)))
         ax.plot(x_microns, model, **style)
 
     if initial_value is not None and show_initial is True:
@@ -233,29 +240,42 @@ def plot_diffusion1D(x_microns, model, initial_value=None,
     return fig, ax
 
 def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
-                erf_or_sum='erf', show_plot=True, 
-                fighandle=None, axishandle=None,
-                style=None, need_to_center_x_data=True,
-                infinity=100, points=100, top=1.2, show_km_scale=False):
-    """Simplest implementation.
+                erf_or_sum='erf', show_plot=True, fighandle=None, axes=None,
+                style=None, infinity=100, points=100, show_km_scale=False,
+                center_x_data=True):
+    """
+    Simplest implementation for 1D diffusion.
+    
     Takes required inputs length, diffusivity, and time 
     and plots diffusion curve on new or specified figure. 
     Optional inputs are unit initial value and final values. 
-    Defaults assume diffusion 
-    out, so init=1. and fin=0. Reverse these for diffusion in.
-    Returns figure, axis, x vector in microns, and model y data."""
+    Defaults assume diffusion out, so init=1. and fin=0. 
+    Reverse these for diffusion in.
+    
+    Returns figure, axis, x vector in microns, and model y data.
+    """
     params = params_setup1D(length_microns, log10D_m2s, time_seconds, 
-                            init, fin,
-                            vD=None, vinit=None, vfin=None)
+                            init, fin, vD=None, vinit=None, vfin=None)
                             
-    x_microns, model = diffusion1D_params(params, None, None, 
-                                          erf_or_sum, need_to_center_x_data, 
-                                          infinity, points)
+    x_microns, model = diffusion1D_params(params, data_x_microns=None, 
+                                          data_y_unit_areas=None, 
+                                          erf_or_sum=erf_or_sum, 
+                                          infinity=infinity, 
+                                          points=points)
 
-    fig, ax = plot_diffusion1D(x_microns, model, initial_value=init, 
-                               fighandle=fighandle, axishandle=axishandle,
-                               style=style, fitting=False, 
-                               show_km_scale=show_km_scale)
+    if center_x_data is False:
+        a_microns = (max(x_microns) - min(x_microns)) / 2.
+        x_microns = x_microns + a_microns
+
+
+    if show_plot is True:
+        fig, ax = plot_diffusion1D(x_microns, model, initial_value=init, 
+                                   fighandle=fighandle, axishandle=axes,
+                                   style=style, fitting=False, 
+                                   show_km_scale=show_km_scale)
+    else:
+        fig = None
+        ax = None
     
     return fig, ax, x_microns, model
 
@@ -264,7 +284,8 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
 def params_setup3D(microns3, log10D3, time_seconds, 
                    initial=1., final=0., isotropic=False, slowb=False,
                    vD=[True, True, True], vinit=False, vfin=False):
-    """Takes required info for diffusion in 3D without path averaging and 
+    """
+    Takes required info for diffusion in 3D without path averaging and 
     return appropriate lmfit params.
     
     Returning full matrix and 
@@ -573,8 +594,10 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
                    initial=1., final=0., top=1.2, points=50., show_plot=True,
                    figax=None, isotropic=False):
-        """Takes list of 3 lengths, list of 3 diffusivities, and time.
-        Returns plot of 3D path-averaged (whole-block) diffusion profiles"""
+        """
+        Takes list of 3 lengths, list of 3 diffusivities, and time.
+        Returns plot of 3D path-averaged (whole-block) diffusion profiles
+        """
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
 
