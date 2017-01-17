@@ -5,15 +5,9 @@ Created on Tue May 05 08:16:08 2015
 
 Diffusion in 1 and 3 dimensions with and without path-integration
 
-THIS MODULE ASSUMES THAT ALL CONCENCENTRATIONS ARE ALREADY NORMALIZED TO 1.
-
 ### 1-dimensional diffusion ###
-Simplest function call is diffusion1D(length, diffusivity, time)
-    Step 1. Create lmfit parameters with params = params_setup1D
-            (Here is where you set what to vary when fitting)
-    Step 2. Pass these parameters into diffusion1D_params(params)
-    Step 3. Plot with plot_diffusion1D
-With profiles in styles, use profile.plot_diffusion() and fitD()
+diffusionThinSlab and diffusion1D for profiles
+With pynams profiles, use profile.plot_diffusion() and fitD()
 
 ### 3-dimensional diffusion without path integration: 3Dnpi ###
 Simplest: diffusion3Dnpi(lengths, D's, time) to get a figure
@@ -69,9 +63,11 @@ def diffusionThinSlab(log10D_m2s, thickness_microns, max_time_hours=2000,
 #%% 1D diffusion profiles
 def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
                    vD=True, vinit=False, vfin=False):
-    """Takes required info for diffusion in 1D - length, diffusivity, time,
+    """
+    Takes required info for diffusion in 1D - length, diffusivity, time,
     and whether or not to vary them - vD, vinit, vfin. 
-    Return appropriate lmfit params to pass into diffusion1D_params"""
+    Return appropriate lmfit params to pass into diffusion1D_params
+    """
     params = lmfit.Parameters()
     params.add('microns', microns, False, None, None, None)
     params.add('log10D_m2s', log10D_m2s, vD, None, None, None)
@@ -101,8 +97,6 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
      
     If not including data, returns the x vector and model y values.
     With data, return the residual for use in fitting.
-
-    Visualize results with plot_diffusion1D
     """
     # extract important values from parameter dictionary passed in
     p = params.valuesdict()
@@ -193,56 +187,11 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
         return x_microns, model
     return model-data_y_unit_areas
 
-def plot_diffusion1D(x_microns, model, initial_value=None,
-                     fighandle=None, axishandle=None, top=1.2,
-                     style=None, fitting=False, show_km_scale=False,
-                     show_initial=True):
-    """
-    Takes x and y diffusion data and plots 1D diffusion profile input
-    """
-    a_microns = (max(x_microns) - min(x_microns)) / 2.
-    a_meters = a_microns / 1e3
-    
-    if fighandle is None and axishandle is not None:
-        print('Remember to pass in handles for both figure and axis')
-    if fighandle is None or axishandle is None:
-        fig = plt.figure()          
-        ax  = SubplotHost(fig, 1,1,1)
-        ax.grid()
-        ax.set_ylim(0, top)
-    else:
-        fig = fighandle
-        ax = axishandle
-
-    if style is None:
-        if fitting is True:
-            style = {'linestyle' : 'none', 'marker' : 'o'}
-        else:
-            style = styles.style_lightgreen
-
-    if show_km_scale is True:
-        ax.set_xlabel('Distance (km)')
-        ax.set_xlim(0., 2.*a_meters/1e3)
-        x_km = x_microns / 1e6
-        ax.plot((x_km) + a_meters/1e3, model, **style)
-    else:                
-        ax.set_xlabel('position ($\mu$m)')
-        ax.set_xlim(min(x_microns), max(x_microns))
-#        ax.set_xlim(min(x_microns, max(x_microns)))
-        ax.plot(x_microns, model, **style)
-
-    if initial_value is not None and show_initial is True:
-        ax.plot(ax.get_xlim(), [initial_value, initial_value], '--k')
-
-    ax.set_ylabel('Unit concentration or final/initial')
-    fig.add_subplot(ax)
-
-    return fig, ax
-
 def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
-                erf_or_sum='erf', show_plot=True, fighandle=None, axes=None,
-                style=None, infinity=100, points=100, show_km_scale=False,
-                center_x_data=True):
+                erf_or_sum='erf', show_plot=True, 
+                style=styles.style_blue, infinity=100, points=100, 
+                centered=True, axes=None, symmetric=True,
+                maximum_value=1.):
     """
     Simplest implementation for 1D diffusion.
     
@@ -252,32 +201,50 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
     Defaults assume diffusion out, so init=1. and fin=0. 
     Reverse these for diffusion in.
     
+    Change scale of y-values with maximum_value keyword.
+    
     Returns figure, axis, x vector in microns, and model y data.
-    """
-    params = params_setup1D(length_microns, log10D_m2s, time_seconds, 
-                            init, fin, vD=None, vinit=None, vfin=None)
-                            
-    x_microns, model = diffusion1D_params(params, data_x_microns=None, 
-                                          data_y_unit_areas=None, 
-                                          erf_or_sum=erf_or_sum, 
-                                          infinity=infinity, 
-                                          points=points)
+    """    
+    if symmetric is True:
+        params = params_setup1D(length_microns, log10D_m2s, time_seconds,
+                                init=init, fin=fin)
+        x_diffusion, y_diffusion = diffusion1D_params(params, points=points)
+        if centered is False:
+            a_length = (max(x_diffusion) - min(x_diffusion)) / 2
+            x_diffusion = x_diffusion + a_length
+    else:
+        # multiply length by two
+        params = params_setup1D(length_microns*2, log10D_m2s, time_seconds,
+                                init=init, fin=fin)
+        x_diffusion, y_diffusion = diffusion1D_params(params, points=points)        
 
-    if center_x_data is False:
-        a_microns = (max(x_microns) - min(x_microns)) / 2.
-        x_microns = x_microns + a_microns
-
+        # divide elongated profile in half
+        x_diffusion = x_diffusion[int(points/2):]
+        y_diffusion = y_diffusion[int(points/2):]
+        if centered is True:
+            a_length = (max(x_diffusion) - min(x_diffusion)) / 2
+            x_diffusion = x_diffusion - a_length 
 
     if show_plot is True:
-        fig, ax = plot_diffusion1D(x_microns, model, initial_value=init, 
-                                   fighandle=fighandle, axishandle=axes,
-                                   style=style, fitting=False, 
-                                   show_km_scale=show_km_scale)
+        if axes is None:
+            fig = plt.figure()          
+            ax  = SubplotHost(fig, 1,1,1)
+            ax.grid()
+            ax.set_ylim(0, maximum_value)
+            ax.set_xlabel('position ($\mu$m)')
+            ax.set_xlim(min(x_diffusion), max(x_diffusion))
+            ax.plot(x_diffusion, y_diffusion*maximum_value, **style)
+            ax.set_ylabel('Unit concentration or final/initial')
+            fig.add_subplot(ax)
+        else:
+            axes.plot(x_diffusion, y_diffusion*maximum_value, **style)
+            fig = None
+            ax = None            
     else:
         fig = None
         ax = None
     
-    return fig, ax, x_microns, model
+    return fig, ax, x_diffusion, y_diffusion
 
 
 #%% 3-dimensional diffusion parameter setup

@@ -758,7 +758,7 @@ class Spectrum():
         return area
 
     def water(self, phase='cpx', calibration='Bell', numformat='{:.1f}',
-              printout=True, scaling_factor=3):
+              printout=True, scale_water=3):
         """
         Returns the area under the curve and an associated water estimate 
         for a single FTIR spectrum.
@@ -766,7 +766,7 @@ class Spectrum():
         Takes the are under the curve for the existing baseline, and
         multiplies by the absorption coefficient for the specified phase
         (e.g., 'olivine' or default 'cpx') and calibration (default 'Bell')
-        and then multiplies by the scaling_factor (default 3). 
+        and then multiplies by the scale_water (default 3). 
         
         These estimates are not really to be trusted. See, e.g., Withers 2013.
         """
@@ -777,9 +777,9 @@ class Spectrum():
         if printout is True:
             print(self.fname)
             print(''.join(('water: ', numformat.format(w), ' ppm H2O\n *',
-                           str(scaling_factor), ' = ', 
+                           str(scale_water), ' = ', 
                     numformat.format(w*3.), ' ppm H2O')))
-        return w*scaling_factor
+        return w*scale_water
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
                       folder=None, raw_data=False):

@@ -10,7 +10,7 @@ of Spectrum objects, which are defined in a separate module.
 from __future__ import print_function, division, absolute_import
 import numpy as np
 from . import styles
-from . import diffusion
+from . diffusion import models
 from . import pynams
 from .spectra import Spectrum
 import uncertainties
@@ -667,7 +667,7 @@ class Profile():
                           initial_label=None, 
                           phase='olivine',
                           calibration='Bell', 
-                          scaling_factor=3.):
+                          scale_water=3.):
         """
         Plots the area profile. 
         
@@ -684,7 +684,7 @@ class Profile():
         The water estimate defaults to assuming the phase='olivine' and 
         the calibration='Bell' for the work of Dave Bell, but you can use
         any phase and calibration accepted by the function 
-        pynams.absorption_coefficients(). The scaling_factor (default=3)
+        pynams.absorption_coefficients(). The scale_diffusion (default=3)
         is what the resulting water concentration estimated from the single
         profile is multiplied by to get a rough water estimate. These 
         estimates should be viewed with great skepticism, but it's a place to 
@@ -850,7 +850,7 @@ class Profile():
         if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
                                        ' calibration *', 
-                                       str(scaling_factor))))
+                                       str(scale_water))))
 
                 
             abs_coeff = pynams.absorption_coefficients(phase=phase, 
@@ -859,7 +859,7 @@ class Profile():
             # change the water axis limits to the appropriate values
             # based on the absorption coefficient and them multiplied
             # by the orientation factor            
-            ori = scaling_factor
+            ori = scale_water
             ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
         else:
@@ -871,6 +871,65 @@ class Profile():
             return
 
 
+    def plot_diffusion(self, log10D_m2s, time_seconds, 
+                      axes=None, 
+                      show_water_ppm=True,
+                      wholeblock=False,
+                      peak_idx=None, 
+                      centered=True, 
+                      heights_instead=False, 
+                      style=styles.style_points, 
+                      style_diffusion_line=styles.style_blue,
+                      phase='olivine',
+                      calibration='Bell',
+                      scale_water=3,
+                      init=1., 
+                      fin=0.,
+                      erf_or_sum='erf', 
+                      infinity=100, 
+                      points=100, 
+                      symmetric=True,
+                      maximum_value=None):
+
+        """ 
+        Plots area profile and with 1D diffusion profile on top.
+    
+        Returns figure handle and both left and right axes handles
+        like profile.plot_area_profile()
+        
+        Includes most of the keywords from profile.plot_area_profile
+        and diffusion.models.diffusion1D
+        """
+        fig, ax, ax_water = self.plot_area_profile(axes=axes,
+                                       show_water_ppm=show_water_ppm,
+                                       wholeblock=wholeblock,
+                                       peak_idx=peak_idx,
+                                       centered=centered,
+                                       heights_instead=heights_instead,
+                                       style=style,
+                                       phase=phase,
+                                       calibration=calibration,
+                                       scale_water=scale_water)
+        try:
+            length = self.length_microns
+        except AttributeError:
+            length = max(self.positions_microns)
+        
+        if maximum_value is None:
+            try:
+                maximum_value = max(self.areas)
+            except AttributeError:
+                maximum_value = max(self.make_areas_list())
+
+        models.diffusion1D(length, log10D_m2s, time_seconds, init=init, 
+                           fin=fin, erf_or_sum=erf_or_sum, show_plot=True, 
+                           style=style_diffusion_line, infinity=infinity, 
+                           points=points, 
+                           centered=centered, axes=ax, 
+                           symmetric=symmetric, maximum_value=maximum_value)
+       
+        return fig, ax, ax_water
+    
 #    def plot_wb_water(self, polyorder=1, centered=True, style=styles.style_profile):
 #        """Plot area ratios and scale up with initial water"""
 #        if self.sample.initial_water is None:
@@ -966,144 +1025,44 @@ class Profile():
             self.D_area_wb = D
             self.D_area_wb_error = error
 
-    def scaling_factor_picker(self, maximum_value=None, wholeblock=True,
+    def scale_diffusion_picker(self, maximum_value=None, wholeblock=True,
                               heights_instead=False, peak_idx=None):
         """Returns value to scale diffusion to"""
         if maximum_value is not None:
-            scaling_factor = maximum_value
+            scale_diffusion = maximum_value
             
         elif wholeblock is True:
             if peak_idx is None:
-                scaling_factor = self.maximum_wb_area
+                scale_diffusion = self.maximum_wb_area
             else:
                 if heights_instead is False:
-                    scaling_factor = self.peak_maximum_areas_wb[peak_idx]
+                    scale_diffusion = self.peak_maximum_areas_wb[peak_idx]
                 else:
-                    scaling_factor = self.peak_maximum_heights_wb[peak_idx]
+                    scale_diffusion = self.peak_maximum_heights_wb[peak_idx]
         
         else: 
             # bulk water                
             if peak_idx is None:
                 if len(self.areas) < 1:
                     self.make_area_list()
-                if self.maximum_area is not None:
-                    scaling_factor = self.maximum_area
-                else:
-                    scaling_factor = np.max(self.areas)
-                    self.maximum_area = scaling_factor
+                scale_diffusion = np.max(self.areas)
         
             # peak-specific heights                
             elif heights_instead is True: 
                 if self.peak_maximum_heights[peak_idx] != 0.0:
-                    scaling_factor = self.peak_maximum_heights[peak_idx]
+                    scale_diffusion = self.peak_maximum_heights[peak_idx]
                 else:                
-                    scaling_factor = np.max(self.peak_heights[peak_idx])
-                    self.peak_maximum_heights[peak_idx] = scaling_factor
+                    scale_diffusion = np.max(self.peak_heights[peak_idx])
+                    self.peak_maximum_heights[peak_idx] = scale_diffusion
             # peak-specific areas
             else:
                 if self.peak_maximum_areas[peak_idx] != 0.0:
-                    scaling_factor = self.peak_maximum_areas[peak_idx]
+                    scale_diffusion = self.peak_maximum_areas[peak_idx]
                 else:
-                    scaling_factor = np.max(self.peak_areas[peak_idx])
-                    self.peak_maximum_areas[peak_idx] = scaling_factor
+                    scale_diffusion = np.max(self.peak_areas[peak_idx])
+                    self.peak_maximum_areas[peak_idx] = scale_diffusion
     
-        return scaling_factor
-
-    def plot_diffusion(self, log10D_m2s=None, time_seconds=None, 
-                       peak_idx=None, top=1.2, wholeblock=False,
-                       maximum_value=None, style=None, centered=False,
-                       heights_instead=False, points=200., symmetric=True,
-                       labelD=True, labelDx=None, labelDy=None,
-                       erf_or_sum='erf', label4legend=None,
-                       initial_unit_value=1., final_unit_value=0.):
-        """Plot diffusion curve with profile data."""
-        if wholeblock is True and self.initial_profile is None:
-            print('Need to specify an initial profile')
-            return False, False
-        
-        if symmetric is False:
-            centered = False
-            
-        fig, ax = self.plot_area_profile(wholeblock=wholeblock, 
-                                         peak_idx=peak_idx, centered=centered,
-                                         heights_instead=heights_instead)
-                                                       
-        if self.length_microns is not None:
-            microns = self.length_microns
-        elif self.sample.thickness_microns is not None:
-            microns = self.set_len()
-        else:
-            print('\nNeed to set profile length directly or with a sample')
-            return False, False
-
-        # Get time
-        if time_seconds is not None:
-           pass
-        elif self.time_seconds is not None:
-            time_seconds = self.time_seconds
-        else:
-            print('\nNeed to set profile time_seconds attribute')
-            return False, False, False
-
-        # Get diffusivity - input directly or stored in an attribute
-        if log10D_m2s is None:
-           log10D_m2s = self.D_picker(wholeblock, heights_instead, 
-                                      peak_idx)   
-        if log10D_m2s is None:
-            print('\nNeed to set profile bulk or peak diffusivity')
-            return False, False, False
-
-        if peak_idx is not None and self.peakpos is None:
-            self.get_peakfit()
-
-        # Get scaling factor for diffusion curve
-        scaling_factor = self.scaling_factor_picker(maximum_value, 
-                                        wholeblock, heights_instead, peak_idx)
-                        
-        ax.plot(ax.get_xlim(), [scaling_factor, scaling_factor], '--k')
-        print('\nScaling to {:.2f} maximum value'.format(scaling_factor))
-#        print 'You can set maximum_value to scale diffusion curve'
-       
-        # Setup and plot diffusion curves
-        if symmetric is True:
-            params = diffusion.params_setup1D(microns, log10D_m2s, time_seconds,
-                                              init=initial_unit_value, 
-                                              fin=final_unit_value)
-            x_diffusion, y_diffusion = diffusion.diffusion1D_params(params, 
-                                                                    points=points)        
-            if centered is False:
-                x_diffusion = x_diffusion + (self.length_microns/2.)
-        else:
-            params = diffusion.params_setup1D(microns*2, log10D_m2s, 
-                                              time_seconds,
-                                              init=initial_unit_value, 
-                                              fin=final_unit_value)
-            x_diffusion, y_diffusion = diffusion.diffusion1D_params(params, 
-                                                                points=points)        
-            x_diffusion = x_diffusion[int(points/2):]
-            y_diffusion = y_diffusion[int(points/2):]
-
-        ### FINALLY PLOTTING
-        ax.plot(x_diffusion, y_diffusion*scaling_factor, label=label4legend)
-            
-            
-        # label diffusivity on plot
-        if labelD is True:
-            if labelDx is None:
-                if centered is True:
-                    labelDx = -microns/2.
-                else:
-                    labelDx = self.length_microns * 0.05
-            if labelDy is None:
-                top = ax.get_ylim()[1]
-                labelDy = top-0.15*top
-            strD = "{:.2f}".format(log10D_m2s) 
-            
-            ax.text(labelDx, labelDy,
-                    ''.join(('  D=10$^{', strD, '}$ m$^2$/s')), 
-                    ha='left', fontsize=16, backgroundcolor='w') 
-                  
-        return fig, ax
+        return scale_diffusion
 
     def diffusion_residuals(self, time_seconds, log10D_m2s, wholeblock=True,
                             heights_instead=False, peak_idx=None,
@@ -1122,7 +1081,7 @@ class Profile():
                 self.get_peakfit()
 
         y = self.y_data_picker(wholeblock, heights_instead, peak_idx)
-        scaling_factor = self.scaling_factor_picker(maximum_value, 
+        scale_diffusion = self.scale_diffusion_picker(maximum_value, 
                                         wholeblock, heights_instead, peak_idx)
         
         x = self.positions_microns
@@ -1130,24 +1089,24 @@ class Profile():
         t = time_seconds
 
         # Need to work on this        
-        init = scaling_factor
+        init = scale_diffusion
             
         fin = final_unit_value
         
-        params = diffusion.params_setup1D(L, log10D_m2s, t, init, fin, 
+        params = models.params_setup1D(L, log10D_m2s, t, init, fin, 
                                           False, False, False)
 
-        xdif, model = diffusion.diffusion1D_params(params)
-        resid = diffusion.diffusion1D_params(params, x, y)
+        xdif, model = models.diffusion1D_params(params)
+        resid = models.diffusion1D_params(params, x, y)
         RSS = np.sum(resid**2)
 #        plt.plot(x-L/2., y, '+k')
 #        plt.plot(xdif, model, '-r')
         
         if show_plot is True:
-            f, ax = self.plot_diffusion(log10D_m2s, t, peak_idx, top,
-                                        wholeblock=wholeblock, 
-                                        heights_instead=heights_instead,
-                                        maximum_value=maximum_value)
+            f, ax, ax2 = self.plot_diffusion(log10D_m2s, t, peak_idx, top,
+                                             wholeblock=wholeblock, 
+                                             heights_instead=heights_instead,
+                                             maximum_value=maximum_value)
         return resid, RSS
             
 #    def fitD(self, time_seconds=None, points=200, 
@@ -1177,8 +1136,8 @@ class Profile():
 #        
 #        ### Choose y data to fit to ###
 #        y = self.y_data_picker(wholeblock, heights_instead, peak_idx)
-#        scaling_factor = max(y)
-#        y = y / scaling_factor # scale down to unit, so y range between 0 and 1
+#        scale_diffusion = max(y)
+#        y = y / scale_diffusion # scale down to unit, so y range between 0 and 1
 #        
 #        # Set up x data and other parameters
 #        x = self.positions_microns
@@ -1203,7 +1162,7 @@ class Profile():
 #        best_init = ufloat(params['initial_unit_value'].value, 
 #                         params['initial_unit_value'].stderr)   
 #        print('best-fit log10D m2/s', best_D)
-#        print('best-fit initial    ', best_init*scaling_factor)
+#        print('best-fit initial    ', best_init*scale_diffusion)
 
 #        # save results as attributes
 #        # Use save_diffusivities to save to a file
@@ -1239,7 +1198,7 @@ class Profile():
 #                                              maximum_value=best_init.n)
 #        # report results
 #        print('\ntime in hours:', params['time_seconds'].value / 3600.)
-#        print('initial unit value:', '{:.2f}'.format(best_init*scaling_factor))
+#        print('initial unit value:', '{:.2f}'.format(best_init*scale_diffusion))
 #        print('bestfit log10D in m2/s:', '{:.2f}'.format(best_D))
 #        print('residual sum of squares', '{:.2f}'.format(RSS))
 #        if show_plot is True:
@@ -1250,7 +1209,7 @@ class Profile():
 #                                          centered=centered,
 #                                          symmetric=symmetric,
 #                                          heights_instead=heights_instead, 
-#                                          maximum_value=best_init.n*scaling_factor,
+#                                          maximum_value=best_init.n*scale_diffusion,
 #                                          final_unit_value=final_unit_value
 #                                          )
 #            return fig, ax
@@ -1488,7 +1447,7 @@ class TimeSeries(Profile):
 
         # curves for diffusivities in D_list    
         for D in D_list:
-             t, cc = diffusion.diffusionThinSlab(log10D_m2s=D, 
+             t, cc = models.diffusionThinSlab(log10D_m2s=D, 
                                         thickness_microns=thickness_microns, 
                                         max_time_hours=max_hours)
              ax.plot(t, cc, '-k', linewidth=1)

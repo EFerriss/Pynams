@@ -16,7 +16,7 @@ import numpy as np
 style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
                 'fillstyle' : 'full', 'linestyle' : 'none',}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
-
+style_blue = {'color' : 'blue', 'linestyle' : '-', 'marker': None}
 #style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
 #                     'fillstyle' : 'none', 'linestyle' : 'none', 
 #                     'linewidth' : 1, 'alpha' : 1}
