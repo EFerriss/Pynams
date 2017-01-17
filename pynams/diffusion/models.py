@@ -62,7 +62,7 @@ def diffusionThinSlab(log10D_m2s, thickness_microns, max_time_hours=2000,
 
 #%% 1D diffusion profiles
 def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
-                   vD=True, vinit=False, vfin=False):
+                   vD=True, vinit=False, vfin=False, vTime=False):
     """
     Takes required info for diffusion in 1D - length, diffusivity, time,
     and whether or not to vary them - vD, vinit, vfin. 
@@ -71,13 +71,13 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
     params = lmfit.Parameters()
     params.add('microns', microns, False, None, None, None)
     params.add('log10D_m2s', log10D_m2s, vD, None, None, None)
-    params.add('time_seconds', time_seconds, False, None, None, None)
+    params.add('time_seconds', time_seconds, vTime, None, None, None)
     params.add('initial_unit_value', init, vinit, None, None, None)
     params.add('final_unit_value', fin, vfin, None, None, None)
     return params
 
 def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', need_to_center_x_data=True,
+                 erf_or_sum='erf', centered=True, symmetric=True,
                  infinity=100, points=50):
     """
     Function set up to follow lmfit fitting requirements.
@@ -92,6 +92,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
      - erf_or_sum: whether to use python's error functions (default) 
        or infinite sums
      - whether to center x data
+     - whether the profile is symmetric or not. If not, change is to the right.
      - points sets how many points to calculate in profile. Default is 50.
      - what 'infinity' is if using infinite sum approximation
      
@@ -133,14 +134,14 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
             print('y', len(data_y_unit_areas))
         
     # x is in meters and assumed centered around 0
-    if fitting is True:
+    if fitting is True:            
         # Change x to meters and center it
         x = np.array(data_x_microns) / 1e6
-        if need_to_center_x_data is True:
-            x = x - a_meters
+        x = x - a_meters
     else:
         x = np.linspace(-a_meters, a_meters, points)
     
+    # Make the infinite sum
     if erf_or_sum == 'infsum':
         xsum = np.zeros_like(x)
         for n in range(infinity):
@@ -151,7 +152,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
                             (-D * (((2.*n)+1.)**2.) * (np.pi**2.) * t) / 
                             (twoA**2.) 
                             )                        
-            # There the position values come in to create the profile
+            # Where the position values come in to create the profile
             xadd3 = np.cos(
                             ((2.*n)+1.) * np.pi * x / twoA
                             )        
@@ -160,12 +161,16 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
             
         model = xsum * 4. / np.pi
     
-
+    # Or make the error function
     elif erf_or_sum == 'erf':
+        if symmetric is False:
+            a_meters = a_meters*2
+            x = x*2
+            
         sqrtDt = (D*t)**0.5
         model = ((scipy.special.erf((a_meters+x)/(2*sqrtDt))) + 
                    (scipy.special.erf((a_meters-x)/(2*sqrtDt))) - 1) 
-
+        
     else:
         print ('erf_or_sum must be set to either "erf" for python built-in ' +
                'error function approximation (defaul) or "sum" for infinite ' +
@@ -180,7 +185,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
     model = (model * concentration_range) + minimum_value
 
     x_microns = x * 1e6
-
+    
     # If not including data, just return the model values
     # With data, return the residual for use in fitting.
     if fitting is False:
