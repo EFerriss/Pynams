@@ -245,17 +245,26 @@ class Diffusivities():
 #        self.logDy_error = error[1]
 #        self.logDz_error = error[2]
 
-    def plotD(self, fig_axis, orient='ALL', plotdata=True,
+    def plotD(self, axes, orient='ALL', plotdata=True,
               offset_celsius=0, plotline=True, extrapolate_line=False,
-              show_error=True, legend_add=False, legendlabel=None, 
-              legend_handle=None, style=None, ecolor=None, 
-              style_line=None, label=None, oriented_shading=True):
-        """Takes axis label for Arrhenius diagram created by 
+              show_error=True, legend_add=False, 
+              legend_handle=None, style=styles.style_points.copy(), 
+              error_color=None, lower_legend_by=-2.0,
+              style_line=styles.style_1, label=None):
+        """
+        Takes axes handle for Arrhenius diagram created by 
         Arrhenius_outline() below and plots data (plotdata=True) and 
-        best-fit line (plotline=True) for specified orientations, 
-        default: orient='ALL'. If extrapolate_line=True, the line will
-        be extended all the way to the edges of the plot. You can also 
-        add it to the legend or not."""
+        best-fit line (plotline=True) for specified orientations in
+        orient (default='ALL'). 
+        
+        If extrapolate_line=True, the line will be extended all the way 
+        to the edges of the plot. 
+        
+        You can also add it to the legend (default) or not (legend_add=False).
+        If you are adding to the legend, you *must* also pass in the 
+        legend_handle, which was returned by Arrhenius_outline()
+        
+        """
         if orient == 'ALL':
             orient_list = list(range(4))
         else:
@@ -279,13 +288,7 @@ class Diffusivities():
                     label = '|| [001]'
                 elif iorient == 3:
                     label = 'not oriented'                   
-
-            if style is None:
-                style, _ = self.make_styles(iorient)
 #    
-            if (style_line is None) and (plotline is True):
-                _, style_line = self.make_styles(iorient)
-#                
             if legend_add is True and legend_handle is None:
                 print(self.description)
                 print('Need legend_handle for legend')
@@ -312,9 +315,9 @@ class Diffusivities():
 
             if show_error is True:
                 if len(Derror) > 0:
-                    if ecolor is None:
-                        ecolor = style['color']
-                    fig_axis.errorbar(x, logD, yerr=Derror, ecolor=ecolor,
+                    if error_color is None:
+                        error_color = style['color']
+                    axes.errorbar(x, logD, yerr=Derror, ecolor=error_color,
                                       fmt=None)
 
             if plotline is True:
@@ -331,23 +334,26 @@ class Diffusivities():
                 p = np.polyfit(x, logD, 1)
                 
                 if extrapolate_line is True:
-                    extrap = fig_axis.get_xlim()
-                    fig_axis.plot(extrap,np.polyval(p, extrap), **style_line)
+                    extrap = axes.get_xlim()
+                    axes.plot(extrap,np.polyval(p, extrap), **style_line)
                 else:
-                    fig_axis.plot(T,np.polyval(p, T), **style_line)
+                    axes.plot(T,np.polyval(p, T), **style_line)
                    
-            fig_axis.plot(x, logD, label=legendlabel, **style)
+            if label is not None:
+                style['label'] = label
+            if plotdata is True:
+                axes.plot(x, logD, **style)
             
-            if legend_add is True:
-                self.add_to_legend(fig_axis, legend_handle, style=style,
-                                   style_line=style_line, plotline=plotline,
-                                   oriented_shading=oriented_shading)
-    
+        if legend_add is True:
+            self.add_to_legend(axes, legend_handle, style=style,
+                               style_line=style_line, plotline=plotline,
+                               lower_legend_by=lower_legend_by)
+
             
-    def add_to_legend(self, fig_axis, legend_handle_list, sunk=-2.0,
+    def add_to_legend(self, axes, legend_handle, lower_legend_by=-2.0,
                       orient=None, plotline=False,
-                      ncol=2, oriented_shading=False, 
-                      style=None, style_line=None, label=None):
+                      ncol=2, style=styles.style_points.copy(), 
+                      style_line=styles.style_1, label=None):
         """Take a figure axis and its list of legend handles 
         and adds information to it"""
         if label is None:
@@ -358,29 +364,23 @@ class Diffusivities():
                descript = self.description
         else:
             descript = label
+        style['label'] = descript
 
-        if style is None:
-            style, _ = self.make_styles(orient)
-
-        if plotline is True:
-            if style_line is None:
-                _, style_line = self.make_styles(orient)
-            style['linestyle'] = style_line['linestyle']
+        add_marker = mlines.Line2D([], [], **style) 
         
-        add_marker = mlines.Line2D([], [], label=descript, **style) 
+        legend_handle.append(add_marker)
         
-        legend_handle_list.append(add_marker)
-        
-        low = fig_axis.get_xlim()[0]
-        high = fig_axis.get_xlim()[1]
-        bottom = fig_axis.get_ylim()[0]
-        main_legend = plt.legend(handles=legend_handle_list, 
+        low = axes.get_xlim()[0]
+        high = axes.get_xlim()[1]
+        bottom = axes.get_ylim()[0]
+        main_legend = plt.legend(handles=legend_handle, 
                                  numpoints=1, ncol=ncol, 
-                                 bbox_to_anchor=(low, bottom, high-low, sunk),
-                                 bbox_transform=fig_axis.transData, 
+                                 bbox_to_anchor=(low, bottom, high-low, 
+                                                 lower_legend_by),
+                                 bbox_transform=axes.transData, 
                                  mode='expand')
         plt.gca().add_artist(main_legend)
-        return legend_handle_list
+        return legend_handle
 
 generic = Diffusivities()
 generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
@@ -388,10 +388,23 @@ generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
 
 def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
                       celsius_labels = np.arange(0, 2000, 100),
-                      figsize_inches = (6, 4), shrinker_for_legend = 0.3,
-                      generic_legend=True, sunk=-2., ncol=2):
-    """Make Arrhenius diagram outline. Returns figure, axis, legend handle"""
-    fig = plt.figure(figsize=figsize_inches)
+                      shrink_axes_to_fit_legend_by = 0.3, make_legend=False,
+                      lower_legend_by=-2., ncol=2):
+    """
+    Make Arrhenius diagram outline. 
+    
+    Returns figure, axis, legend handle.
+    
+    low, high, top, and bottom set the x and y axis limits. 
+
+    celsius_labels sets where to make the temperature tick marks.
+    
+    If you have issues with the legend position or overlap with main diagram,
+    play with the numbers for shrink_legend_by and lower_legend_by
+    
+    ncol sets the number of columns in the legend.
+    """
+    fig = plt.figure()
     ax = SubplotHost(fig, 1,1,1)
     ax_celsius = ax.twin()
     parasite_tick_locations = 1e4/(celsius_labels + 273.15)
@@ -408,21 +421,27 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
     ax.grid()
     
     # main legend below
-    legend_handles_main = []
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0 + box.height*shrinker_for_legend, 
-                     box.width, box.height*(1.0-shrinker_for_legend)])
-    main_legend = plt.legend(handles=legend_handles_main, numpoints=1, 
-                             ncol=ncol, 
-                             bbox_to_anchor=(low, bottom, high-low, sunk),
-                             bbox_transform=ax.transData, mode='expand')
-    plt.gca().add_artist(main_legend)
+    if make_legend is True:
+        legend_handles_main = []
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0 + box.height*shrink_axes_to_fit_legend_by, 
+                         box.width, box.height*(1.0-shrink_axes_to_fit_legend_by)])
+        main_legend = plt.legend(handles=legend_handles_main, numpoints=1, 
+                                 ncol=ncol, 
+                                 bbox_to_anchor=(low, bottom, high-low, 
+                                                 lower_legend_by),
+                                 bbox_transform=ax.transData, mode='expand')
+        plt.gca().add_artist(main_legend)
+    else:
+        legend_handles_main = None
     return fig, ax, legend_handles_main
 
 def Arrhenius_add_line(fig_ax, Ea, D0, low=6.0, high=10.0, 
                        style={'color' : 'k', 'linestyle' : '-'}):
-    """Takes figure axis from above, Ea activation energy in kJ/mol, D0 in m2/s
-    Plots Arrhenius line from 1E4/T = low to high"""
+    """
+    Takes figure axis from above, Ea activation energy in kJ/mol, D0 in m2/s
+    Plots Arrhenius line from 1E4/T = low to high
+    """
     T = 1E4 / np.linspace(low, high) 
     log10D = np.log10(D0) - (Ea/(2.303 * GAS_CONSTANT * T))
     fig_ax.plot(1E4 / T, log10D, **style)
