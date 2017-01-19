@@ -59,6 +59,9 @@ class Sample():
         self.length_a_microns = length_a_microns
         self.length_b_microns = length_b_microns
         self.length_c_microns = length_c_microns
+        self.thicknesses_microns = [length_a_microns, 
+                                    length_b_microns,
+                                    length_c_microns]
         self.Fe2 = Fe2
         self.Fe3 = Fe3
         self.Mg = Mg

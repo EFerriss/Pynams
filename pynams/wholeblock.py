@@ -84,7 +84,7 @@ class WholeBlock():
                 prof.make_spectra()
                 
             for spec in prof.spectra:
-                if spec.thickness_microns is None and self.sample is not None:
+                if self.sample is not None:
                     if prof.raypath == 'a':
                         spec.thickness_microns = np.mean(self.sample.length_a_microns)
                     elif prof.raypath == 'b':
@@ -126,7 +126,7 @@ class WholeBlock():
                 print(prof.initial_profile.spectra[0].base_low_wn, end=' ') 
                 print(prof.initial_profile.spectra[0].base_high_wn)
 
-    def get_baselines(self, initial_too=False, folder=None, delim=',', 
+    def get_baselines(self, initial_too=True, folder=None, delim=',', 
                       baseline_ending='-baseline.CSV'):
         """Get baselines for all spectra in whole block"""
         if self.initial_profiles is None:
@@ -148,15 +148,12 @@ class WholeBlock():
                 spec.plot_showbaseline()
 
 
-    def make_area_lists(self, polyorder=1, show_plot=False, set_class=None,
-                       shiftline=None, printout_area=False, peak=None):
-            """Make list of areas from all profiles"""
-            self.areas = []
+    def make_area_lists(self, show_plot=False, printout_area=False, peak=None):
+            """
+            Make list of areas from all profiles, including whole-block areas.
+            """
             for prof in self.profiles:
-                a = prof.make_area_list(polyorder, show_plot, set_class,
-                                        shiftline, printout_area, peak)
-                self.areas.append(a)
-           
+                prof.make_wholeblock()
 
     def plot_spectra(self, profile_idx=None, show_baseline=True, 
                      show_initial_ave=True,
@@ -259,13 +256,11 @@ class WholeBlock():
                 
                 # whole-block
                 if wholeblock is True:
-                    if prof.wb_areas is None:
-                        print('\nMaking whole block area ratios')
-                        check = prof.make_wholeblock(peakfit=False, bulk=True,
-                                                     show_plot=False)
-                        if check is False:
-                            return False        
-                    y_to_add = prof.wb_areas
+                    try:
+                        y_to_add = prof.wb_areas
+                    except AttributeError:
+                        prof.make_wholeblock(peakfit=False, show_plot=False)
+                        y_to_add = prof.wb_areas
                 
                 # absolute areas
                 else:
@@ -305,7 +300,7 @@ class WholeBlock():
             
         return positions, y
 
-    def plot_areas_3panels(self, peak_idx=None, fig_ax3=None, centered=True,
+    def plot_areas_3panels(self, peak_idx=None, axes3=None, centered=False,
                            top=None, wn=None, figsize=(6.5, 2.5), 
                            show_spectra=True, percent_error=0., 
                            xerror=0., yerror=None, pie=True,
@@ -313,28 +308,25 @@ class WholeBlock():
                            styles3=[styles.style_points]*3,
                            use_area_profile_styles=True, unit='microns',
                            heights_instead=False, wholeblock=True,
-                           show_line_at_1=True, get_saved_baseline=True,
+                           show_line_at_1=True, 
                            show_errorbars=True, peak_group=None):
         """Plot whole-block ratio of Area/Initial Area (default) 
         OR just areas (set wholeblock=False) on three panels"""
-#        if get_saved_baseline is True:
-#            self.get_baselines()
-#
-        if wholeblock is True:
-            if ((self.directions is None) or (self.raypaths is None) or
-                (self.initial_profiles is None) or (self.lengths is None)):
-                    check = self.setupWB(make_wb_areas=False, peakfit=False)
-                    if check is False:
-                        print('Problem setting up whole block in setupWB')                    
-                        return False
+#        if wholeblock is True:
+#            if ((self.directions is None) or (self.raypaths is None) or
+#                (self.initial_profiles is None) or (self.lengths is None)):
+#                    check = self.setupWB(make_wb_areas=False, peakfit=False)
+#                    if check is False:
+#                        print('Problem setting up whole block in setupWB')                    
+#                        return False
+        self.make_area_lists()
         
         if peak_idx is not None:
             for prof in self.profiles:
                 for spec in prof.spectra:
                     if spec.peak_areas is None:
                         spec.get_peakareas()    
-
-        peakpos = self.profiles[0].peakpos
+            peakpos = self.profiles[0].peakpos
 
         # concatenate positions and areas across three profiles to 
         # send in to the plotting function
@@ -386,8 +378,8 @@ class WholeBlock():
             return
                 
         # Sent positions and areas to plotting command
-        if fig_ax3 is not None:
-            styles.plot_3panels(positions, y, lengths, figaxis3=fig_ax3,
+        if axes3 is not None:
+            styles.plot_3panels(positions, y, lengths, figaxis3=axes3,
                                 styles3=styles3, top=top, wholeblock=wholeblock,
                                 show_line_at_1=show_line_at_1,
                                 heights_instead=heights_instead,
@@ -396,7 +388,7 @@ class WholeBlock():
                                 yerror=yerror, unit=unit,
                                 percent_error=percent_error,
                                 xerror=xerror, centered=centered)
-            fig_ax3[1].set_title(tit)                                
+            axes3[1].set_title(tit)                                
         else:
             fig, ax = styles.plot_3panels(positions, y, lengths,
                                           styles3=styles3, top=top, 
@@ -476,37 +468,57 @@ class WholeBlock():
                 print(spec_list)
                 print(' ')
 
-    def make_profile_list(self, initial_too=False):
+    def make_profiles(self, initial_too=False):
         """Return False or a list of profiles"""
         if initial_too is True:
             if self.initial_profiles is None:
                 self.setupWB()
             if self.initial_profiles is None:
                 print('No initial profiles')
-                profile_list = self.profiles
+                profiles = self.profiles
             else:
-                profile_list = self.initial_profiles + self.profiles
+                profiles = self.initial_profiles + self.profiles
         else:
-            profile_list = self.profiles
-        return profile_list
+            profiles = self.profiles
+        return profiles
 
-    def make_baselines(self, initial_too=False, linetype='line', 
-                       wn_high=3700., wn_low=3200., shiftline=None, 
-                       show_fit_values=False, show_plot=False,
-                       wn_mid=None): 
-        """Make spectra baselines for all spectra in all profiles in 
-        whole-block"""        
-        profile_list = self.make_profile_list(initial_too)        
-        for prof in profile_list:
-            prof.make_baselines(linetype=linetype, shiftline=shiftline, 
-                                show_fit_values=show_fit_values, 
-                                show_plot=show_plot, wn_mid=wn_mid,
-                                wn_high=wn_high, wn_low=wn_low) 
+    def make_baselines(self,
+                      raw_data=False, 
+                      wn_low=3200, 
+                      wn_high=3700, 
+                      linetype='line', 
+                      spline_type='quadratic', 
+                      curvature=None, 
+                      force_quadratic_through_wn=None,
+                      show_fit_values=False, 
+                      show_plot=False,
+                      abs_high=None, 
+                      abs_low=None,
+                      abs_smear_high=0, 
+                      abs_smear_low=0,
+                      store_baseline=True
+                      ):
+        """
+        Make spectra baselines for all spectra whole-block
+        """  
+
+        for prof in self.profiles:
+            prof.make_baselines(raw_data=raw_data, wn_low=wn_low, 
+                               wn_high=wn_high, linetype=linetype, 
+                               spline_type=spline_type, 
+                               curvature=curvature,
+                               force_quadratic_through_wn=force_quadratic_through_wn,
+                               show_fit_values=show_fit_values,
+                               show_plot=show_plot, abs_high=abs_high,
+                               abs_low=abs_low, 
+                               abs_smear_high=abs_smear_high,
+                               abs_smear_low=abs_smear_low,
+                               store_baseline=store_baseline)
 
     def save_baselines(self, initial_too=True):
         """Make and save spectra baselines for all spectra."""
-        profile_list = self.make_profile_list(initial_too)
-        for prof in profile_list:
+        profiles = self.make_profiles(initial_too)
+        for prof in profiles:
             for spectrum in prof.spectra:
                 spectrum.save_baseline()
 
