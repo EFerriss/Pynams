@@ -13,7 +13,7 @@ setup(
     author_email = 'elizabeth.ferriss@gmail.com',
     url = 'https://github.com/EFerriss/Pynams',
     version = "0.2.0",
-    packages = ['pynams', 'pynams.diffusion'],
+    packages = ['pynams', 'pynams.diffusion', 'pynams.example_FTIR_spectra'],
     name = "pynams",
     install_requires = ['lmfit==0.8.0', 'uncertainties==3.0.1']
 )
