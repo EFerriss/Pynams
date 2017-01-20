@@ -907,8 +907,7 @@ class Spectrum():
         return data                            
                 
     def get_peakfit(self, folder=None, delim=',', 
-                    peak_ending='-peakfit.CSV', 
-                    baseline_ending='-baseline.CSV'):
+                    peak_ending='-peakfit.CSV'):
         """
         Get individual peaks for spectrum from fname-peakfit.CSV generated
         in MATLAB using peakfit.m looping script and savefit.m
@@ -935,6 +934,9 @@ class Spectrum():
             self.peak_heights = peak_heights
             self.peak_widths = peak_widths
             self.peak_areas = peak_areas
+            
+            print('Got peak info from', filename)
+            
         else:
             print(' ')            
             print(self.fname)
