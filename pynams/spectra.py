@@ -909,9 +909,11 @@ class Spectrum():
     def get_peakfit(self, folder=None, delim=',', 
                     peak_ending='-peakfit.CSV', 
                     baseline_ending='-baseline.CSV'):
-        """Get individual peaks for spectrum from fname-peakfit.CSV generated
+        """
+        Get individual peaks for spectrum from fname-peakfit.CSV generated
         in MATLAB using peakfit.m looping script and savefit.m
-        Return curves (assumes Gaussians) and summation"""
+        Return curves (assumes Gaussians) and summation.
+        """
         if folder is None:
             folder = self.folder
         filename = folder + self.fname + peak_ending
@@ -938,24 +940,22 @@ class Spectrum():
             print(self.fname)
             print('Remember to savefit.m after fitting in matlab')
             return False, False
-
-        if self.base_wn is None:
-            self.get_baseline(baseline_ending=baseline_ending)
         
+    def get_peakcurves(self):
+        """
+        Generates Gaussian curves from peakfitting info. 
         
-    def get_peakcurves(self, folder=None, delim=',', 
-                       peak_ending='-peakfit.CSV', 
-                       baseline_ending='-baseline.CSV'):
-        """Generates Gaussian curves from peakfitting info. 
-        Requires peak_ending and baseline_ending to find the 
-        right files.
+        Requires both peak fitting information and a baseline.
+        
         Returns (1) peakfitcurves, all of the individual gaussians,
-        and (2) summed_spectrum, the sum of all the peakfitcurvesb"""
-        if self.peakpos is None:
-            self.get_peakfit(peak_ending=peak_ending,
-                             baseline_ending=baseline_ending)
-                             
-        peakfitcurves = np.ones([len(self.peakpos), len(self.base_wn)])
+        and (2) summed_spectrum, the sum of all the peakfitcurvesb
+        """
+        try:
+            peakfitcurves = np.ones([len(self.peakpos), len(self.base_wn)])
+        except AttributeError:
+            print('Remember to run both get_peakfit and get_baseline')
+            return False, False
+            
         summed_spectrum = np.zeros_like(self.base_wn)
         for k in range(len(self.peakpos)):
             peakfitcurves[k] = pynams.make_gaussian(x=self.base_wn, 
@@ -995,9 +995,7 @@ class Spectrum():
         self.peak_widths = np.append(self.peak_widths, peak_width_new)
         self.peak_areas = np.append(self.peak_areas, peak_area_new)
         
-    def plot_peakfit(self, peak_ending='-peakfit.CSV', 
-                     baseline_ending='-baseline.CSV',
-                     style=styles.style_spectrum, 
+    def plot_peakfit(self, style=styles.style_spectrum, 
                      stylesum=styles.style_summed, 
                      axes = None, legend=True,
                      stylepeaks=styles.style_fitpeak, top=None, legloc=1):
@@ -1008,21 +1006,22 @@ class Spectrum():
         up."""
         # Take baseline-subtracted spectrum from saved file every time 
         # to avoid any possible funny business from playing with baselines
-        reload(styles)
-        gaussian, summed_spectrum = self.get_peakcurves(peak_ending=peak_ending, 
-                                                        baseline_ending=baseline_ending)        
-        if gaussian is False:
-            return
-        
-        wn, observed = self.get_baseline(baseline_ending=baseline_ending)
 
+        gaussian, summed_spectrum = self.get_peakcurves() 
+        
+        if gaussian is False:
+            return False, False
+        
         if axes is None:
-            fig, ax = self.plot_subtractbaseline(style=style, label='') 
+            try:
+                fig, ax = self.plot_subtractbaseline(style=style, label='') 
+            except AttributeError:
+                print('Remember to make or get baseline')
         else: 
             ax = axes
             
-        ax.plot(wn, observed, label='observed', **style)
-        ax.plot(wn, gaussian[0], label='fit bands', **stylepeaks)
+        ax.plot(self.base_wn, self.abs_nobase_cm, label='observed', **style)
+        ax.plot(self.base_wn, gaussian[0], label='fit bands', **stylepeaks)
         ax.plot(self.base_wn, summed_spectrum, label='peak sum', **stylesum)
         
         if axes is None:
