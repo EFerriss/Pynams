@@ -1173,6 +1173,8 @@ class Profile():
                         params['log10D_m2s'].stderr)
         best_init = ufloat(params['initial_unit_value'].value, 
                          params['initial_unit_value'].stderr)
+        best_final = ufloat(params['final_unit_value'].value, 
+                         params['final_unit_value'].stderr)
         best_time = ufloat(params['time_seconds'].value,
                            params['time_seconds'].stderr)
 #        print('best-fit log10D m2/s', best_D)
@@ -1207,6 +1209,7 @@ class Profile():
 
         # report results
         print('initial:', '{:.2f}'.format(best_init*scale_diffusion))
+        print('final:', '{:.2f}'.format(best_final*scale_diffusion))
         print('log10D m2/s:', '{:.2f}'.format(best_D))
 #        print('residual sum of squares', '{:.2f}'.format(RSS))
         print('hours:', '{:.2f}'.format(best_time/3600))
@@ -1219,8 +1222,7 @@ class Profile():
                                    symmetric=symmetric,
                                    heights_instead=heights_instead, 
                                    maximum_value=best_init.n*scale_diffusion,
-                                   fin=final_unit_value
-                                               )
+                                   fin=best_final.n)
         return best_D, best_init*scale_diffusion, RSS
 
     def save_diffusivities(self, folder=None, 
