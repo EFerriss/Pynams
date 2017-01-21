@@ -847,14 +847,15 @@ class Profile():
         ax.set_title(tit)
 
         if show_water_ppm is True:
+            abs_coeff = pynams.absorption_coefficients(phase=phase, 
+                                                       calibration=calibration)
+            if abs_coeff is False:
+                show_water_ppm = False
+
+        if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
                                        ' calibration *', 
-                                       str(scale_water))))
-
-                
-            abs_coeff = pynams.absorption_coefficients(phase=phase, 
-                                                       calibration=calibration
-                                                       )
+                                       str(scale_water))))                
             # change the water axis limits to the appropriate values
             # based on the absorption coefficient and them multiplied
             # by the orientation factor            
@@ -862,7 +863,7 @@ class Profile():
             ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
         else:
-            ax_ppm = None
+            ax_ppm.get_yaxis().set_visible(False)
 
         if axes is None:
             return f, ax, ax_ppm

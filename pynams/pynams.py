@@ -13,10 +13,25 @@ import numpy as np
 
 def absorption_coefficients(phase, calibration):
     """
-    Input the phase (olivine or cpx) and calibration reference
-    (Bell or Withers), and it returns the absorption coefficient.
+    Input the phase ('ol' or olivine' for olivine or 'cpx' or 'clinopyroxene'
+    for clinopyroxen) and the calibration reference
+    ('Bell' or 'Withers' for olivine, 'Bell' for cpx), 
+    and it returns the absorption coefficient.
     This is so you don't have to look it up over and over again.
+    
+    References:
+        Bell et al. 1995 American Mineralogist for cpx
+        Bell et al. 2003 JGR for olivine
+        Withers et al. 2012 Chemical Geology for olivine
     """
+    if phase == 'ol' or phase == 'olivine':
+        phase = 'olivine'
+    elif phase == 'clinopyroxene' or phase == 'cpx':
+        phase = 'cpx'
+    else:
+        print("phase='ol', 'olivine', 'cpx', or 'clinopyroxene' only for now")
+        return False
+    
     if (calibration == 'Bell') and (phase=='cpx'):
         absorption_coeff = 1.0 / ufloat(7.09, 0.32)
 
@@ -33,7 +48,7 @@ def absorption_coefficients(phase, calibration):
         print('   Bell et al. 1995 for cpx')
         print('   Bell et al. 2003 for olivine')
         print('   Withers et al. 2012 for olivine')
-        return
+        return False
 
     return absorption_coeff        
     
