@@ -505,7 +505,8 @@ class Spectrum():
         the line between wn_low and wn_high.
         
         Alternatively, set force_quadratic_through_wn, and a quadratic
-        will be fit through the absorbance at the wavenumber input in cm-1.
+        will be fit through the absorbance at the wavenumber(s) input in cm-1.
+        You can pass in a single wavenumber or a list of wavenumbers.
 
         For noisy data, try setting abs_smear_high and low to fit to 
         average absorbances around wn_low and wn_high. 10 is usually a 
@@ -582,17 +583,27 @@ class Spectrum():
             base_abs = np.polyval(p, base_wn)
 
         elif linetype == 'quadratic':            
-            # add in a point to fit curve to
             if force_quadratic_through_wn is not None:
-                try:
-                    forcewn = force_quadratic_through_wn
-                    index_mid = (np.abs(self.wn_full - forcewn)).argmin()
-                    abs_at_wn_mid = absorbance[index_mid]
-                    xadd = force_quadratic_through_wn
-                    yadd = abs_at_wn_mid                    
-                except TypeError:
-                    print('force_quadratic_through_wn must be a number, ')
-                    print('the wavenumber in cm-1 you want to fit through')
+                if isinstance(force_quadratic_through_wn, list):
+                    xadd = []
+                    yadd = []
+                    for forcewn in force_quadratic_through_wn:
+                        index_mid = (np.abs(self.wn_full - forcewn)).argmin()
+                        abs_at_wn_mid = absorbance[index_mid]
+                        xadd.append(forcewn)
+                        yadd.append(abs_at_wn_mid)
+                else:                        
+                    try:
+                        forcewn = force_quadratic_through_wn
+                        index_mid = (np.abs(self.wn_full - forcewn)).argmin()
+                        abs_at_wn_mid = absorbance[index_mid]
+                        xadd = force_quadratic_through_wn
+                        yadd = abs_at_wn_mid                    
+                    except TypeError:
+                        print('force_quadratic_through_wn must be a number, ')
+                        print('the wavenumber in cm-1 you want to fit through')
+                        print('or a list of wavenumbers')
+                        return
             elif curvature is not None:
                 yshift = curvature
                 xadd = wn_mid
