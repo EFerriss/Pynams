@@ -491,7 +491,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     raypathC = v.mean(axis=2)
 
     # Specify whole-block profiles in model
-    mid = points/2
+    mid = int(points/2)
     if raypaths[0] == 'b':
         wbA = raypathB[:, mid]
     elif raypaths[0] == 'c':

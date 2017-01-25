@@ -18,6 +18,7 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pynams.styles as styles
 import scipy.interpolate as interp
+import pandas as pd
 #from .uncertainties import ufloat
 from uncertainties import ufloat
 from . import pynams
@@ -793,7 +794,7 @@ class Spectrum():
         return w*scale_water
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
-                      folder=None, raw_data=False):
+                      folder=None, raw_data=False, printout=True):
         """
         Save entire spectrum divided by thickness to file with headings.
         1st column: wavenumber /cm; 2nd column: absorbance /cm.
@@ -827,7 +828,8 @@ class Spectrum():
         a = np.transpose(np.vstack((self.wn_full, absorbance)))
         with open(abs_filename, 'w') as abs_file:
             np.savetxt(abs_file, a, delimiter=delim)
-        print('Saved', abs_filename)
+        if printout is True:
+            print('Saved', abs_filename)
         
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -879,17 +881,19 @@ class Spectrum():
 
     def get_baseline(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV'):
-        """Get baseline and -subtracted spectrum saved using save_baseline().
-        Same data that goes into MATLAB FTIR_peakfit_loop.m
+        """
+        Get baseline saved using save_baseline().
+        
+        Requires folder for path location and baseline_ending if other
+        than '-baseline.CSV'.
+        
         Returns baseline absorbances and baseline-subtracted absorbances. 
-        For wavenumber range, it sets spectrum's base_wn attribute"""
+        Sets the spectrum's base_wn attribute
+        """
         if folder is None:
             folder = self.folder
         filename = ''.join((folder, self.fname, baseline_ending))
         if os.path.isfile(filename) is False:
-#            print ' '
-#            print self.fname            
-#            print 'use save_baseline() to make -baseline.CSV'
             return
         data = np.genfromtxt(filename, delimiter=',', dtype='float', 
                              skip_header=1)
@@ -917,19 +921,29 @@ class Spectrum():
                              skip_header=1)
         return data                            
                 
+
     def get_peakfit(self, folder=None, delim=',', 
-                    peak_ending='-peakfit.CSV'):
+                    peak_ending='-peakfit.CSV',
+                    header=None):
         """
-        Get individual peaks for spectrum from fname-peakfit.CSV generated
-        in MATLAB using peakfit.m looping script and savefit.m
+        Get individual peaks for spectrum from peakfit file, 
+        typically fname-peakfit.CSV, but the peak_ending 
+        (default='-peakfit.CSV') can be changed. 
         Return curves (assumes Gaussians) and summation.
         """
         if folder is None:
             folder = self.folder
         filename = folder + self.fname + peak_ending
         if os.path.isfile(filename) is True:
-            previous_fit = np.loadtxt(filename, delimiter=delim)
-            
+            previous_fit = pd.read_csv(filename)
+#            try:
+#                previous_fit = np.loadtxt(filename, delimiter=delim)
+#            except ValueError:
+#                print(self.fname)
+#                
+#                
+            print('banana')
+            return
             # sort previous fit so wavenumbers are ascending
             def getKey(item):
                 return item[0]
@@ -939,13 +953,12 @@ class Spectrum():
             self.numPeaks = len(peakpos)
             peak_heights = previous_fit[:, 1]
             peak_widths = previous_fit[:, 2]
-            peak_areas = previous_fit[:, 3]
             
             self.peakpos = peakpos
             self.peak_heights = peak_heights
-            self.peak_widths = peak_widths
-            self.peak_areas = peak_areas
-            
+            self.peak_widths = peak_widths           
+
+            self.get_peakareas
             print('Got peak info from', filename)
             
         else:
@@ -980,8 +993,10 @@ class Spectrum():
         return peakfitcurves, summed_spectrum
 
     def get_peakareas(self):
-        """Assign peak area based on Gaussian curves from current peak
-        width and height"""
+        """
+        Assign peak area based on Gaussian curves from current peak
+        width and height
+        """
         peakfitcurves, summed_spectrum = self.get_peakcurves()
         for k in range(len(self.peakpos)):
             dx = self.base_high_wn - self.base_low_wn
@@ -1051,6 +1066,7 @@ class Spectrum():
             ax.plot(self.base_wn, gaussian[k], **stylepeaks)
 
         if axes is None:
+            fig.set_size_inches(6, 6)
             return fig, ax
 
     def abs_at_given_wn(self, wn, absorbance='thickness normalized'):

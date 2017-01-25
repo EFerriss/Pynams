@@ -836,7 +836,6 @@ class Profile():
                 initial_style['label'] = label
             self.initial_profile.plot_area_profile(style=initial_style,
                                                    figaxis=ax)            
-        ax.set_ylim(0, max(areas)+0.2*(max(areas)))
 
         # Title
         if peak_idx is None:
