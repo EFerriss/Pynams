@@ -861,7 +861,7 @@ class Profile():
             ori = scale_water
             ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
-        else:
+        elif axes is None:
             ax_ppm.get_yaxis().set_visible(False)
 
         if axes is None:
