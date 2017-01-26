@@ -901,7 +901,7 @@ class Profile():
                                            points=points, centered=centered,
                                            symmetric=symmetric, 
                                            maximum_value=maximum_value)
-#        return x, y
+        return x, y*maximum_value
 
 
     def plot_diffusion(self, log10D_m2s, time_seconds, 
