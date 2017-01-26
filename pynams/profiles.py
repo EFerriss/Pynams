@@ -707,7 +707,10 @@ class Profile():
         if wholeblock is False:
             if peakwn is None and peak_idx is None:
                 # bulk hydrogen
-                areas = self.make_area_list(peak=None)
+                try:
+                    areas = self.areas
+                except AttributeError:
+                    areas = self.make_area_list(peak=None)
             else:
                 # peak-specific
                 if self.peak_areas is None:
@@ -869,6 +872,37 @@ class Profile():
         else:
             return
 
+    def diffusion1D(self, log10D_m2s, time_seconds, wholeblock=False,
+                    peak_idx=None, centered=True, heights_instead=False, 
+                    init=1., fin=0., erf_or_sum='erf', infinity=100, 
+                    points=100, symmetric=True, maximum_value=None):
+        """
+        Requires log10D_m2s and time_seconds
+        
+        Other keywords like pynams.diffusion.models.diffusion1D
+        
+        Returns x and y for diffusion modeling, without plotting
+        """
+        try:
+            length = self.length_microns
+        except AttributeError:
+            length = max(self.positions_microns)
+        
+        if maximum_value is None:
+            try:
+                maximum_value = max(self.areas)
+            except AttributeError:
+                maximum_value = max(self.make_area_list())
+
+        fig, ax, x, y = models.diffusion1D(length, log10D_m2s, time_seconds, 
+                                           init=init, fin=fin, 
+                                           erf_or_sum=erf_or_sum, 
+                                           show_plot=False, infinity=infinity, 
+                                           points=points, centered=centered,
+                                           symmetric=symmetric, 
+                                           maximum_value=maximum_value)
+#        return x, y
+
 
     def plot_diffusion(self, log10D_m2s, time_seconds, 
                       axes=None, 
@@ -888,7 +922,8 @@ class Profile():
                       infinity=100, 
                       points=100, 
                       symmetric=True,
-                      maximum_value=None):
+                      maximum_value=None,
+                      top=None):
 
         """ 
         Plots area profile and with 1D diffusion profile on top.
@@ -908,7 +943,8 @@ class Profile():
                                        style=style,
                                        phase=phase,
                                        calibration=calibration,
-                                       scale_water=scale_water)
+                                       scale_water=scale_water,
+                                       top=top)
         try:
             length = self.length_microns
         except AttributeError:
@@ -923,8 +959,7 @@ class Profile():
         models.diffusion1D(length, log10D_m2s, time_seconds, init=init, 
                            fin=fin, erf_or_sum=erf_or_sum, show_plot=True, 
                            style=style_diffusion_line, infinity=infinity, 
-                           points=points, 
-                           centered=centered, axes=ax, 
+                           points=points, centered=centered, axes=ax, 
                            symmetric=symmetric, maximum_value=maximum_value)
        
         return fig, ax, ax_water
@@ -1097,17 +1132,17 @@ class Profile():
              points=200, ):
         """
         Takes time and fits 1D diffusion curve to profile data. 
-        Returns best-fit diffusivity, initial, and residuals sum of squares.
-        
+
+        Prints and returns: initial, final, log10 diffusivity in m2/s, 
+        time in minutes.
+
         Default fits both diffusivity and initial concentration and
         holds time and final unit value constant.
         Set vary_initial=False to hold initial constant, and set 
         vary_time and vary_final to True to fit those.
         
         Default initial is the maximum y-value, but you can change that
-        with initial_unit_value or starting_value.
-        
-        log10Dm2s is the log10 of the diffusivity in m2/s.
+        with initial_unit_value or starting_value.        
         """
         if time_seconds is None and vary_time is False:
             print('Need time_seconds')
@@ -1197,21 +1232,11 @@ class Profile():
                 self.D_area_wb_error = best_D.s
                 self.maximum_wb_area = best_init.n
         
-        resid, RSS = self.diffusion_residuals(time_seconds=time_seconds,
-                                      log10D_m2s=best_D.n, 
-                                      wholeblock=wholeblock, 
-                                      heights_instead=heights_instead, 
-                                      peak_idx=peak_idx, 
-                                      initial_unit_value=initial_unit_value,
-                                      final_unit_value=final_unit_value, 
-                                      maximum_value=best_init.n)
-
         # report results
         print('initial:', '{:.2f}'.format(best_init*scale_diffusion))
         print('final:', '{:.2f}'.format(best_final*scale_diffusion))
         print('log10D m2/s:', '{:.2f}'.format(best_D))
-#        print('residual sum of squares', '{:.2f}'.format(RSS))
-        print('hours:', '{:.2f}'.format(best_time/3600))
+        print('minutes:', '{:.2f}'.format(best_time/60))
         if show_plot is True:
             fig, ax, ax2 = self.plot_diffusion(time_seconds=time_seconds,
                                    log10D_m2s=best_D.n,
@@ -1222,7 +1247,11 @@ class Profile():
                                    heights_instead=heights_instead, 
                                    maximum_value=best_init.n*scale_diffusion,
                                    fin=best_final.n)
-        return best_D, best_init*scale_diffusion, RSS
+        D = best_D
+        init = best_init*scale_diffusion
+        fin = best_final*scale_diffusion
+        minutes = best_time / 60.
+        return init, fin, D, minutes
 
     def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):

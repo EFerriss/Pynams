@@ -923,49 +923,32 @@ class Spectrum():
                 
 
     def get_peakfit(self, folder=None, delim=',', 
-                    peak_ending='-peakfit.CSV',
-                    header=None):
+                    peak_ending='-peakfit.CSV'):
         """
         Get individual peaks for spectrum from peakfit file, 
         typically fname-peakfit.CSV, but the peak_ending 
         (default='-peakfit.CSV') can be changed. 
-        Return curves (assumes Gaussians) and summation.
+        Return curves (assumes Gaussians) and summation.       
         """
         if folder is None:
             folder = self.folder
         filename = folder + self.fname + peak_ending
         if os.path.isfile(filename) is True:
             previous_fit = pd.read_csv(filename)
-#            try:
-#                previous_fit = np.loadtxt(filename, delimiter=delim)
-#            except ValueError:
-#                print(self.fname)
-#                
-#                
-            print('banana')
-            return
-            # sort previous fit so wavenumbers are ascending
-            def getKey(item):
-                return item[0]
-            previous_fit= np.array(sorted(previous_fit, key=getKey))
-
-            peakpos = previous_fit[:, 0]
-            self.numPeaks = len(peakpos)
-            peak_heights = previous_fit[:, 1]
-            peak_widths = previous_fit[:, 2]
-            
-            self.peakpos = peakpos
-            self.peak_heights = peak_heights
-            self.peak_widths = peak_widths           
-
-            self.get_peakareas
+            # old peakfit files don't have headings
+            if len(list(previous_fit)[0]) < 20:
+                previous_fit = pd.read_csv(filename, header=None)            
+            previous_fit = previous_fit.sort_values(by=[0])
+            self.peakpos = np.array(previous_fit[0])
+            self.numPeaks = len(self.peakpos)
+            self.peak_heights = np.array(previous_fit[1])
+            self.peak_widths = np.array(previous_fit[2])
+            self.get_peakareas()
             print('Got peak info from', filename)
-            
         else:
             print(' ')            
-            print(self.fname)
-            print('Remember to savefit.m after fitting in matlab')
-            return False, False
+            print('Unable to get peak info from', filename)
+            print('Try spec.make_peakfit')            
         
     def get_peakcurves(self):
         """
@@ -979,7 +962,7 @@ class Spectrum():
         try:
             peakfitcurves = np.ones([len(self.peakpos), len(self.base_wn)])
         except AttributeError:
-            print('Remember to run both get_peakfit and get_baseline')
+            print('Make or get a baseline before getting peakfit')
             return False, False
             
         summed_spectrum = np.zeros_like(self.base_wn)
@@ -998,11 +981,15 @@ class Spectrum():
         width and height
         """
         peakfitcurves, summed_spectrum = self.get_peakcurves()
-        for k in range(len(self.peakpos)):
-            dx = self.base_high_wn - self.base_low_wn
-            dy = np.mean(peakfitcurves[k])
-            area = dx * dy
-            self.peak_areas[k] = area
+        if peakfitcurves is False:
+            return
+        else:
+            self.peak_areas = np.zeros(len(self.peakpos))
+            for k in range(len(self.peakpos)):
+                dx = self.base_high_wn - self.base_low_wn
+                dy = np.mean(peakfitcurves[k])
+                area = dx * dy
+                self.peak_areas[k] = area
     
     def make_composite_peak(self, peak_idx_list):
         """Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
