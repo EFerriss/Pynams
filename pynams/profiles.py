@@ -323,10 +323,14 @@ class Profile():
 
     def get_baselines(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV'):
-        """Get previously saved baselines for all spectra in profile"""
+        """
+        Get previously saved baselines for all spectra in profile.
+        Automatically updates the profile.areas for these baselines.
+        """
         for spectrum in self.spectra:
             spectrum.get_baseline(folder=folder, delim=delim, 
                                   baseline_ending=baseline_ending)
+        self.make_area_list()
 
     def matlab(self):
         """Print out spectra fnames for FTIR_peakfit_loop.m"""
