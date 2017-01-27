@@ -126,7 +126,8 @@ class Spectrum():
             if os.path.isfile(self.filename):
                 # read in the signal
                 if self.filetype == '.CSV':
-                    signal = np.loadtxt(self.filename, delimiter=',')
+                    signal = pd.read_csv(self.filename, header=None)
+#                    signal = np.loadtxt(self.filename, delimiter=',')
                 elif self.filetype == '.txt':
                     try:
                         signal = np.loadtxt(self.filename, delimiter='\t', 
@@ -135,10 +136,10 @@ class Spectrum():
                         print('\nProblem reading this file format. Try .CSV')
                 else:
                     print('For now only CSV and txt files work.')
-                # sort signal by wavenumber
-                signal = signal[signal[:,0].argsort()]
-                self.wn_full = signal[:, 0]
-                self.abs_raw = signal[:, 1]
+
+                signal = signal.sort_values(by=[0])
+                self.wn_full = np.array(signal[0])
+                self.abs_raw = np.array(signal[1])
                 
                 # set up thickness information
                 if thickness_microns is not None:
