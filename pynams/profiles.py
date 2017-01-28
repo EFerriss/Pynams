@@ -331,16 +331,6 @@ class Profile():
             spectrum.get_baseline(folder=folder, delim=delim, 
                                   baseline_ending=baseline_ending)
         self.make_area_list()
-
-    def matlab(self):
-        """Print out spectra fnames for FTIR_peakfit_loop.m"""
-        string = "{"
-        for spec in self.spectra:
-            stringname = spec.fname
-            string = string + "'" + stringname + "' "
-        string = string + "};"
-        print('\nfilenames ready for FTIR_peakfit_loop.m:')
-        print(string)
                         
     def save_baselines(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -382,17 +372,45 @@ class Profile():
                 return False
         return areas
         
-    def get_peakfit(self, peak_ending='-peakfit.CSV',
-                    baseline_ending='-baseline.CSV'):
-        """Get fit peaks from MATLAB for all spectra in profile, including 
-        in the initial profile. The resulting numpy arrays are in dimensions
-        (number of peaks, number of spectra in profile) and stored in
-        the profiles's attributes peak_heights, peak_widths, and peak_areas"""
-        for spectrum in self.spectra:
-            spectrum.get_peakfit(peak_ending=peak_ending,
-                                 baseline_ending=baseline_ending)
-        self.get_peak_info()
+    def make_peakfit_like(self, spectrum):
+        """
+        Exactly like spectrum.make_peakfit_like() but applies the 
+        input spectrum's peakfitting information to all spectra in 
+        the profile. Any deviations along the profile will have
+        to be handfit spectrum by spectrum for now. To do this for
+        the first individual spectrum within the profile:
+            profile.spectra[0].make_peakfit()
+            profile.spectra[0].save_peakfit()
+        and then change the index from 0 to whatever spectrum
+        you want to look at next
+        """
+        for spec in self.spectra:
+            spec.make_peakfit_like(spectrum)
             
+    def save_peakfits(self, folder=None, peak_ending='-peakfit.CSV'):
+        """
+        Saves all peakfits in the file. Same keywords as 
+        spectrum.save_peakfit
+        """
+        for spec in self.spectra:
+            spec.save_peakfit(folder=folder, peak_ending=peak_ending)
+
+    def get_peakfit(self, peak_ending='-peakfit.CSV'):
+        """
+        Get fit peaks from MATLAB for all spectra in profile and
+        any initial profile.
+        
+        The resulting numpy arrays are in dimensions
+        (number of peaks, number of spectra in profile) and stored in
+        the profiles's attributes peakpos, peak_heights, peak_widths.
+        Peak areas are in peak_areas
+        """
+        for spectrum in self.spectra:
+            spectrum.get_peakfit(peak_ending=peak_ending)
+        for spectrum in self.initial_profile.spectra:
+            spectrum.get_peakfit(peak_ending=peak_ending)            
+        self.get_peak_info()
+           
     def get_peak_info(self):
         """
         Pull peak info from individual spectra into a single profile
@@ -717,9 +735,8 @@ class Profile():
                     areas = self.make_area_list(peak=None)
             else:
                 # peak-specific
-                if self.peak_areas is None:
-                    self.get_peakfit()
-    
+                self.get_peak_info()
+
                 if peak_idx is None:
                     peak_idx = np.where(self.peakpos==peakwn)[0][0]
                     print('peak at', peakwn, 'is index', peak_idx)

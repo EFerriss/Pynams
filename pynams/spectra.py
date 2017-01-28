@@ -384,7 +384,7 @@ class Spectrum():
         return WN_MID
     
 
-    def find_peaks(self, sensitivity=40):
+    def find_peaks(self, sensitivity=40, show_plot=True, printout=False):
         """
         Returns wavenumbers of the most prominent peaks in wavenumber range of 
         the existing baseline. 
@@ -399,14 +399,16 @@ class Spectrum():
         widths = np.arange(1, sensitivity)
         peaks = scipysignal.find_peaks_cwt(abs_nobase_cm, widths)
         
-        print('peaks found at the following wavenumbers:')
-        print(self.base_wn[peaks])
-        print('change sensitivity to find more or fewer peaks')
+        if printout is True:
+            print('peaks found at the following wavenumbers:')
+            print(self.base_wn[peaks])
+            print('change sensitivity to find more or fewer peaks')
 
-        fig, ax = self.plot_subtractbaseline()
-        for idx in peaks:
-            wn = self.base_wn[idx]
-            ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
+        if show_plot is True:
+            fig, ax = self.plot_subtractbaseline()
+            for idx in peaks:
+                wn = self.base_wn[idx]
+                ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
 
         return self.base_wn[peaks]
         
@@ -729,6 +731,7 @@ class Spectrum():
         if show_plot is True:
             self.plot_showbaseline()
 
+        self.abs_nobase_cm = abs_nobase_cm
         return abs_nobase_cm
 
     def get_area_under_curve(self, show_plot=False, raw_data=False,
@@ -922,6 +925,91 @@ class Spectrum():
                              skip_header=1)
         return data                            
                 
+    def make_peakfit(self, sensitivity=40, peak_positions=None,
+                     peak_heights=None, peak_widths=None,
+                     show_plot=True):
+        """
+        Fiddle with the peakfits by passing in peak_positions in as a list of
+        wavenmbers in cm-1 and/or peak_heights as a list of baseline-subtracted
+        peak heights in cm-1, and/or peak_widths as a list of Gaussian peak 
+        widths in wavenumbers cm-1.
+        
+        If there is no peak information passed in, it will guess the
+        peak positions using spectrum.find_peaks(), assume a width of 50 
+        for all peaks, and take the height as the absorbance at each peak
+        position.
+        
+        If show_plot is True (default), it runs spectrum.plot_showpeakfit()
+        and returns the figure and axes handles
+        """
+        self.subtract_baseline()
+        if self.abs_nobase_cm is None:
+            return
+
+        if peak_positions is None:
+            self.peakpos = self.find_peaks(show_plot=False, printout=False,
+                                           sensitivity=sensitivity)
+            print('peak positions:', self.peakpos)
+        else:
+            self.peakpos = [float(i) for i in peak_positions]
+            
+        
+        if peak_widths is None:
+            self.peak_widths = np.ones_like(self.peakpos) * 50.
+        else:
+            self.peak_widths = [float(i) for i in peak_widths]
+
+        if peak_heights is None:                                           
+            self.peak_heights = np.ones_like(self.peakpos)
+            for idx, wn in enumerate(self.peakpos):
+                idx_peak = (np.abs(self.base_wn-wn)).argmin()
+                self.peak_heights[idx] = self.abs_nobase_cm[idx_peak]
+            print('heights:', self.peak_heights)
+        else:
+            self.peak_heights = [float(i) for i in peak_heights]
+        
+        if show_plot is True:
+            fig, ax = self.plot_peakfit()
+            return fig, ax
+
+    def save_peakfit(self, folder=None, peak_ending='-peakfit.CSV',
+                     delim=','):
+        """
+        Save peakfit information in a file called fname+peak_ending.
+        The default peak_ending is '-peakfit.CSV'. Default delimiter (delim)
+        for separating values in the file is a comma.
+        """
+        if folder is None:
+            folder = self.folder
+            
+        filename = folder + self.fname + peak_ending
+        
+        # make headings in the peakfit file
+        t = ['peak position (wavenumber /cm)', 'height (/cm)', 
+             'width of gaussian (/cm)']
+        with open(filename, 'w') as peak_file:
+            for item in t:
+                peak_file.write(item+delim)
+            peak_file.write('\n')
+            
+        # write data to peakfit file 
+        a = np.transpose(np.vstack((self.peakpos, self.peak_heights, 
+                                    self.peak_widths)))
+        with open(filename, 'a') as peak_file:
+            np.savetxt(peak_file, a, delimiter=delim)
+            
+        print('Saved', filename)
+
+    def make_peakfit_like(self, spectrum):
+        """
+        Takes another spectrum and sets this spectrum's peakfit information
+        equal to that of that of the other spectrum. 
+        """
+        self.peakpos = spectrum.peakpos
+        self.peak_heights = spectrum.peak_heights
+        self.peak_widths = spectrum.peak_widths
+        self.numPeaks = spectrum.numPeaks
+        self.make_peakareas()
 
     def get_peakfit(self, folder=None, delim=',', 
                     peak_ending='-peakfit.CSV'):
@@ -938,20 +1026,22 @@ class Spectrum():
             previous_fit = pd.read_csv(filename)
             # old peakfit files don't have headings
             if len(list(previous_fit)[0]) < 20:
-                previous_fit = pd.read_csv(filename, header=None)            
-            previous_fit = previous_fit.sort_values(by=[0])
-            self.peakpos = np.array(previous_fit[0])
+                previous_fit = pd.read_csv(filename, header=None)
+            
+            headers = list(previous_fit)
+            previous_fit = previous_fit.sort_values(by=[headers[0]])
+            self.peakpos = np.array(previous_fit[headers[0]])
             self.numPeaks = len(self.peakpos)
-            self.peak_heights = np.array(previous_fit[1])
-            self.peak_widths = np.array(previous_fit[2])
-            self.get_peakareas()
+            self.peak_heights = np.array(previous_fit[headers[1]])
+            self.peak_widths = np.array(previous_fit[headers[2]])
+            self.make_peakareas()
             print('Got peak info from', filename)
         else:
             print(' ')            
             print('Unable to get peak info from', filename)
             print('Try spec.make_peakfit')            
         
-    def get_peakcurves(self):
+    def get_gaussians(self):
         """
         Generates Gaussian curves from peakfitting info. 
         
@@ -961,7 +1051,12 @@ class Spectrum():
         and (2) summed_spectrum, the sum of all the peakfitcurvesb
         """
         try:
-            peakfitcurves = np.ones([len(self.peakpos), len(self.base_wn)])
+            peakpos = self.peakpos
+        except AttributeError:
+            print('No peakfitting information available yet')
+            return False, False
+        try:
+            peakfitcurves = np.ones([len(peakpos), len(self.base_wn)])
         except AttributeError:
             print('Make or get a baseline before getting peakfit')
             return False, False
@@ -976,12 +1071,12 @@ class Spectrum():
             summed_spectrum += peakfitcurves[k]
         return peakfitcurves, summed_spectrum
 
-    def get_peakareas(self):
+    def make_peakareas(self):
         """
         Assign peak area based on Gaussian curves from current peak
         width and height
         """
-        peakfitcurves, summed_spectrum = self.get_peakcurves()
+        peakfitcurves, summed_spectrum = self.get_gaussians()
         if peakfitcurves is False:
             return
         else:
@@ -1023,7 +1118,7 @@ class Spectrum():
         # Take baseline-subtracted spectrum from saved file every time 
         # to avoid any possible funny business from playing with baselines
 
-        gaussian, summed_spectrum = self.get_peakcurves() 
+        gaussian, summed_spectrum = self.get_gaussians() 
         
         if gaussian is False:
             return False, False
@@ -1055,6 +1150,7 @@ class Spectrum():
 
         if axes is None:
             fig.set_size_inches(6, 6)
+            ax.set_title(self.fname)
             return fig, ax
 
     def abs_at_given_wn(self, wn, absorbance='thickness normalized'):
@@ -1220,6 +1316,7 @@ class Spectrum():
         ax.set_ylim(0, yhigh)
         ax.set_xlim(self.base_high_wn, self.base_low_wn)
         ax.plot(self.base_wn, abs_nobase_cm+offset, **style_to_use)
+        ax.set_title(self.fname)
         return fig, ax
 
     def plot_peakfit_and_baseline(self, style=styles.style_spectrum, 
@@ -1240,7 +1337,7 @@ class Spectrum():
             print('need to run get_baseline() first')
             return
         
-        gaussian, summed_spectrum = self.get_peakcurves(peak_ending=peak_ending, 
+        gaussian, summed_spectrum = self.get_gaussians(peak_ending=peak_ending, 
                                               baseline_ending=baseline_ending)
             
         wn = self.base_wn
