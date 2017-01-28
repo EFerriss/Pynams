@@ -1005,6 +1005,7 @@ class Spectrum():
         Takes another spectrum and sets this spectrum's peakfit information
         equal to that of that of the other spectrum. 
         """
+        self.subtract_baseline()
         self.peakpos = spectrum.peakpos
         self.peak_heights = spectrum.peak_heights
         self.peak_widths = spectrum.peak_widths
