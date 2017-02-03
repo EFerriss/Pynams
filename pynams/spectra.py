@@ -968,6 +968,8 @@ class Spectrum():
         else:
             self.peak_heights = [float(i) for i in peak_heights]
         
+        self.numPeaks = len(self.peakpos)
+        
         if show_plot is True:
             fig, ax = self.plot_peakfit()
             return fig, ax

@@ -251,6 +251,8 @@ class Profile():
             avespec.fname = (self.profile_name + '\naveraged across profile')
         else:
             avespec.fname = 'averaged across profile'
+            
+        avespec.thickness_microns = np.mean(self.thicknesses_microns)
         return avespec
 
     def plot_spectra(self, show_baseline=True, show_initial_ave=True, 
@@ -284,7 +286,10 @@ class Profile():
                 spectrum.base_mid_yshift = shift
 
     def make_composite_peak(self,peak_idx_list):
-        """Make composite peaks for all spectra in profile"""
+        """
+        Takes a list of peak indices and makes a new composite
+        peak for all spectra in profile        
+        """
         for spec in self.spectra:
             spec.make_composite_peak(peak_idx_list)
         self.get_peak_info()
@@ -395,20 +400,22 @@ class Profile():
         for spec in self.spectra:
             spec.save_peakfit(folder=folder, peak_ending=peak_ending)
 
-    def get_peakfit(self, peak_ending='-peakfit.CSV'):
+    def get_peakfits(self, peak_ending='-peakfit.CSV'):
         """
-        Get fit peaks from MATLAB for all spectra in profile and
-        any initial profile.
+        Get saved fit peak information for all spectra in profile and
+        any initial profile that have been saved using the 
+        spectrum.save_peakfit or profile.save_peakfits methods.
         
-        The resulting numpy arrays are in dimensions
-        (number of peaks, number of spectra in profile) and stored in
-        the profiles's attributes peakpos, peak_heights, peak_widths.
-        Peak areas are in peak_areas
+        Change the peak_ending keyword (default='-peakfit.CSV') to 
+        specify a particular saved peakfit.
         """
         for spectrum in self.spectra:
             spectrum.get_peakfit(peak_ending=peak_ending)
-        for spectrum in self.initial_profile.spectra:
-            spectrum.get_peakfit(peak_ending=peak_ending)            
+        try:
+            for spectrum in self.initial_profile.spectra:
+                spectrum.get_peakfit(peak_ending=peak_ending)
+        except AttributeError:
+            pass
         self.get_peak_info()
            
     def get_peak_info(self):
@@ -801,10 +808,16 @@ class Profile():
         # Use new or old figure axes
         if axes is None:
             if top is None:
-                if len(self.areas) > 1:
+                if peak_idx is None:
                     top = max(self.areas)+0.2*max(self.areas)
                 else:
-                    top = 1.
+                    if heights_instead is False:
+                        mpeak = max(self.peak_areas[peak_idx])
+                    else:
+                        mpeak = max(self.peak_heights[peak_idx])
+                    top = mpeak + 0.2*mpeak
+            else:
+                top = 1.
             
             f, ax, ax_ppm = styles.plot_area_profile_outline(centered, 
                             peakwn, heights_instead=heights_instead, 
@@ -814,7 +827,6 @@ class Profile():
                 ax.set_xlim(-leng/2.0, leng/2.0)
             else:
                 ax.set_xlim(0, leng)
-
         else:
             ax = axes
             show_water_ppm = False
@@ -875,13 +887,13 @@ class Profile():
             if abs_coeff is False:
                 show_water_ppm = False
 
+        # The water concentration estimate on the right-hand axis
+        if heights_instead is True:
+            show_water_ppm = False
         if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
                                        ' calibration *', 
                                        str(scale_water))))                
-            # change the water axis limits to the appropriate values
-            # based on the absorption coefficient and them multiplied
-            # by the orientation factor            
             ori = scale_water
             ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
