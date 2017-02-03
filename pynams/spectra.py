@@ -351,8 +351,10 @@ class Spectrum():
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
                                         wn_mid_range_low=3300.,
                                         relative=True):
-        """Take a spectrum and wavenumber range (default 3300-3500 cm-1)
-        and returns the wavenumber with the lowest absorbance within that range."""
+        """
+        Take a spectrum and wavenumber range (default 3300-3500 cm-1)
+        and returns the wavenumber with the lowest absorbance within that range
+        """
         if self.abs_full_cm is None:
             self.start_at_zero()
     

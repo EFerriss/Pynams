@@ -816,8 +816,6 @@ class Profile():
                     else:
                         mpeak = max(self.peak_heights[peak_idx])
                     top = mpeak + 0.2*mpeak
-            else:
-                top = 1.
             
             f, ax, ax_ppm = styles.plot_area_profile_outline(centered, 
                             peakwn, heights_instead=heights_instead, 
@@ -984,10 +982,16 @@ class Profile():
             length = max(self.positions_microns)
         
         if maximum_value is None:
-            try:
-                maximum_value = max(self.areas)
-            except AttributeError:
-                maximum_value = max(self.make_areas_list())
+            if peak_idx is None:
+                try:
+                    maximum_value = max(self.areas)
+                except AttributeError:
+                    maximum_value = max(self.make_area_list())
+            else:
+                if heights_instead is True:
+                    maximum_value = max(self.peak_heights[peak_idx])
+                else:
+                    maximum_value = max(self.peak_areas[peak_idx])
 
         models.diffusion1D(length, log10D_m2s, time_seconds, init=init, 
                            fin=fin, erf_or_sum=erf_or_sum, show_plot=True, 
@@ -998,7 +1002,9 @@ class Profile():
         return fig, ax, ax_water
     
     def y_data_picker(self, wholeblock, heights_instead, peak_idx=None):
-        """Pick out and return peak area or height data of interest."""
+        """
+        Pick out and return peak area or height data of interest.
+        """
         if wholeblock is True:
             if peak_idx is None:
                 if self.wb_areas is None:
@@ -1014,10 +1020,17 @@ class Profile():
                 else:
                     y = self.peak_wb_heights[peak_idx]
         else:
-            try:
-                y = self.areas
-            except AttributeError:
-                y = self.make_area_list()
+            if peak_idx is None:
+                try:
+                    y = self.areas
+                except AttributeError:
+                    y = self.make_area_list()
+            else:
+                try:
+                    y = self.peak_areas[peak_idx]
+                except AttributeError:
+                    print('Need peak areas')
+                    return False
         return y
 
     def D_picker(self, wholeblock=True, heights_instead=False, peak_idx=None):
@@ -1164,35 +1177,34 @@ class Profile():
              symmetric=True,
              points=200, ):
         """
-        Takes time and fits 1D diffusion curve to profile data. 
-
+        Fits a 1D diffusion curve to profile data.
+        
         Prints and returns: initial, final, log10 diffusivity in m2/s, 
         time in minutes.
 
         Default fits both diffusivity and initial concentration and
-        holds time and final unit value constant.
-        Set vary_initial=False to hold initial constant, and set 
-        vary_time and vary_final to True to fit those.
+        holds time (default=10 hours) and final unit value constant.
+        Set vary_initial=False to hold initial constant. Set 
+        vary_time and vary_final to True to fit those. Set varyD = False
+        to hold diffusivity constant, and set the diffusivity with the
+        keyword log10D_m2s (default is -12).
         
         Default initial is the maximum y-value, but you can change that
         with initial_unit_value or starting_value.        
-        """
-        if time_seconds is None and vary_time is False:
-            print('Need time_seconds')
-            return False, False, False
-        elif time_seconds is None and vary_time is True:
-            # just setting an initial guess if none provided
-            time_seconds = 3600.
-            
-        if log10Dm2s is None and varyD is False:
-            print('Need log10 diffusivity in m2/s')
-            return False, False, False
-        elif log10Dm2s is None and varyD is True:
-            # just setting an initial guess if none provided
-            log10Dm2s = -12.
-            
-        elif time_seconds is None:
-            time_seconds = self.time_seconds            
+        """           
+        if time_seconds is None:
+            try:
+                time_seconds = self.time_seconds
+            except AttributeError:
+                time_seconds = 36000.
+        if self.time_seconds is None:
+            time_seconds = 36000.
+
+        if log10Dm2s is None:
+            try:
+                log10Dm2s = self.D_area
+            except AttributeError:
+                log10Dm2s = -12.
 
         if self.length_microns is None:
             print('Need to set profile attribute length_microns')
@@ -1202,22 +1214,16 @@ class Profile():
             print('Need to set profile positions')
             return
         
-        ### Choose y data to fit to ###
         y_raw = self.y_data_picker(wholeblock, heights_instead, peak_idx)
         scale_diffusion = max(y_raw)
-        y = y_raw / scale_diffusion # scale down to unit, so y range between 0 and 1
-        
-        # Set up x data and other parameters
+        y = y_raw / scale_diffusion 
         x = self.positions_microns
 
-        # determine initial unit value
         if starting_value is None:
             init = initial_unit_value
         else:
             init = starting_value / max(y_raw)
 
-
-        # set up fitting parameters
         params = models.params_setup1D(microns=self.length_microns, 
                                        log10D_m2s=log10Dm2s, 
                                        time_seconds=time_seconds, 
@@ -1233,7 +1239,6 @@ class Profile():
                         'centered' : centered
                         }
 
-        # minimization
         lmfit.minimize(models.diffusion1D_params, params, args=(x, y), 
                        kws=dict_fitting)
         best_D = ufloat(params['log10D_m2s'].value, 
@@ -1244,11 +1249,7 @@ class Profile():
                          params['final_unit_value'].stderr)
         best_time = ufloat(params['time_seconds'].value,
                            params['time_seconds'].stderr)
-#        print('best-fit log10D m2/s', best_D)
-#        print('best-fit initial    ', best_init*scale_diffusion)
 
-        # save results as attributes
-        # Use save_diffusivities to save to a file
         if wholeblock is True:
             if peak_idx is not None:
                 if heights_instead is False:
@@ -1265,13 +1266,12 @@ class Profile():
                 self.D_area_wb_error = best_D.s
                 self.maximum_wb_area = best_init.n
         
-        # report results
         print('initial:', '{:.2f}'.format(best_init*scale_diffusion))
         print('final:', '{:.2f}'.format(best_final*scale_diffusion))
         print('log10D m2/s:', '{:.2f}'.format(best_D))
         print('minutes:', '{:.2f}'.format(best_time/60))
         if show_plot is True:
-            fig, ax, ax2 = self.plot_diffusion(time_seconds=time_seconds,
+            fig, ax, ax2 = self.plot_diffusion(time_seconds=best_time.n,
                                    log10D_m2s=best_D.n,
                                    peak_idx=peak_idx,
                                    wholeblock=wholeblock,

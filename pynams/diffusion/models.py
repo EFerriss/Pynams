@@ -120,7 +120,6 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
     twoA = L_meters
 
     if t < 0:
-        print('no negative time')
         return           
 
     # Fitting to data or not? Default is not
