@@ -522,7 +522,7 @@ class Spectrum():
         average absorbances around wn_low and wn_high. 10 is usually a 
         good number.
         
-        I've had problems with the spline, maybe it's not implemented 
+        I've had problems with linetype='spline', maybe it's not implemented 
         correctly? My computer tends to take a *really* long time to 
         come up with the spline, so use that one with caution. I think 
         Dan Rasmussen has had better success with it. You can also set 
@@ -640,7 +640,7 @@ class Spectrum():
             f = interp.interp1d(xinterp, yinterp, kind=spline_type)
             base_abs = f(self.base_wn)
         else:
-            print("linetype must be 'line', 'quadratic', or 'spline'")
+            print("linetype must be 'line', 'polynomial', or 'spline'")
             return
         
         if store_baseline is True:
