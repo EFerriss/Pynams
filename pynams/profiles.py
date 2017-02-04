@@ -345,10 +345,12 @@ class Profile():
                                    baseline_ending=baseline_ending)
         
     def make_area_list(self, peak=None, show_plot=False, 
-                       printout_area=False,):
+                       printout_area=False, wn_low=None, wn_high=None):
         """
         Make list of areas under the curve for an FTIR profile.
-        Default is bulk area. Set peak=wavenumber for peak-specific profile
+        Default is bulk area. Set peak=wavenumber for peak-specific profile.
+        Change wn_low and wn_high for wavenumber range other than 
+        full baseline range, as in spectrum.get_area_under_curve.
         
         If show_plot and printout_area are set to True, then the plot and
         areas will show up when it calculates the areas under the curve
@@ -358,7 +360,8 @@ class Profile():
         if peak is None:
             for spec in self.spectra:
                 a = spec.get_area_under_curve(show_plot=show_plot, 
-                                              printout=printout_area)
+                                              printout=printout_area,
+                                              wn_low=wn_low, wn_high=wn_high)
                 areas.append(a)            
             self.areas = np.array(areas)
             

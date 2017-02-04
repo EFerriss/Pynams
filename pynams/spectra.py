@@ -738,41 +738,50 @@ class Spectrum():
 
     def get_area_under_curve(self, show_plot=False, raw_data=False,
                              printout=True, numformat='{:.1f}', 
-                             baseline_abs=None, baseline_wn=None):
+                             wn_high=None, wn_low=None):
         """
-        Returns area under the curve in cm^2.
+        Returns area under the curve in cm^2 between wavenumbers given
+        by wn_high and wn_low.
+        
+        If wn_high and wn_low are not set, they are assumed to be equal to 
+        the full range of the baseline.
+        
+        If raw_data is set to True, the area will be determined for the raw
+        data. The default is to determine the thickness-normalized area.
         
         By default it prints out (printout=True) the fname and area in the
         format specified by numformat, default 1 number after the decimal. 
         
-        To plot the baseline at the same time, set show_plot=True.
-        
-        You can pass in your own baseline through baseline_abs and 
-        baseline_wn
+        To plot the baseline at the same time, set show_plot=True.        
         """
-        if baseline_wn is None:
+        self.subtract_baseline(raw_data=raw_data)
+        
+        if wn_high is None:
             wn_high = self.base_high_wn
-            wn_low = self.base_low_wn
-        else:
-            wn_high = max(baseline_wn)
-            wn_low = min(baseline_wn)
-            
-        abs_nobase_cm = self.subtract_baseline(show_plot=show_plot,
-                                               raw_data=raw_data,
-                                               baseline_abs=baseline_abs,
-                                               wn_low=wn_low, wn_high=wn_high)
-        if abs_nobase_cm is None:
-            print('Could not generate area. Check baseline.')
-            return False
-            
+        if wn_low is None:
+            wn_low = self.base_low_wn            
         dx = wn_high - wn_low
-        dy = np.mean(abs_nobase_cm)
+
+        idx_high = (np.abs(self.base_wn-wn_high)).argmin()
+        idx_low = (np.abs(self.base_wn-wn_low)).argmin()
+        dy = np.mean(self.abs_nobase_cm[idx_low:idx_high])
+        
         area = dx * dy
+        self.area = area
+        
         if printout is True:
             print(self.fname)
             print('area:', numformat.format(area), '/cm^2')
+        
+        if show_plot is True:
+            fig, ax = self.plot_showbaseline()
+            x = self.base_wn[idx_low : idx_high]
+            y1 = self.base_abs[idx_low : idx_high]
+            y2 = self.abs_nobase_cm[idx_low : idx_high]
+            y3 = np.array(y1) + np.array(y2)
+            ax.fill_between(x, y1, y3, color='g', alpha=0.3)
+            return fig, ax, area
             
-        self.area = area
         return area
 
     def water(self, phase='cpx', calibration='Bell', numformat='{:.1f}',
