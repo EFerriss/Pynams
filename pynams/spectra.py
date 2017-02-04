@@ -465,7 +465,8 @@ class Spectrum():
         except AttributeError:
             self.divide_by_thickness()
             try:
-                self.abs_full_cm = self.abs_full_cm - min(self.abs_full_cm[indices])
+                minabs = min(self.abs_full_cm[indices])
+                self.abs_full_cm = self.abs_full_cm - minabs
             except AttributeError:
                 return
         except ValueError:
@@ -483,7 +484,8 @@ class Spectrum():
                       linetype='line', 
                       spline_type='quadratic', 
                       curvature=None, 
-                      force_quadratic_through_wn=None,
+                      force_through_wn=None,
+                      polynomial_order=None,
                       show_fit_values=False, 
                       show_plot=False,
                       abs_high=None, 
@@ -508,11 +510,13 @@ class Spectrum():
         
         For quadratics, extent of curvature is determined primarily
         by the keyword curvature, which sets how much to deviate from
-        the line between wn_low and wn_high.
-        
-        Alternatively, set force_quadratic_through_wn, and a quadratic
-        will be fit through the absorbance at the wavenumber(s) input in cm-1.
+        the line between wn_low and wn_high. Alternatively, set 
+        force_through_wn, and a quadratic will be fit through the absorbance 
+        at the wavenumber(s) input in cm-1.
         You can pass in a single wavenumber or a list of wavenumbers.
+        
+        For higher order wavenumbers, specify the polynomial_order, and you 
+        can still use include the force_through_wn.
 
         For noisy data, try setting abs_smear_high and low to fit to 
         average absorbances around wn_low and wn_high. 10 is usually a 
@@ -582,31 +586,32 @@ class Spectrum():
             print('absorbances:', y)
             return
         
-        if curvature is not None or force_quadratic_through_wn is not None:
-            linetype = 'quadratic'
+        if curvature is not None or force_through_wn is not None:
+            linetype = 'polynomial'
         
         if linetype == 'line':
             base_abs = np.polyval(p, base_wn)
 
-        elif linetype == 'quadratic':            
-            if force_quadratic_through_wn is not None:
-                if isinstance(force_quadratic_through_wn, list):
+        elif linetype == 'polynomial':
+            # add in extra points to fit through
+            if force_through_wn is not None:
+                if isinstance(force_through_wn, list):
                     xadd = []
                     yadd = []
-                    for forcewn in force_quadratic_through_wn:
+                    for forcewn in force_through_wn:
                         index_mid = (np.abs(self.wn_full - forcewn)).argmin()
                         abs_at_wn_mid = absorbance[index_mid]
                         xadd.append(forcewn)
                         yadd.append(abs_at_wn_mid)
                 else:                        
                     try:
-                        forcewn = force_quadratic_through_wn
+                        forcewn = force_through_wn
                         index_mid = (np.abs(self.wn_full - forcewn)).argmin()
                         abs_at_wn_mid = absorbance[index_mid]
-                        xadd = force_quadratic_through_wn
+                        xadd = force_through_wn
                         yadd = abs_at_wn_mid                    
                     except TypeError:
-                        print('force_quadratic_through_wn must be a number, ')
+                        print('force_through_wn must be a number, ')
                         print('the wavenumber in cm-1 you want to fit through')
                         print('or a list of wavenumbers')
                         return
@@ -614,10 +619,12 @@ class Spectrum():
                 yshift = curvature
                 xadd = wn_mid
                 yadd = np.polyval(p, wn_mid) - yshift
-
             x = np.insert(x, 1, xadd)
             y = np.insert(y, 1, yadd)
-            p2 = np.polyfit(x, y, 2)
+            
+            if polynomial_order is None:
+                polynomial_order = 2
+            p2 = np.polyfit(x, y, polynomial_order)
             base_abs = np.polyval(p2, base_wn)
 
             if show_fit_values == True:

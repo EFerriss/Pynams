@@ -301,7 +301,8 @@ class Profile():
                       linetype='line', 
                       spline_type='quadratic', 
                       curvature=None, 
-                      force_quadratic_through_wn=None,
+                      force_through_wn=None,
+                      polynomial_order=None,
                       show_fit_values=False, 
                       show_plot=False,
                       abs_high=None, 
@@ -318,7 +319,8 @@ class Profile():
                                    wn_high=wn_high, linetype=linetype, 
                                    spline_type=spline_type, 
                                    curvature=curvature,
-                                   force_quadratic_through_wn=force_quadratic_through_wn,
+                                   force_through_wn=force_through_wn,
+                                   polynomial_order=polynomial_order,
                                    show_fit_values=show_fit_values,
                                    show_plot=show_plot, abs_high=abs_high,
                                    abs_low=abs_low, 
@@ -1170,15 +1172,15 @@ class Profile():
              starting_value=None, 
              vary_initial=True,
              vary_final=False,
-             vary_time=False, 
-             varyD=True, 
+             vary_time=True, 
+             varyD=False, 
              peak_idx=None, 
              wholeblock=False, 
              centered=False,
              show_plot=True, 
              heights_instead=False,
              symmetric=True,
-             points=200, ):
+             points=200):
         """
         Fits a 1D diffusion curve to profile data.
         
