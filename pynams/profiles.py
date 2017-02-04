@@ -1170,7 +1170,7 @@ class Profile():
              initial_unit_value=1., 
              final_unit_value=0.,  
              starting_value=None, 
-             vary_initial=True,
+             vary_initial=False,
              vary_final=False,
              vary_time=True, 
              varyD=False, 
