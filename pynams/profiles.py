@@ -1200,8 +1200,8 @@ class Profile():
                 time_seconds = self.time_seconds
             except AttributeError:
                 time_seconds = 36000.
-        if self.time_seconds is None:
-            time_seconds = 36000.
+            if self.time_seconds is None:
+                time_seconds = 36000.
 
         if log10Dm2s is None:
             try:
