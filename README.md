@@ -1,14 +1,13 @@
 [![DOI](https://zenodo.org/badge/18718/EFerriss/pynams.svg)](https://zenodo.org/badge/latestdoi/18718/EFerriss/pynams)
 # pynams
-Process and interpret FTIR spectra with emphasis on water in nominally anhydrous minerals (NAMs)
+Interpret [FTIR](https://en.wikipedia.org/wiki/Fourier_transform_infrared_spectroscopy) profiles with emphasis on water in nominally anhydrous minerals (NAMs)
 
-Pynams includes tools for
-* Interpeting H profiles based on FTIR spectra 
-* Creating consistent baselines across profiles
-* Determining and plotting integrated areas across profiles
-* Estimating water concentrations
-* Working with peak-specific data
-* Modeling diffusion in 1D and 3D
+Pynams includes tools to
+* Create consistent baselines for groups of FTIR spectra
+* Determine and plot integrated areas across profiles
+* Estimate water concentrations
+* Handle peak-specific data
+* Model diffusion in 1D and 3D
  
 Here are [simple examples and explanations](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb) in a jupyter notebook. That file also doubles as a test file, so if you change anything in the code, it's a good idea to try re-running the jupyter notebook to make sure you didn't break anything. 
 
