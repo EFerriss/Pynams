@@ -9,7 +9,7 @@ Pynams includes tools to
 * Handle peak-specific data
 * Model diffusion in 1D and 3D
  
-Here are [simple examples and explanations](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb) in a jupyter notebook. That file also doubles as a test file, so if you change anything in the code, it's a good idea to try re-running the jupyter notebook to make sure you didn't break anything. 
+Here are [simple examples and explanations](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb) in a jupyter notebook. That file doubles as a test file, so if you change anything in the code, it's a good idea to try re-running the jupyter notebook to make sure you didn't break anything. 
 
 You can [contact me](mailto: elizabeth.ferriss@gmail.com) directly with questions. 
 
