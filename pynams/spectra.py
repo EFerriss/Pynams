@@ -157,7 +157,7 @@ class Spectrum():
     #            print('current working directory = ', os.getcwd())
                 print('Maybe check the folder name')
 
-    def plot_spectrum(self, axes=None, style=styles.style_1, offset=0., 
+    def plot_spectrum(self, axes=None, style=None, offset=0., 
                       label=None, wn_xlim_left=4000., wn_xlim_right=3000., 
                       pad_top=0.1, pad_bot=0., plot_raw=False):
         """
@@ -228,11 +228,13 @@ class Spectrum():
             
         if label is None:
             label = self.fname
-            
-        style_to_use = style.copy()
-        style_to_use.update({'label' : label})
-        
-        ax.plot(self.wn_full, absorbance + offset, **style_to_use)
+
+        if style is not None:            
+            style_to_use = style.copy()
+            style_to_use.update({'label' : label})
+            ax.plot(self.wn_full, absorbance + offset, **style_to_use)
+        else:
+            ax.plot(self.wn_full, absorbance + offset, label=label)
         
         ax.set_xlim(wn_xlim_left, wn_xlim_right)
         

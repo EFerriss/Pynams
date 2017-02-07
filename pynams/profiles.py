@@ -692,7 +692,7 @@ class Profile():
                           show_values=False, 
                           peakwn=None, 
                           top=None,
-                          style=styles.style_points, 
+                          style=None, 
                           show_initial_areas=False,
                           error_percent=0, 
                           label=None, 
@@ -803,12 +803,16 @@ class Profile():
         # Set up plotting styles
         if style_bestfitline is None:
             style_bestfitline = styles.style_baseline
-        if style is None:
-            style = styles.style_spectrum
+#        if style is None:
+#            style = styles.style_points
         if label is None:
-            style['label'] = self.profile_name
+            if style is not None:
+                style['label'] = self.profile_name
+            else:
+                label = self.profile_name
         else:
-            style['label'] = label
+            if style is not None:
+                style['label'] = label
 
         # Use new or old figure axes
         if axes is None:
@@ -843,9 +847,15 @@ class Profile():
         yerror = np.array(areas)*error_percent/100.
         
         if error_percent == 0:
-            ax.plot(x, areas, **style)
+            if style is None:
+                ax.plot(x, areas, label=label)
+            else:
+                ax.plot(x, areas, **style)
         else:
-            ax.errorbar(x, areas, yerr=yerror, **style)
+            if style is not None:
+                ax.errorbar(x, areas, yerr=yerror, **style)
+            else:
+                ax.errorbar(x, areas, yerr=yerror, label=label)
             
         # Plot best fit line beneath data points
         if bestfitline is True:
