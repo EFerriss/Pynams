@@ -217,6 +217,8 @@ class Spectrum():
         if axes is None:
             fig, ax = styles.plot_spectrum_outline(wn_xlim_left=wn_xlim_left,
                                                    wn_xlim_right=wn_xlim_right)
+            fig.set_size_inches(6, 6)
+
         else:
             fig = None
             ax = axes
@@ -484,7 +486,9 @@ class Spectrum():
                       wn_high=3700, 
                       wn_mid=3550,
                       linetype='line', 
-                      spline_type='quadratic', 
+                      spline_kind='cubic', 
+                      spline_wn_low = 3000,
+                      spline_wn_high = 4000,
                       curvature=None, 
                       force_through_wn=None,
                       polynomial_order=None,
@@ -508,7 +512,7 @@ class Spectrum():
         Change this range by changing the keywords wn_low and wn_high.
         
         The default shape of the baseline is a line (linetype='line'),
-        but you can also do quadratic or spline.  
+        but you can set linetype = 'quadratic', 'polynomial', or 'spline'.  
         
         For quadratics, extent of curvature is determined primarily
         by the keyword curvature, which sets how much to deviate from
@@ -520,18 +524,19 @@ class Spectrum():
         For higher order wavenumbers, specify the polynomial_order, and you 
         can still use include the force_through_wn.
 
+        linetype='spline' fits using the data on either side of the peaks: 
+            one arm between spline_wn_high (default=4000) and wn_high 
+            (default=3700), and the second arm between spline_wn_low
+            (default=3000) and wn_low (default=3200)
+        spline_kind options are 'linear', 'nearest', 'zero',
+        'slinear', 'quadratic', and 'cubic' (default). 
+        See documentation for scipy.interpolate.interp1d for more information.
+
         For noisy data, try setting abs_smear_high and low to fit to 
         average absorbances around wn_low and wn_high. 10 is usually a 
         good number.
-        
-        I've had problems with linetype='spline', maybe it's not implemented 
-        correctly? My computer tends to take a *really* long time to 
-        come up with the spline, so use that one with caution. I think 
-        Dan Rasmussen has had better success with it. You can also set 
-        the spline_type, which defaults to 'quadratic'. 
-        
-        and return baseline absorption curve. Shiftline value determines
-        how much quadratic deviates from linearity
+                
+        Returns baseline absorption curve. 
         """
         # get raw or normalized absorbance
         if raw_data is True:
@@ -548,12 +553,12 @@ class Spectrum():
                     print('Either set raw_data=True or provide thickness')
                     return
         
-        # get wavenumber range for baseline
+        # get wavenumber range
         index_lo = (np.abs(self.wn_full-wn_low)).argmin()
         index_hi = (np.abs(self.wn_full-wn_high)).argmin()        
         base_wn = self.wn_full[index_lo:index_hi]
 
-        # Smearing start and stop over a range of wavenumbers
+        # Smear start and stop over a range of wavenumbers
         abs_smear_high=int(abs_smear_high)
         abs_smear_low=int(abs_smear_low)
         if abs_high is None:
@@ -577,6 +582,7 @@ class Spectrum():
         else: 
             ylow = abs_low
 
+        # start with a line 
         x = np.array([self.wn_full[index_hi], self.wn_full[index_lo]])
         y = np.array([yhigh, ylow])
         try:
@@ -594,6 +600,7 @@ class Spectrum():
         if linetype == 'line':
             base_abs = np.polyval(p, base_wn)
 
+        # make a polynomial
         elif linetype == 'polynomial':
             # add in extra points to fit through
             if force_through_wn is not None:
@@ -633,14 +640,18 @@ class Spectrum():
                 print('fitting x values:', x)
                 print('fitting y values:', y)
 
+        # make a spline
         elif linetype == 'spline':
-            idx_max = self.wn_full.argmax()
-            xinterp = np.concatenate((self.wn_full[0:index_lo], 
-                                      self.wn_full[index_hi:idx_max]))                                      
-            yinterp = np.concatenate((absorbance[0:index_lo], 
+            idx_max = (np.abs(self.wn_full - spline_wn_high)).argmin()
+            idx_min = (np.abs(self.wn_full - spline_wn_low)).argmin()
+            xinterp = np.concatenate((self.wn_full[idx_min:index_lo], 
+                                      self.wn_full[index_hi:idx_max]))
+            yinterp = np.concatenate((absorbance[idx_min:index_lo], 
                                       absorbance[index_hi:idx_max]))
-            f = interp.interp1d(xinterp, yinterp, kind=spline_type)
-            base_abs = f(self.base_wn)
+            f = interp.interp1d(xinterp, yinterp, kind=spline_kind)
+            base_wn = self.wn_full[index_lo:index_hi]
+            base_abs = f(base_wn)
+                
         else:
             print("linetype must be 'line', 'polynomial', or 'spline'")
             return
@@ -659,10 +670,9 @@ class Spectrum():
                         max(absorbance[index_lo:index_hi]))
             ax.set_xlim(wn_high, wn_low)
             ax.plot(base_wn, base_abs, '-k')
-#            fig, ax = self.plot_showbaseline(abs_baseline=base_abs,
-#                                             wn_baseline=base_wn,
-#                                             wn_xlim_left=wn_high,
-#                                             wn_xlim_right=wn_low)
+
+            if linetype == 'spline':
+                ax.plot(xinterp, yinterp, 'o')
             
             if show_fit_values is True:
                 if abs_smear_high > 0:
