@@ -688,7 +688,9 @@ class Profile():
                           show_water_ppm=True,
                           wholeblock=False,
                           peak_idx=None, 
-                          centered=True, 
+                          centered=False, 
+                          normalize_areas=False,
+                          normalize_positions=False,
                           heights_instead=False, 
                           bestfitline=False, 
                           style_bestfitline=None,
@@ -729,7 +731,12 @@ class Profile():
         a Reviews in Mineralogy volume is a good place to start for 
         background on these issues.
         
-        Centered=True (default) puts 0 in the middle of the x-axis.
+        Centered=True (not default) puts 0 in the middle of the x-axis.
+        
+        If normalize_areas=True (False is default), areas/heights are 
+        normalized to the maximum value. If normalize_positions = True
+        (default=False), the positions are plotted relative to the length,
+        so with resulting x-axis limits from 0 to 1.
 
         bestfitline=True draws a best-fit line through the data.
         
@@ -787,7 +794,9 @@ class Profile():
                     
         if areas is False:
             return            
-
+        if normalize_areas is True:
+            areas = areas / max(areas)
+            
         if np.shape(areas) != np.shape(self.positions_microns):
             print('Area and positions lists are not the same size!')
             print('area:', np.shape(self.areas))
@@ -834,19 +843,37 @@ class Profile():
                             peakwn, heights_instead=heights_instead, 
                             wholeblock=wholeblock, top=top,
                             show_water_ppm=show_water_ppm)
-            if centered is True:
-                ax.set_xlim(-leng/2.0, leng/2.0)
+            if normalize_areas is True:
+                ax.set_ylim(0, 1.2)
+                if heights_instead is False:
+                    ax.set_ylabel('Area normalized to max. area')
+                else:
+                    ax.set_ylabel('Height normalized to max. height')
+            if normalize_positions is True:
+                ax.set_xlabel('Position relative to total length')
+                if centered is True:
+                    ax.set_xlim(-0.5, 0.5)
+                else:
+                    ax.set_xlim(0., 1.)
             else:
-                ax.set_xlim(0, leng)
+                if centered is True:
+                    ax.set_xlim(-leng/2.0, leng/2.0)
+                else:
+                    ax.set_xlim(0, leng)
         else:
             ax = axes
             show_water_ppm = False
-
-        # Plot data
-        if centered is True:
-            x = np.array(self.positions_microns) - leng/2.0
+          
+        # x data
+        if normalize_positions is True:
+            x = np.array(self.positions_microns) / leng
+            if centered is True:
+                x = x - 0.5
         else:
-            x = self.positions_microns            
+            if centered is True:
+                x = np.array(self.positions_microns) - leng/2.0
+            else:
+                x = self.positions_microns            
         
         yerror = np.array(areas)*error_percent/100.
         

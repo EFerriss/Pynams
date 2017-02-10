@@ -31,8 +31,10 @@ style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
 
 def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
-    """Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
-    See Table 3 of Denis et al. 2013"""
+    """
+    Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
+    See Table 3 of Denis et al. 2013
+    """
     if phase == 'Fo90':
         H_to_1_ppm = 16.35
     elif phase == 'opx':

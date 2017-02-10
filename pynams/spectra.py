@@ -664,8 +664,7 @@ class Spectrum():
             self.base_wn = base_wn
         
         if show_plot is True:
-            fig, ax = self.plot_spectrum(plot_raw=raw_data, 
-                                         style=styles.style_1)
+            fig, ax = self.plot_spectrum(plot_raw=raw_data)
             ax.set_ylim(min(absorbance[index_lo:index_hi]), 
                         max(absorbance[index_lo:index_hi]))
             ax.set_xlim(wn_high, wn_low)

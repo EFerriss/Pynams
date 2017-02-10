@@ -17,7 +17,8 @@ class WholeBlock():
                  make_wb_areas=False, time_seconds=None, worksheetname=None,
                  style_base = None, temperature_celsius=None,
                  diffusivities_log10_m2s=None, get_baselines=False,
-                 diffusivity_errors=None, sample=None):
+                 diffusivity_errors=None, sample=None,
+                 initialWB=None):
         self.profiles = profiles
         self.folder = folder
         self.name = name
@@ -29,9 +30,12 @@ class WholeBlock():
         self.peak_diffusivities = []
         self.peak_diffusivities_errors = []
         
-        if len(self.profiles) > 0:
-            self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas,
-                         get_baselines=get_baselines)
+        self.setupWB(peakfit=peakfit, make_wb_areas=make_wb_areas,
+                     get_baselines=get_baselines)
+        
+        if initialWB is not None:
+            for idx, prof in self.profiles:
+                prof.initial_profile = initialWB.profiles[idx]
                 
     def setupWB(self, peakfit=False, make_wb_areas=False, get_baselines=False):
         """Sets up and checks WholeBlock instance
@@ -480,7 +484,9 @@ class WholeBlock():
                       wn_low=3200, 
                       wn_high=3700, 
                       linetype='line', 
-                      spline_type='quadratic', 
+                      spline_kind='cubic', 
+                      spline_wn_low=3000,
+                      spline_wn_high=4000,
                       curvature=None, 
                       force_through_wn=None,
                       polynomial_order=None,
@@ -499,7 +505,9 @@ class WholeBlock():
         for prof in self.profiles:
             prof.make_baselines(raw_data=raw_data, wn_low=wn_low, 
                                wn_high=wn_high, linetype=linetype, 
-                               spline_type=spline_type, 
+                               spline_kind=spline_kind,
+                               spline_wn_high=spline_wn_high,
+                               spline_wn_low=spline_wn_low,                               
                                curvature=curvature,
                                force_through_wn=force_through_wn,
                                polynomial_order=polynomial_order,
