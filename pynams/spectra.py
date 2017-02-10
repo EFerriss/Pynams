@@ -754,7 +754,7 @@ class Spectrum():
         self.abs_nobase_cm = abs_nobase_cm
         return abs_nobase_cm
 
-    def get_area_under_curve(self, show_plot=False, raw_data=False,
+    def make_area(self, show_plot=False, raw_data=False,
                              printout=True, numformat='{:.1f}', 
                              wn_high=None, wn_low=None):
         """
@@ -815,7 +815,7 @@ class Spectrum():
         
         These estimates are not really to be trusted. See, e.g., Withers 2013.
         """
-        area = self.get_area_under_curve(show_plot=False, printout=False)
+        area = self.make_area(show_plot=False, printout=False)
         w = pynams.area2water(area, phase=phase, calibration=calibration)
                         
         # output for each spectrum
@@ -1141,7 +1141,7 @@ class Spectrum():
     def plot_peakfit(self, style=styles.style_spectrum, 
                      stylesum=styles.style_summed, 
                      axes = None, legend=True,
-                     stylepeaks=styles.style_fitpeak, top=None, legloc=1):
+                     stylepeaks=styles.style_fitpeak, ytop=None, legloc=1):
         """Single spectrum: Plot peaks fit in MATLAB using peakfit.m
         REQUIRES the peak_ending and baseline_ending so that it can
         locate the file spectrum.fname+peak_ending and +baseline_ending.
@@ -1170,11 +1170,11 @@ class Spectrum():
         if axes is None:
             if legend is True:
                 ax.legend(loc=legloc)
-            ax.set_ylim(0., top)        
+            ax.set_ylim(0., ytop)        
         
-        if top is None:
+        if ytop is None:
             topnat = ax.get_ylim()[1]
-            top = topnat + topnat*0.75
+            ytop = topnat + topnat*0.75
             
 
         for k in range(len(self.peakpos)):
@@ -1355,7 +1355,7 @@ class Spectrum():
                                   stylesum=styles.style_summed, 
                                   stylepeaks=styles.style_fitpeak, 
                                   style_base=styles.style_baseline,
-                                  top=None, bottom=0., legloc=1, 
+                                  ytop=None, bottom=0., legloc=1, 
                                   label_spectrum='observed', 
                                   peak_ending='-peakfit.CSV',
                                   baseline_ending='-baseline.CSV'):
@@ -1384,11 +1384,11 @@ class Spectrum():
                 
         ax.legend(loc=legloc)
         
-        if top is None:
+        if ytop is None:
             topnat = ax.get_ylim()[1]
-            top = topnat + topnat*0.75
+            ytop = topnat + topnat*0.75
             
-        ax.set_ylim(bottom, top)
+        ax.set_ylim(bottom, ytop)
 
         for k in range(len(self.peakpos)):
             ax.plot(self.base_wn, gaussian[k]+self.base_abs, **stylepeaks)
@@ -1468,7 +1468,7 @@ def water_from_spectra(list3, folder, phase='cpx',
             if show_plots is True:
                 ax.plot(spec.base_wn, base_abs, **styles.style_baseline)
 
-            area = spec.get_area_under_curve(area_plot=False, printout=False)
+            area = spec.make_area(area_plot=False, printout=False)
             area_list = np.append(area_list, area)
             baseline_list[k,:] = base_abs
             pek_list[k,:] = abs_nobase_cm

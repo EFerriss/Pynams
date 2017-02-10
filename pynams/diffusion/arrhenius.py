@@ -386,7 +386,7 @@ generic = Diffusivities()
 generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
                      'markersize' : 8, 'linestyle': 'none'}
 
-def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
+def Arrhenius_outline(xlow=6., xhigh=11., ybottom=-18., ytop=-8.,
                       celsius_labels = np.arange(0, 2000, 100),
                       shrink_axes_to_fit_legend_by = 0.3, make_legend=False,
                       lower_legend_by=-2., ncol=2):
@@ -416,8 +416,8 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
     ax_celsius.axis["top"].set_label("Temperature ($\degree$C)")
     ax_celsius.axis["top"].label.set_visible(True)
     ax_celsius.axis["right"].major_ticklabels.set_visible(False)
-    ax.set_xlim(low, high)
-    ax.set_ylim(bottom, top)
+    ax.set_xlim(xlow, xhigh)
+    ax.set_ylim(ybottom, ytop)
     ax.grid()
     
     # main legend below
@@ -428,7 +428,7 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
                          box.width, box.height*(1.0-shrink_axes_to_fit_legend_by)])
         main_legend = plt.legend(handles=legend_handles_main, numpoints=1, 
                                  ncol=ncol, 
-                                 bbox_to_anchor=(low, bottom, high-low, 
+                                 bbox_to_anchor=(xlow, ybottom, xhigh-xlow, 
                                                  lower_legend_by),
                                  bbox_transform=ax.transData, mode='expand')
         plt.gca().add_artist(main_legend)
@@ -436,13 +436,13 @@ def Arrhenius_outline(low=6., high=11., bottom=-18., top=-8.,
         legend_handles_main = None
     return fig, ax, legend_handles_main
 
-def Arrhenius_add_line(fig_ax, Ea, D0, low=6.0, high=10.0, 
+def Arrhenius_add_line(fig_ax, Ea, D0, xlow=6.0, xhigh=10.0, 
                        style={'color' : 'k', 'linestyle' : '-'}):
     """
     Takes figure axis from above, Ea activation energy in kJ/mol, D0 in m2/s
-    Plots Arrhenius line from 1E4/T = low to high
+    Plots Arrhenius line from 1E4/T = xlow to xhigh
     """
-    T = 1E4 / np.linspace(low, high) 
+    T = 1E4 / np.linspace(xlow, xhigh) 
     log10D = np.log10(D0) - (Ea/(2.303 * GAS_CONSTANT * T))
     fig_ax.plot(1E4 / T, log10D, **style)
 

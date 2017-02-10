@@ -150,7 +150,7 @@ class WholeBlock():
                 spec.plot_showbaseline()
 
 
-    def make_area_lists(self, show_plot=False, printout_area=False, peak=None):
+    def make_areas(self, show_plot=False, printout_area=False, peak=None):
             """
             Make list of areas from all profiles, including whole-block areas.
             """
@@ -267,7 +267,7 @@ class WholeBlock():
                 # absolute areas
                 else:
                     if prof.areas is None:
-                        prof.make_area_list()
+                        prof.make_areas()
                     y_to_add = prof.areas
 
 
@@ -321,7 +321,7 @@ class WholeBlock():
 #                    if check is False:
 #                        print('Problem setting up whole block in setupWB')                    
 #                        return False
-        self.make_area_lists()
+        self.make_areas()
         
         if peak_idx is not None:
             for prof in self.profiles:
@@ -653,7 +653,7 @@ class WholeBlock():
             top = ax.get_ylim()[1]
             if peak_idx is None:
                 for prof in [ai, bi, ci]:
-                    all_areas = np.append(all_areas, prof.make_area_list())
+                    all_areas = np.append(all_areas, prof.make_areas())
             else:
                 for prof in [ai, bi, ci]:
                     if heights_instead is False:

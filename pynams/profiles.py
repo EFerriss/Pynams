@@ -222,12 +222,12 @@ class Profile():
             
         return self.thickness_microns
 
-    def plot_thicknesses(self, figaxis=None):
+    def plot_thicknesses(self, axes=None):
         """Plot thickness across profile"""
         if self.length_microns is None:
             self.length_microns = max(self.positions_microns)+1.
-        if figaxis is not None:
-            ax = figaxis
+        if axes is not None:
+            ax = axes
         else:
             fig, ax, ax_right = styles.plot_area_profile_outline(
                                                             centered=False)
@@ -255,12 +255,12 @@ class Profile():
         avespec.thickness_microns = np.mean(self.thicknesses_microns)
         return avespec
 
-    def plot_spectra(self, show_baseline=True, show_initial_ave=True, 
-                     show_final_ave=True, plot_all=False, 
-                     initial_and_final_together=False, style=styles.style_spectrum, 
-                     stylei=styles.style_initial, wn=None,
-                     figsize=(3.2, 3.2)):
-        """Plot averaged spectrum across profile. Returns figure and axis."""
+    def plot_spectra(self):
+        """
+        Plot all spectra across profile with default spectrum.plot_spectrum()
+        method. For more detailed inputs or to return figure and axes handles,
+        loop through profile.spectra
+        """
         for spec in self.spectra:
             spec.plot_spectrum()
             
@@ -285,7 +285,7 @@ class Profile():
             if shift is not None:
                 spectrum.base_mid_yshift = shift
 
-    def make_composite_peak(self,peak_idx_list):
+    def make_composite_peak(self, peak_idx_list):
         """
         Takes a list of peak indices and makes a new composite
         peak for all spectra in profile        
@@ -341,7 +341,7 @@ class Profile():
         for spectrum in self.spectra:
             spectrum.get_baseline(folder=folder, delim=delim, 
                                   baseline_ending=baseline_ending)
-        self.make_area_list()
+        self.make_areas()
                         
     def save_baselines(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -350,13 +350,13 @@ class Profile():
             spectrum.save_baseline(folder=folder, delim=delim,
                                    baseline_ending=baseline_ending)
         
-    def make_area_list(self, peak=None, show_plot=False, 
+    def make_areas(self, peak=None, show_plot=False, 
                        printout_area=False, wn_low=None, wn_high=None):
         """
         Make list of areas under the curve for an FTIR profile.
         Default is bulk area. Set peak=wavenumber for peak-specific profile.
         Change wn_low and wn_high for wavenumber range other than 
-        full baseline range, as in spectrum.get_area_under_curve.
+        full baseline range, as in spectrum.make_area.
         
         If show_plot and printout_area are set to True, then the plot and
         areas will show up when it calculates the areas under the curve
@@ -365,7 +365,7 @@ class Profile():
         areas = []
         if peak is None:
             for spec in self.spectra:
-                a = spec.get_area_under_curve(show_plot=show_plot, 
+                a = spec.make_area(show_plot=show_plot, 
                                               printout=printout_area,
                                               wn_low=wn_low, wn_high=wn_high)
                 areas.append(a)            
@@ -538,13 +538,13 @@ class Profile():
         return average_peakareas, average_peakheights, total_area, \
                 max_peakareas, max_peakheights
 
-    def plot_peakfits(self, initial_too=False, legloc=1, top=1.2):
+    def plot_peakfits(self, initial_too=False, legloc=1, ytop=1.2):
         """Show fit peaks for all spectra in profile"""
         if len(self.spectra) < 1:
             self.make_spectra()
             
         for spectrum in self.spectra:
-            spectrum.plot_peakfit(legloc=legloc, top=top)
+            spectrum.plot_peakfit(legloc=legloc, ytop=ytop)
         
         if initial_too is True and self.initial_profile is not None:
             for spectrum in self.initial_profile.spectra:
@@ -562,8 +562,8 @@ class Profile():
         init=self.initial_profile
 
         # Bulk H whole-block        
-        iareas = self.initial_profile.make_area_list()
-        areas = self.make_area_list()
+        iareas = self.initial_profile.make_areas()
+        areas = self.make_areas()
 
         # best-fit line through initial areas        
         if ((len(iareas) == 2) and 
@@ -656,33 +656,6 @@ class Profile():
     
         return returnvals, peakwn
 
-    def make_style_subtypes(self):
-        """Make direction-specific marker and line style dictionaries for 
-        profile based on profile's self.style_base"""
-        if self.style_base is None:
-            print('Set base style (style_base) for profile first')
-            return False
-        self.style_x_marker =  dict(list(self.style_base.items()) + list(styles.style_Dx.items()))
-        self.style_y_marker =  dict(list(self.style_base.items()) + list(styles.style_Dy.items()))
-        self.style_z_marker =  dict(list(self.style_base.items()) + list(styles.style_Dz.items()))
-        self.style_x_line = styles.make_line_style('x', self.style_base)
-        self.style_y_line = styles.make_line_style('y', self.style_base)
-        self.style_z_line = styles.make_line_style('z', self.style_base)
-        
-        if self.raypath == 'a':
-            self.style_x_marker.update({'marker' : styles.style_Rx['marker']})
-            self.style_y_marker.update({'marker' : styles.style_Rx['marker']})
-            self.style_z_marker.update({'marker' : styles.style_Rx['marker']})
-        elif self.raypath == 'b':
-            self.style_x_marker.update({'marker' : styles.style_Ry['marker']})
-            self.style_y_marker.update({'marker' : styles.style_Ry['marker']})
-            self.style_z_marker.update({'marker' : styles.style_Ry['marker']})
-        elif self.raypath == 'c':
-            self.style_x_marker.update({'marker' : styles.style_Rz['marker']})        
-            self.style_y_marker.update({'marker' : styles.style_Rz['marker']})
-            self.style_z_marker.update({'marker' : styles.style_Rz['marker']})
-        return
-
     def plot_area_profile(self, 
                           axes=None, 
                           show_water_ppm=True,
@@ -697,7 +670,7 @@ class Profile():
                           show_FTIR=False, 
                           show_values=False, 
                           peakwn=None, 
-                          top=None,
+                          ytop=None,
                           style=None, 
                           show_initial_areas=False,
                           error_percent=0, 
@@ -731,7 +704,12 @@ class Profile():
         a Reviews in Mineralogy volume is a good place to start for 
         background on these issues.
         
-        Centered=True (not default) puts 0 in the middle of the x-axis.
+        Note that the right and left-hand axes are independent of each other,
+        and changing the limits on one will not affect the other. To set
+        the maximum area (right-hand axis upper limit) and scale both 
+        axes simultaneously while making the plot, use the ytop keyword.
+        
+        Centered=True (False is default) puts 0 in the middle of the x-axis.
         
         If normalize_areas=True (False is default), areas/heights are 
         normalized to the maximum value. If normalize_positions = True
@@ -742,22 +720,20 @@ class Profile():
         
         Set peak_idx and whole_block for peak-specific and whole-block 
         profiles.
+        
         """
-        # Check for position information
         if len(self.positions_microns) < 1:
             print('Need positions_microns for profile')
             return
 
-        # Get list of areas
+        # Get y data
         if wholeblock is False:
             if peakwn is None and peak_idx is None:
-                # bulk hydrogen
                 try:
                     areas = self.areas
                 except AttributeError:
-                    areas = self.make_area_list(peak=None)
+                    areas = self.make_areas(peak=None)
             else:
-                # peak-specific
                 self.get_peak_info()
 
                 if peak_idx is None:
@@ -770,19 +746,14 @@ class Profile():
                 areas = self.peak_heights[peak_idx]
             elif peak_idx is not None:
                 areas = self.peak_areas[peak_idx]
-
-        # whole-block
         else:
             if self.initial_profile is None:
                 print('Need to specify an initial profile')
                 return
-        
-            # bulk hydrogen
             if peak_idx is None:
                 if self.wb_areas is None:
                     self.make_wholeblock(peakfit=False, bulk=True)
                 areas = self.wb_areas
-            # peak-specific
             else:
                 if self.peak_wb_areas is None:
                     self.make_wholeblock(peakfit=True, bulk=False)
@@ -790,12 +761,15 @@ class Profile():
                 if heights_instead is False:
                     areas = self.peak_wb_areas[peak_idx]
                 else:
-                    areas = self.peak_wb_heights[peak_idx]
-                    
+                    areas = self.peak_wb_heights[peak_idx]                   
         if areas is False:
             return            
+        
         if normalize_areas is True:
-            areas = areas / max(areas)
+            areas_for_water = list(areas)
+            areas = np.array(areas) / float(max(areas))
+        else:
+            areas_for_water = areas
             
         if np.shape(areas) != np.shape(self.positions_microns):
             print('Area and positions lists are not the same size!')
@@ -816,8 +790,6 @@ class Profile():
         # Set up plotting styles
         if style_bestfitline is None:
             style_bestfitline = styles.style_baseline
-#        if style is None:
-#            style = styles.style_points
         if label is None:
             if style is not None:
                 style['label'] = self.profile_name
@@ -829,22 +801,22 @@ class Profile():
 
         # Use new or old figure axes
         if axes is None:
-            if top is None:
+            if ytop is None:
                 if peak_idx is None:
-                    top = max(self.areas)+0.2*max(self.areas)
+                    ytop = max(areas)+0.2*max(areas)
                 else:
                     if heights_instead is False:
                         mpeak = max(self.peak_areas[peak_idx])
                     else:
                         mpeak = max(self.peak_heights[peak_idx])
-                    top = mpeak + 0.2*mpeak
-            
+                    ytop = mpeak + 0.2*mpeak
+                       
             f, ax, ax_ppm = styles.plot_area_profile_outline(centered, 
                             peakwn, heights_instead=heights_instead, 
-                            wholeblock=wholeblock, top=top,
+                            wholeblock=wholeblock, ytop=ytop,
                             show_water_ppm=show_water_ppm)
+
             if normalize_areas is True:
-                ax.set_ylim(0, 1.2)
                 if heights_instead is False:
                     ax.set_ylabel('Area normalized to max. area')
                 else:
@@ -874,9 +846,9 @@ class Profile():
                 x = np.array(self.positions_microns) - leng/2.0
             else:
                 x = self.positions_microns            
-        
-        yerror = np.array(areas)*error_percent/100.
-        
+
+        # error bars
+        yerror = np.array(areas)*error_percent/100.       
         if error_percent == 0:
             if style is None:
                 ax.plot(x, areas, label=label)
@@ -936,10 +908,13 @@ class Profile():
             show_water_ppm = False
         if show_water_ppm is True:
             ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
-                                       ' calibration *', 
-                                       str(scale_water))))                
+                                       ' calibration *', str(scale_water))))
             ori = scale_water
-            ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
+            if normalize_areas is False:
+                ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
+            else:
+                ppm_limits = np.array([0, max(areas_for_water)*ytop])
+                ppm_limits = ppm_limits * abs_coeff.n * ori
             ax_ppm.set_ylim(ppm_limits)
         elif axes is None:
             ax_ppm.get_yaxis().set_visible(False)
@@ -969,7 +944,7 @@ class Profile():
             try:
                 maximum_value = max(self.areas)
             except AttributeError:
-                maximum_value = max(self.make_area_list())
+                maximum_value = max(self.make_areas())
 
         fig, ax, x, y = models.diffusion1D(length, log10D_m2s, time_seconds, 
                                            init=init, fin=fin, 
@@ -1000,7 +975,9 @@ class Profile():
                       points=100, 
                       symmetric=True,
                       maximum_value=None,
-                      top=None):
+                      ytop=None,
+                      normalize_areas=False,
+                      normalize_positions=False):
 
         """ 
         Plots area profile and with 1D diffusion profile on top.
@@ -1021,7 +998,9 @@ class Profile():
                                        phase=phase,
                                        calibration=calibration,
                                        scale_water=scale_water,
-                                       top=top)
+                                       ytop=ytop,
+                                       normalize_areas=normalize_areas,
+                                       normalize_positions=normalize_positions)
         try:
             length = self.length_microns
         except AttributeError:
@@ -1032,7 +1011,7 @@ class Profile():
                 try:
                     maximum_value = max(self.areas)
                 except AttributeError:
-                    maximum_value = max(self.make_area_list())
+                    maximum_value = max(self.make_areas())
             else:
                 if heights_instead is True:
                     maximum_value = max(self.peak_heights[peak_idx])
@@ -1070,7 +1049,7 @@ class Profile():
                 try:
                     y = self.areas
                 except AttributeError:
-                    y = self.make_area_list()
+                    y = self.make_areas()
             else:
                 try:
                     y = self.peak_areas[peak_idx]
@@ -1151,7 +1130,7 @@ class Profile():
             # bulk water                
             if peak_idx is None:
                 if len(self.areas) < 1:
-                    self.make_area_list()
+                    self.make_areas()
                 scale_diffusion = np.max(self.areas)
         
             # peak-specific heights                
@@ -1572,7 +1551,7 @@ class TimeSeries(Profile):
         if y is None:
             if peak_idx is None:
                 if len(self.areas) < 1:
-                    self.make_area_list()
+                    self.make_areas()
                 C = self.areas
             else:
                 print('not ready for peak-specific yet')
@@ -1816,7 +1795,7 @@ def make_3DWB_area_profile(final_profile,
             fin.set_len()
         if len(fin.areas) == 0:
             print('making area list for profile')
-            fin.make_area_list(show_plot=False)
+            fin.make_areas(show_plot=False)
     
         # What to normalize to? Priority given to self.wb_initial_profile, then
         # initial_profile passed in here, then initial area list passed in here.
@@ -1831,7 +1810,7 @@ def make_3DWB_area_profile(final_profile,
                 if len(profile.areas) == 0:
                     print(profile.profile_name)
                     print('making area list for profile')
-                    profile.make_area_list(show_plot=False)
+                    profile.make_areas(show_plot=False)
             A0 = init.areas
             positions0 = init.positions_microns           
     
@@ -1845,7 +1824,7 @@ def make_3DWB_area_profile(final_profile,
             for profile in [init, fin]:
                 if len(profile.areas) == 0:
                     print('making area list for profile')
-                    profile.make_area_list(show_plot=False)
+                    profile.make_areas(show_plot=False)
             A0 = init.areas
             positions0 = init.positions_microns
     
@@ -1857,7 +1836,7 @@ def make_3DWB_area_profile(final_profile,
             positions0 = initial_area_positions_microns
             if len(fin.areas) == 0:
                 print('making area list for final profile')
-                fin.make_area_list(show_plot=False)
+                fin.make_areas(show_plot=False)
         else:
             print('Need some information about initial state')
             return False

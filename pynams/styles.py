@@ -228,7 +228,7 @@ def make_line_style(direction, style_marker):
     d.update({'linewidth' : 2})
     return d
 
-def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
+def plot_spectrum_outline(size_inches=(6, 6), shrinker=0.15,
                           figaxis=None, wn_xlim_left=4000., 
                           wn_xlim_right=3000., pad_top=0.1, 
                           pad_bot=0., raw_data=False):
@@ -256,7 +256,7 @@ def plot_spectrum_outline(size_inches=(3., 2.5), shrinker=0.15,
         return f, ax
     
 def plot_area_profile_outline(centered=True, peakwn=None,
-                              set_size=(6.5, 4), top=1.2, 
+                              set_size=(6.5, 4), ytop=1.2, 
                               wholeblock=False, heights_instead=False,
                               show_water_ppm=True):
     """Set up area profile outline and style defaults. 
@@ -287,7 +287,7 @@ def plot_area_profile_outline(centered=True, peakwn=None,
         else:
             ax.set_ylabel('Height (cm$^{-1}$)')
 
-    ax.set_ylim(0, top)
+    ax.set_ylim(0, ytop)
 
     ax.grid()
     return fig, ax, ax_ppm
@@ -337,7 +337,7 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
     return fig, axis3
     
 def plot_3panels(positions_microns, area_profiles, lengths=None,
-                 styles3=[None, None, None], top=1.2, figaxis3=None, 
+                 styles3=[None, None, None], ytop=1.2, figaxis3=None, 
                  show_line_at_1=True, init=1., 
                  label4legend=[None, None, None],
                  centered=True, unit='microns',
@@ -349,7 +349,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
     Positions are assumed to start at 0 and then are centered.
     """
     if figaxis3 is None:
-        fig, axis3 = plot_3panels_outline(top=top, wholeblock=wholeblock,
+        fig, axis3 = plot_3panels_outline(ytop=ytop, wholeblock=wholeblock,
                                           heights_instead=heights_instead,
                                           unit=unit)
     else:
