@@ -679,7 +679,8 @@ class Profile():
                           initial_label=None, 
                           phase='olivine',
                           calibration='Bell', 
-                          scale_water=3.):
+                          scale_water=3.,
+                          shift_water=0.):
         """
         Plots the area profile. 
         
@@ -702,7 +703,8 @@ class Profile():
         estimates should be viewed with great skepticism, but it's a place to 
         start. George Rossman's 2006 discussion of how to quantify water in 
         a Reviews in Mineralogy volume is a good place to start for 
-        background on these issues.
+        background on these issues. You can shift that scale up or down
+        using shift_water (default=0)
         
         Note that the right and left-hand axes are independent of each other,
         and changing the limits on one will not affect the other. To set
@@ -915,7 +917,7 @@ class Profile():
             else:
                 ppm_limits = np.array([0, max(areas_for_water)*ytop])
                 ppm_limits = ppm_limits * abs_coeff.n * ori
-            ax_ppm.set_ylim(ppm_limits)
+            ax_ppm.set_ylim(ppm_limits + shift_water)
         elif axes is None:
             ax_ppm.get_yaxis().set_visible(False)
 
