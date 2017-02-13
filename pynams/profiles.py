@@ -909,8 +909,15 @@ class Profile():
         if heights_instead is True:
             show_water_ppm = False
         if show_water_ppm is True:
-            ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', calibration, 
-                                       ' calibration *', str(scale_water))))
+            if shift_water == 0.:
+                ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', 
+                                           calibration, ' calibration *', 
+                                           str(scale_water))))
+            else:
+                ax_ppm.set_ylabel(''.join(('ppm H2O in ', phase, ', ', 
+                                           calibration, ' calibration *', 
+                                           str(scale_water), ' + ',
+                                           str(shift_water))))                
             ori = scale_water
             if normalize_areas is False:
                 ppm_limits = np.array(ax.get_ylim()) * abs_coeff.n * ori
@@ -934,6 +941,7 @@ class Profile():
         Requires log10D_m2s and time_seconds
         
         Other keywords like pynams.diffusion.models.diffusion1D
+        and profile.plot_diffusion()
         
         Returns x and y for diffusion modeling, without plotting
         """
@@ -943,10 +951,16 @@ class Profile():
             length = max(self.positions_microns)
         
         if maximum_value is None:
-            try:
-                maximum_value = max(self.areas)
-            except AttributeError:
-                maximum_value = max(self.make_areas())
+            if peak_idx is None:
+                try:
+                    maximum_value = max(self.areas)
+                except AttributeError:
+                    maximum_value = max(self.make_areas())
+            else:
+                if heights_instead is True:
+                    maximum_value = max(self.peak_heights[peak_idx])
+                else:
+                    maximum_value = max(self.peak_areas[peak_idx])
 
         fig, ax, x, y = models.diffusion1D(length, log10D_m2s, time_seconds, 
                                            init=init, fin=fin, 
@@ -970,6 +984,7 @@ class Profile():
                       phase='olivine',
                       calibration='Bell',
                       scale_water=3,
+                      shift_water=0.,
                       init=1., 
                       fin=0.,
                       erf_or_sum='erf', 
@@ -1000,6 +1015,7 @@ class Profile():
                                        phase=phase,
                                        calibration=calibration,
                                        scale_water=scale_water,
+                                       shift_water=shift_water,
                                        ytop=ytop,
                                        normalize_areas=normalize_areas,
                                        normalize_positions=normalize_positions)
