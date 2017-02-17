@@ -12,7 +12,7 @@ from uncertainties import ufloat
 class Block():
     def __init__(self,profiles=[], folder='', name='', get_peakfit=False, 
                  make_wb_areas=False, time_seconds=None, sample=None,
-                 get_baselines=False, initialWB=None):
+                 get_baselines=False, initialWB=None, celsius=None):
         """
         Sets up and checks new Block
         - Check that profiles list contains a list of three (3) profiles
@@ -34,6 +34,7 @@ class Block():
         self.sample = sample        
         self.peak_diffusivities = []
         self.peak_diffusivities_errors = []
+        self.celsius = celsius
         
         d = []
         r = []
@@ -282,15 +283,13 @@ class Block():
         return positions, y
 
     def plot_areas_3panels(self, peak_idx=None, axes3=None, centered=False,
-                           ytop=None, wn=None, figsize=(6.5, 2.5), 
-                           show_spectra=True, percent_error=0., 
+                           ytop=None, heights_instead=False, wholeblock=False,
                            xerror=0., yerror=None, pie=True,
                            label4legend=[None, None, None],
                            styles3=[styles.style_points]*3,
                            unit='microns',
-                           heights_instead=False, wholeblock=False,
                            show_line_at_1=False, 
-                           show_errorbars=True, peak_group=None):
+                           show_errorbars=True):
         """
         Plots areas (default) or ratio of area to initial area 
         (wholeblock=True) for all 3 profiles.  
@@ -309,37 +308,15 @@ class Block():
                         spec.get_peakareas()    
             peakpos = self.profiles[0].peakpos
 
-        # concatenate positions and areas across three profiles to 
-        # send in to the plotting function
-        if peak_group is not None:
-            positions, y_placeholder = self.xy_picker(peak_idx=peak_idx, 
-                                              wholeblock=wholeblock,
-                                              heights_instead=heights_instead, 
-                                              centered=centered, 
-                                              unit=unit)
-            y = np.zeros_like(y_placeholder)
-            tit = 'Sum of peaks'
-
-            for peak_group_idx in peak_group:
-                positions, y_add = self.xy_picker(peak_idx=peak_group_idx, 
-                                              wholeblock=wholeblock,
-                                              heights_instead=heights_instead, 
-                                              centered=centered, unit=unit)
-                y = y + y_add
-                tit = ' '.join((tit, str(peak_group_idx)))
-            
+        positions, y = self.xy_picker(peak_idx=peak_idx, 
+                                      wholeblock=wholeblock,
+                                      heights_instead=heights_instead, 
+                                      centered=centered, unit=unit)
+        
+        if peak_idx is not None:
+            tit = ' '.join(('Peak at', str(peakpos[peak_idx]), '/cm'))
         else:
-            
-            positions, y = self.xy_picker(peak_idx=peak_idx, 
-                                          wholeblock=wholeblock,
-                                          heights_instead=heights_instead, 
-                                          centered=centered, unit=unit)
-            
-            # Change title if peak-specific rather than bulk
-            if peak_idx is not None:
-                tit = ' '.join(('Peak at', str(peakpos[peak_idx]), '/cm'))
-            else:
-                tit = 'Bulk hydrogen'
+            tit = 'Bulk hydrogen'
 
         if ytop is None:
             z = []
@@ -366,7 +343,6 @@ class Block():
                                 label4legend=label4legend,
                                 use_errorbar=show_errorbars,
                                 yerror=yerror, unit=unit,
-                                percent_error=percent_error,
                                 xerror=xerror, centered=centered)
             axes3[1].set_title(tit)                                
         else:
@@ -377,37 +353,36 @@ class Block():
                                           label4legend=label4legend,
                                           heights_instead=heights_instead,
                                           use_errorbar=show_errorbars,
-                                          percent_error=percent_error,
                                           yerror=yerror, unit=unit,
                                           xerror=xerror, centered=centered)
             ax[1].set_title(tit)
-            fig.set_size_inches(figsize)
+            fig.set_size_inches(6.5, 3.)
             fig.autofmt_xdate()
 
-            if pie is True:
-                # add pie chart showing % of total height or area
-                if peak_idx is None:
-                    pass
-                else:
-                    ax_pie = fig.add_subplot(339)
-                    atot, htot = prof.get_area_total()
-                    
-                    if heights_instead is False:
-                        a = spec.peak_areas[peak_idx] / atot
-                        size = [a, 1. - a]
-                        tit = '% total area'
-            
-                    else:
-                        h = spec.peak_heights[peak_idx] / htot
-                        size = [h, 1. - h]
-                        tit = '% sum of heights'
+        # add pie chart showing % of total height or area
+        if pie is True:
+            if peak_idx is None:
+                pass
+            else:
+                ax_pie = fig.add_subplot(339)
+                atot, htot = prof.get_area_total()
                 
-                    colors = ['k', 'w']
-                    plt.pie(size, colors=colors, 
-                            startangle=90,
-                            radius=0.25, center=(0, 0), frame=False)
-                    ax_pie.axis('equal')
-                    ax_pie.set_title(tit)
+                if heights_instead is False:
+                    a = spec.peak_areas[peak_idx] / atot
+                    size = [a, 1. - a]
+                    tit = '% total area'
+        
+                else:
+                    h = spec.peak_heights[peak_idx] / htot
+                    size = [h, 1. - h]
+                    tit = '% sum of heights'
+            
+                colors = ['k', 'w']
+                plt.pie(size, colors=colors, 
+                        startangle=90,
+                        radius=0.25, center=(0, 0), frame=False)
+                ax_pie.axis('equal')
+                ax_pie.set_title(tit)
                 
             return fig, ax
 
@@ -832,7 +807,7 @@ class Block():
              heights_instead=False, wholeblock=True,
              vary_initials=False, vary_finals=False, 
              vary_diffusivities=[True, True, True],
-             erf_or_sum='erf',
+             erf_or_sum='erf', 
              show_plot=True, wb_or_3Dnpi='wb', centered=True,
              show_initial_guess=True, style_initial=None,
              style_final={'color' : 'red'}, points=50, top=1.2):
@@ -906,7 +881,7 @@ class Block():
 
         if show_plot is True:
             if wb_or_3Dnpi == 'wb':
-                self.plot_diffusion(init=init, top=top, 
+                self.plot_diffusion(init=init, 
                                     peak_idx=peak_idx,
                                     log10D_m2s=D3,
                                     heights_instead=heights_instead,

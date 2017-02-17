@@ -13,7 +13,6 @@ bulk H mechanisms in olivine relative progress
 """
 from __future__ import print_function, division, absolute_import
 import numpy as np
-from uncertainties import ufloat
 import pynams.styles as st
 from pynams import Sample
 from pynams.diffusion.models import diffusion3Dnpi
@@ -558,3 +557,24 @@ def fast_vs_slow(celsius, minutes, lengths_microns=[2000., 2000., 2000.],
                                 centered=False)
                              
     return fig, axes
+
+def mix_olivine_mechanisms(percent_slow, celsius):
+    """
+    What if some H diffuses by the fast 'proton-polaron' mechanism, and
+    some diffuses by the slow 'proton-vacancy' mechanism?
+    
+    Required input:
+        percentage of H (0-100) that is moving by the slow mechanism
+        temperature in celsius
+    
+    Output: list of three log10 diffusivities, || a, b, and c in m2/s that 
+    represent a linear mixture of the (unlogged) fast and slow mechanism
+    diffusivities.
+    """
+    Ds_log = KM98_slow.whatIsD(celsius, printout=False)[0:3]
+    Df_log = KM98_fast.whatIsD(celsius, printout=False)[0:3]
+    Ds = [(10.**logD)*percent_slow/100. for logD in Ds_log]
+    Df = [(10.**logD)*(100.-percent_slow)/100. for logD in Df_log]
+    D = np.array(Ds) + np.array(Df)
+    D = np.log10(D)
+    return list(D)
