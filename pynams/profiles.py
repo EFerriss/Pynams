@@ -97,9 +97,6 @@ class Profile():
 
         # Create list of spectra in profile.spectra
         # construct each spectrum from fnames
-        if len(self.fnames) == 0:
-            print('Need fnames')
-            return False                
         fspectra_list = []
         for x in self.fnames:
             newspec = Spectrum(fname=x, folder=self.folder)
@@ -333,14 +330,16 @@ class Profile():
                                    store_baseline=store_baseline)
 
     def get_baselines(self, folder=None, delim=',', 
-                     baseline_ending='-baseline.CSV'):
+                     baseline_ending='-baseline.CSV',
+                     print_confirmation=True):
         """
         Get previously saved baselines for all spectra in profile.
         Automatically updates the profile.areas for these baselines.
         """
         for spectrum in self.spectra:
             spectrum.get_baseline(folder=folder, delim=delim, 
-                                  baseline_ending=baseline_ending)
+                                  baseline_ending=baseline_ending,
+                                  print_confirmation=print_confirmation)
         self.make_areas()
                         
     def save_baselines(self, folder=None, delim=',',
@@ -425,7 +424,9 @@ class Profile():
                 spectrum.get_peakfit(peak_ending=peak_ending)
         except AttributeError:
             pass
-        self.get_peak_info()
+
+        if len(self.spectra) > 0:        
+            self.get_peak_info()
            
     def get_peak_info(self):
         """
@@ -450,7 +451,11 @@ class Profile():
             for spectrum in self.spectra:
                 h.append(spectrum.peak_heights[p])
                 w.append(spectrum.peak_widths[p])
-                a.append(spectrum.peak_areas[p])
+                try:
+                    a.append(spectrum.peak_areas[p])
+                except AttributeError:
+                    print('Problem with peak areas')
+                    a = 0.
             hbig.append(h)
             wbig.append(w)
             abig.append(a)
@@ -572,7 +577,10 @@ class Profile():
         elif len(iareas) > 1:
             p = np.polyfit(init.positions_microns, iareas, 1)
         else:
-            p = (0, iareas[0])
+            try:
+                p = (0, iareas[0])
+            except IndexError:
+                p = (0, 1)
         init_line = np.polyval(p, self.positions_microns)
         
         # whole-block areas relative to that initial line

@@ -913,7 +913,8 @@ class Spectrum():
         print('Saved', base_filename)
 
     def get_baseline(self, folder=None, delim=',', 
-                     baseline_ending='-baseline.CSV'):
+                     baseline_ending='-baseline.CSV',
+                     print_confirmation=True):
         """
         Get baseline saved using save_baseline().
         
@@ -921,7 +922,10 @@ class Spectrum():
         than '-baseline.CSV'.
         
         Returns baseline absorbances and baseline-subtracted absorbances. 
-        Sets the spectrum's base_wn attribute
+        Sets the spectrum's base_wn attribute.
+        
+        Set print_confirmation=False to suppress printout when file
+        successfully retrieved
         """
         if folder is None:
             folder = self.folder
@@ -931,7 +935,8 @@ class Spectrum():
         data = np.genfromtxt(filename, delimiter=',', dtype='float', 
                              skip_header=1)
 
-        print('Got baseline', filename)
+        if print_confirmation is True:
+            print('Got baseline ', filename)
         self.base_wn = data[:, 0]
         self.base_abs = data[:, 1]
         self.abs_nobase_cm = data[:, 2]

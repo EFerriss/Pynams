@@ -24,23 +24,20 @@ def absorption_coefficients(phase, calibration):
         Bell et al. 2003 JGR for olivine
         Withers et al. 2012 Chemical Geology for olivine
     """
-    if phase == 'ol' or phase == 'olivine':
-        phase = 'olivine'
-    elif phase == 'clinopyroxene' or phase == 'cpx':
-        phase = 'cpx'
-    else:
-        print("phase='ol', 'olivine', 'cpx', or 'clinopyroxene' only for now")
+    allowed_phases = ['ol', 'olivine', 'cpx', 'clinopyroxene'] 
+    if phase not in allowed_phases:
+        print("phases supported so far:", allowed_phases)
         return False
     
-    if (calibration == 'Bell') and (phase=='cpx'):
+    if (calibration == 'Bell') and (phase in ['cpx', 'clinopyroxene']):
         absorption_coeff = 1.0 / ufloat(7.09, 0.32)
 
     # Bell et al. 2003        
-    elif (calibration == 'Bell') and (phase=='olivine'):
+    elif (calibration == 'Bell') and (phase in ['ol', 'olivine']):
         absorption_coeff = ufloat(0.188, 0.012)
         
     # Withers et al. 2012
-    elif (calibration == 'Withers') and (phase=='olivine'):
+    elif (calibration == 'Withers') and (phase in ['ol','olivine']):
         absorption_coeff = ufloat(0.119, 0.006)
         
     else:

@@ -292,7 +292,7 @@ def plot_area_profile_outline(centered=True, peakwn=None,
     ax.grid()
     return fig, ax, ax_ppm
 
-def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
+def plot_3panels_outline(style=None, ytop=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,
                          wholeblock=True, unit='microns'):
     """Outline setup for 3 subplots for 3D profiles"""
@@ -303,7 +303,7 @@ def plot_3panels_outline(style=None, top=1.2, figsize=(6.5, 2.5),
     fig.set_size_inches(figsize)
 
     for k in range(3):
-        axis3[k].set_ylim(0, top)
+        axis3[k].set_ylim(0, ytop)
 #        axis3[k].grid()
         box = axis3[k].get_position()
         plt.setp(axis3[k].xaxis.get_majorticklabels(), rotation=45)

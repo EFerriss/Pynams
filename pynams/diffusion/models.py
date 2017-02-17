@@ -252,6 +252,46 @@ def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
 
 
 #%% 3-dimensional diffusion parameter setup
+def length_checker(microns3):
+    """
+    Checks lengths passed in, and returns possibly modified lengths
+    """
+    if isinstance(microns3, int):
+        microns3 = [float(microns3)]*3
+    elif isinstance(microns3, float):
+        microns3 = [microns3]*3
+    elif isinstance(microns3, list):
+        if len(microns3) == 1:
+            microns3 = microns3*3
+        elif len(microns3) == 2:
+            new_length = np.mean(microns3)
+            print('Warning: assuming 3rd length=', new_length)
+            microns3 = microns3.append(new_length)
+    else:
+        print('only int, float, or list allowed for lengths_microns')
+        return False
+    return microns3
+
+def D_checker(log10D3):
+    """
+    Checks diffusivities passed in and returns possibly modified diffusivities.
+    """
+    if isinstance(log10D3, int):
+        log10D3 = [float(log10D3)]*3
+    elif isinstance(log10D3, float):
+        log10D3 = [log10D3]*3
+    elif isinstance(log10D3, list):
+        if len(log10D3) == 1:
+            log10D3 = log10D3*3
+        elif len(log10D3) == 2:
+            new_D = np.mean(log10D3)
+            print('Warning: assuming 3rd D = log10', new_D)
+            log10D3 = log10D3.append(new_D)
+    else:
+        print('only int, float, or list allowed for log10Ds_m2s')
+        return False
+    return log10D3
+
 def params_setup3D(microns3, log10D3, time_seconds, 
                    initial=1., final=0., isotropic=False, slowb=False,
                    vD=[True, True, True], vinit=False, vfin=False):
@@ -285,7 +325,8 @@ def params_setup3D(microns3, log10D3, time_seconds,
 def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None, 
                  erf_or_sum='erf', centered=True, 
                  infinity=100, points=50):
-    """ Diffusion in 3 dimensions in a rectangular parallelipiped.
+    """ 
+    Diffusion in 3 dimensions in a rectangular parallelipiped.
     Takes params - Setup parameters with params_setup3D.
     General setup and options similar to diffusion1D_params.
     
@@ -319,26 +360,13 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
               params['log10Dy'].vary, 
               params['log10Dz'].vary]
 
-    # If initial values > 1, scale down to 1 to avoid blow-ups later
-    going_out = True
-    scale = 1.
-    if init > 1.0:
-        scale = init
-        init = 1.
-    if init < fin:
+    # going in or out?
+    if init < fin: 
         going_out = False
-    
-    if init > fin:
-        minimum_value = fin
-    else:
-        minimum_value = init
-    
-    if going_out is False:        
-        # I'm having trouble getting diffusion in to work simply, so this
-        # is a workaround. The main effort happens as diffusion going in, then
-        # I subtract it all from 1.
         init, fin = fin, init
-        
+    else:
+        going_out = True
+       
     # First create 3 1D profiles, 1 in each direction
     xprofiles = []    
     yprofiles = []
@@ -349,10 +377,15 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         p1D.add('microns', L3_microns[k], False)
         p1D.add('time_seconds', t, params['time_seconds'].vary)
         p1D.add('log10D_m2s', log10D3[k], vary_D[k])
-        p1D.add('initial_unit_value', init, vary_init)
-        p1D.add('final_unit_value', fin, vary_fin)
+        p1D.add('initial_unit_value', 1., vary_init)
+        p1D.add('final_unit_value', 0., vary_fin)
         
-        x, y = diffusion1D_params(p1D, **kwdict)
+        try:
+            x, y = diffusion1D_params(p1D, **kwdict)
+        except TypeError:
+            print('Problem with x values after diffusion1D')
+            print(diffusion1D_params(p1D, **kwdict))
+            return
 
         xprofiles.append(x)
         yprofiles.append(y)
@@ -365,14 +398,14 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
             for f in range(0, points):
                 v[d][e][f] = yprofiles[0][d]*yprofiles[1][e]*yprofiles[2][f]
 
-    v = v * scale
-
     if going_out is False:
         v = np.ones((points, points, points)) - v
-        v = v + np.ones_like(v)*minimum_value
 
-    mid = int(points/2.)
-    
+    scale = np.abs(fin-init)
+    minimum_value = min([fin, init])
+    v = (v * scale) + minimum_value
+
+    mid = int(points/2.)    
     aslice = v[:, mid][:, mid]
     bslice = v[mid][:, mid]
     cslice = v[mid][mid]
@@ -399,51 +432,57 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
         return residuals
 
 def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
-                    initial=1, final=0., top=1.2, plot3=True, centered=True,
-                    styles3=[None]*3, figaxis3=None):
+                   initial=1, final=0., ytop=None, show_plot=True, 
+                   centered=True, styles3=[None]*3, axes=None, 
+                   show_line_at_initial=True):
         """
         Required input:
         list of 3 lengths, list of 3 diffusivities, and time 
         
         Optional input:
-        initial concentration (1), final concentration (0), 
-        whether to plot output (plot3=True), maximum y limit on plot (top=1.2),
-        and number of points to use during calculation (points=50)
+        initial unit concentration (default initial=1), 
+        final unit concentration (default final=0), 
+        whether to plot output (default show_plot=True), 
+        maximum y limit on plot (ytop),
+        and number of points to use during calculation (default points=50)
         
-        If plot3=True (default), plots results and returns:
+        If show_plot=True (default), plots results and returns:
         1. f, figure of plot of 3D non-path-averaged diffusion profiles.
         2. ax, 3 axes of figure
         3. v, 3D matrix of diffusion
         4. x, list of 3 sets of x values plotted
         5. y, list of 3 sets of y values plotted
         
-        If plot3=False, returns only v, x, y
-        """
+        If show_plot=False, returns only v, x, y
+        """       
+        lengths_microns = length_checker(lengths_microns)
+        log10Ds_m2s = D_checker(log10Ds_m2s)
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
-                                                                
-        v, y, x = diffusion3Dnpi_params(params, points=points, centered=False)
+        
+        v, y, x = diffusion3Dnpi_params(params, points=points, 
+                                        centered=centered)
 
-        if centered is True:
-            for idx in xrange(3):
-                x[idx] = x[idx] - (lengths_microns[idx] / 2.)
-
-        if plot3 is True:
+        if show_plot is True:
             try:
-                if figaxis3 is None:
-                    f, ax = styles.plot_3panels(x, y, figaxis3=figaxis3, 
-                                                top=top, centered=centered,
-                                                styles3=styles3, 
-                                                lengths=lengths_microns)
+                if axes is None:
+                    f, ax = styles.plot_3panels(x, y, figaxis3=axes, 
+                                        ytop=ytop, centered=centered,
+                                        styles3=styles3, init=initial,
+                                        lengths=lengths_microns,
+                                        show_line_at_1=show_line_at_initial)
                     return f, ax, v, x, y
                 else:
-                    styles.plot_3panels(x, y, top=top, centered=centered, 
-                                        styles3=styles3, figaxis3=figaxis3,
-                                        lengths=lengths_microns)
+                    styles.plot_3panels(x, y, ytop=ytop, centered=centered, 
+                                        styles3=styles3, figaxis3=axes,
+                                        lengths=lengths_microns,
+                                        show_line_at_1=show_line_at_initial,
+                                        init=initial)
                     return v, x, y
             except(TypeError):
                 print
                 print('TypeError: problem in plot_3panels()')
+                return v, x, y
                 
         else:
             return v, x, y
@@ -453,20 +492,16 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
                           raypaths=None, erf_or_sum='erf', show_plot=True, 
                           fig_ax=None, style=None, need_to_center_x_data=True,
                           infinity=100, points=50, show_1Dplots=False):
-    """ Diffusion in 3 dimensions with path integration.
+    """ 
+    Diffusion in 3 dimensions with path integration.
     Requires setup with params_setup3Dwb
     """
     if raypaths is None:
         print('raypaths must be in the form of a list of three abc directions')
         return
 
-    # v is the model 3D array of internal concentrations
-    ### Need to add in all the keywords ###
-    v, sliceprofiles, slicepositions = diffusion3Dnpi_params(params, 
-                    points=points, erf_or_sum=erf_or_sum,
-#                    need_to_center_x_data=need_to_center_x_data
-                    )
-
+    v, y, x = diffusion3Dnpi_params(params, points=int(points), 
+                                    centered=False)
     
     # Fitting to data or not? Default is not
     # Add appropriate x and y data to fit
@@ -550,7 +585,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
                 # wb_positions are centered, data are not
                 microns = x_array[k][pos]
                 # Find the index of the full model whole-block value 
-                # closest to the data positions
+                # closest to the data position
                 idx = (np.abs(wb_positions[k]-microns).argmin())
                 
                 model = wb_profiles[k][idx]
@@ -563,26 +598,42 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
         return residuals
 
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
-                   initial=1., final=0., top=1.2, points=50., show_plot=True,
-                   figax=None, isotropic=False):
+                   initial=1., final=0., ytop=1.2, points=50, show_plot=True,
+                   axes=None, isotropic=False, centered=True,
+                   show_line_at_initial=True, styles3=[None]*3):
         """
         Takes list of 3 lengths, list of 3 diffusivities, and time.
-        Returns plot of 3D path-averaged (whole-block) diffusion profiles
+        Returns plot of 3D path-averaged (whole-block) diffusion profiles.
+        
+        Requirements and keywords similar to diffusion.3Dnpi except a list
+        of raypaths (thickness directions as 'a', 'b', or 'c')
         """
+        lengths_microns = length_checker(lengths_microns)
+        log10Ds_m2s = D_checker(log10Ds_m2s)
         params = params_setup3D(lengths_microns, log10Ds_m2s, time_seconds,
                                 initial=initial, final=final)
-
-        return params
         
         x, y = diffusion3Dwb_params(params, raypaths=raypaths, show_plot=False,
-                                    points=points)
+                                    points=int(points))
 
+        if centered is True:
+            for idx in xrange(3):
+                x[idx] = x[idx] - (lengths_microns[idx] / 2.)
+                        
         if show_plot is True:
-            if figax is None:
-                f, ax = styles.plot_3panels(x, y, top=top)
+            if axes is None:
+                f, ax = styles.plot_3panels(x, y, figaxis3=axes, 
+                                        ytop=ytop, centered=centered,
+                                        styles3=styles3, init=initial,
+                                        lengths=lengths_microns,
+                                        show_line_at_1=show_line_at_initial)
+
                 return f, ax, x, y
             else: 
-                styles.plot_3panels(x, y, top=top, figaxis3=figax)
-        return x, y
+                styles.plot_3panels(x, y, figaxis3=axes, 
+                                    ytop=ytop, centered=centered,
+                                    styles3=styles3, init=initial,
+                                    lengths=lengths_microns,
+                                    show_line_at_1=show_line_at_initial)
 
-        
+        return x, y

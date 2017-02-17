@@ -97,6 +97,7 @@ class Sample():
         twoC = floatify(length_c_microns)
         thinness = floatify(thickness_thinslab_microns)
         self.thickness_microns = [twoA, twoB, twoC, thinness]
+        self.lengths_microns = [twoA, twoB, twoC]
         
     def get_MgNumber(self):
         """ 
