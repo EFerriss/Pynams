@@ -10,14 +10,12 @@ nominally anhydrous minerals. For now there's only one function.
 pressure_design() takes dimensions and details for sample in 
 high pressure piston cylinder experiments
 """
-
+from __future__ import print_function, division, absolute_import
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
 from scipy import constants
 import numpy as np
-
-plt.style.use('paper') # my personal style sheet
 
 GAS_CONSTANT = constants.physical_constants['molar gas constant'][0] # J/molK
 FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
@@ -42,7 +40,7 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
     elif phase == 'cpx':
         H_to_1_ppm = 11.61
     else:
-        print 'Valid options for phase are Fo90, opx, and cpx'
+        print('Valid options for phase are Fo90, opx, and cpx')
         return
       
     if from_unit == 'H/10^6 Si':
@@ -51,7 +49,7 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
         elif to_unit == 'per m3':
             new_conc = conc * (1.0/308.67) * (1e30)
         else:
-            print 'only going to units "ppm H2O" and "per m3"'
+            print('only going to units "ppm H2O" and "per m3"')
             return
         
     elif from_unit == 'ppm H2O':
@@ -60,7 +58,7 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
         elif to_unit == 'per m3':
             new_conc = (conc * H_to_1_ppm) * (1.0/308.67) * (1e30)
         else:
-            print 'only going to "H/10^6 Si" or "per m3"'
+            print('only going to "H/10^6 Si" or "per m3"')
             return
             
     elif from_unit == 'per m3':
@@ -69,17 +67,17 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
         elif to_unit == 'ppm H2O':
             new_conc = (conc / ((1.0/308.67) * (1e30))) / H_to_1_ppm
         else:
-            print 'only going to "H/10^6 Si" or "ppm H2O"'
+            print('only going to "H/10^6 Si" or "ppm H2O"')
             return
         
     else:
-        print 'Only going from H/10^6 Si, ppm H2O, and per m3 for now'
+        print('Only going from H/10^6 Si, ppm H2O, and per m3 for now')
         return
         
     if printout is True:
         output = ' '.join(('{:.2f}'.format(conc), from_unit, '=', 
                            '{:.2f}'.format(new_conc), to_unit, 'for', phase))
-        print output
+        print(output)
     return new_conc
 
 def bubble_tower(panel='middle', minor_setting=40, 
@@ -142,7 +140,7 @@ def bubble_tower(panel='middle', minor_setting=40,
             dioxide[168] = [50./14.5]
             
         else:
-            print 'major_gas either CO2 (default) or CO'
+            print('major_gas either CO2 (default) or CO')
             return
 
     elif panel == 'middle':
@@ -159,10 +157,10 @@ def bubble_tower(panel='middle', minor_setting=40,
             dioxide[145] = [50./18.4]
             dioxide[150] = [50./14.4]
         else:
-            print 'Only CO2 as major gas on middle panel'
+            print('Only CO2 as major gas on middle panel')
             return
     else:
-        print 'Valid entries for "panel" are left and middle'
+        print('Valid entries for "panel" are left and middle')
         return
             
     # Change from list of flow rates to a single mean value
@@ -251,7 +249,7 @@ def fO2(celsius, bars=1., buffer_curve='QFM'):
         B = 6.702
         C = 0.055
     else: 
-        print 'Only QFM, IW, and NNO supported for now'
+        print('Only QFM, IW, and NNO supported for now')
         return False
         
     logfO2 = ((A / Kelvin) + B + (C * (bars-1.0) / Kelvin))
@@ -261,7 +259,7 @@ def furnace_calibration(reading_celsius):
     """Calibration for furnace 4 in Dave Walker's lab at LDEO
     based on gold calibration"""
     real_temp = reading_celsius - (6. / (reading_celsius/1064.))
-    print '{:.1f}'.format(real_temp), 'degrees C'
+    print('{:.1f}'.format(real_temp), 'degrees C')
     return real_temp
 
 def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
@@ -275,7 +273,7 @@ def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
     exponent_in_Q = -0.5    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
     logfO2 = -1. * my_constant * mV / (Kelvin)
-    print '{:.1f}'.format(logfO2), 'log10 oxygen fugacity'
+    print('{:.1f}'.format(logfO2), 'log10 oxygen fugacity')
     return logfO2
     
 def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
@@ -290,7 +288,7 @@ def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
     exponent_in_Q = -0.5    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
     mV = -1. * log10fO2 * Kelvin / my_constant
-    print '\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n'
+    print('\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n')
     
        
 def pressure_design(capsule_material = 'copper',
@@ -415,7 +413,7 @@ def pressure_design(capsule_material = 'copper',
         style_sleeve = style_pyrophyllite.copy()
         style_sleeve['label'] = 'pyrophyllite'
     else: 
-        print 'unknown sleeve material. Assuming pyrophyllite'
+        print('unknown sleeve material. Assuming pyrophyllite')
         style_sleeve = style_pyrophyllite.copy()
         style_sleeve['label'] = 'pyrophyllite'
 
@@ -433,7 +431,7 @@ def pressure_design(capsule_material = 'copper',
                        height=h_capsule, outerD=id_sleeve, innerD=id_capsule,
                        shape='suaged')  
     else:
-        print 'valid entries for lid_shape are flat, bevel, and suaged'
+        print('valid entries for lid_shape are flat, bevel, and suaged')
         capsule_path = make_capsule_shape(x=xgc + th_gc + th_sleeve, 
                        y=h_graphite_button + h_MgO_base + h_sleeve_bottom,
                        height=h_capsule, outerD=id_sleeve, innerD=id_capsule)                          
@@ -454,7 +452,7 @@ def pressure_design(capsule_material = 'copper',
         style_capsule['label'] = 'nickel'
         style_capsule['facecolor'] = 'lightsage'
     else:
-        print 'unknown capsule material'
+        print('unknown capsule material')
         style_capsule['label'] = 'capsule'        
     capsule = patches.PathPatch(capsule_path, **style_capsule)
 
@@ -529,7 +527,7 @@ def pressure_design(capsule_material = 'copper',
         lid_path = Path(lid_verts, lid_codes)
         lid = patches.PathPatch(lid_path, **style_capsule)
     else:
-        print 'valid entries for lid_shape are flat, bevel, and suaged'
+        print('valid entries for lid_shape are flat, bevel, and suaged')
         lid = patches.Rectangle((xgc + th_gc + th_sleeve, 
                     h_graphite_button + h_MgO_base + th_sleeve + h_capsule),
                     id_sleeve, h_lid, **style_capsule)

@@ -14,7 +14,7 @@ from .blocks import Block
 from . import styles
 from .diffusion import literaturevalues as dlib
 from .diffusion.arrhenius import Diffusivities
-import example_FTIR_spectra
+from . import example_FTIR_spectra
 import os
 ftirpath = os.path.dirname(example_FTIR_spectra.__file__)
 example_FTIR_file_location = ''.join((ftirpath,'\\'))

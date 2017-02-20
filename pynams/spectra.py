@@ -708,14 +708,6 @@ class Spectrum():
         
         By default tt won't show the plot unless show_plot=True.
         """
-
-        # get wavenumber range in cm-1
-        if wn_low is None:
-            wn_low = self.base_low_wn # default=3200
-        
-        if wn_high is None:
-            wn_high = self.base_high_wn # default = 3700
-
         # get baseline absorbance
         if baseline_abs is None:
             try:
@@ -730,13 +722,24 @@ class Spectrum():
         if base_abs is None:
             print('No baseline. Try using raw data or check thickness.')
             return
+
+
+        # get wavenumber range in cm-1
+        if wn_low is None:
+            wn_low = np.max(self.base_wn)
+        
+        if wn_high is None:
+            wn_high = min(self.base_wn)
             
-        index_lo = (np.abs(self.wn_full-self.base_low_wn)).argmin()
-        index_hi = (np.abs(self.wn_full-self.base_high_wn)).argmin()
+        index_lo = (np.abs(self.wn_full-wn_low)).argmin()
+        index_hi = (np.abs(self.wn_full-wn_high)).argmin()
 
         absorbance = self.absorbance_picker()
-        humps = absorbance[index_lo:index_hi] # just the peaks we care about
-
+        if index_lo < index_hi:
+            humps = absorbance[index_lo:index_hi] 
+        else:
+            humps = absorbance[index_hi:index_lo]
+        
         # lengths sometimes don't match up exactly because of rounding
         if len(humps) > len(base_abs):
             ndif = len(humps) - len(base_abs)
@@ -745,6 +748,7 @@ class Spectrum():
             ndif = len(base_abs) - len(humps)
             for n in range(ndif):
                 humps = np.append(humps, humps[-1])
+
 
         abs_nobase_cm = humps - base_abs
 
@@ -859,10 +863,15 @@ class Spectrum():
             
         abs_filename = ''.join((folder, self.fname, file_ending))
         a = np.transpose(np.vstack((self.wn_full, absorbance)))
-        with open(abs_filename, 'w') as abs_file:
-            np.savetxt(abs_file, a, delimiter=delim)
+        d = pd.DataFrame(data=a, columns=['wavenumber (cm-1)', 
+                                          'absorbance (cm-1)'])
+        d.to_csv(abs_filename, index=False)
         if printout is True:
             print('Saved', abs_filename)
+            
+        d = pd.DataFrame(data=a, columns=['baseline wavenumber (cm-1)', 
+                                      'baseline absorbance (cm-1)', 
+                                      'baseline-subtracted absorbance (cm-1)'])
         
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -907,9 +916,10 @@ class Spectrum():
             
         # write data to baseline file 
         a = np.transpose(np.vstack((self.base_wn, base_abs, abs_nobase_cm)))
-        with open(base_filename, 'a') as base_file:
-            np.savetxt(base_file, a, delimiter=delim)
-            
+        d = pd.DataFrame(data=a, columns=['baseline wavenumber (cm-1)', 
+                                      'baseline absorbance (cm-1)', 
+                                      'baseline-subtracted absorbance (cm-1)'])
+        d.to_csv(base_filename, index=False)
         print('Saved', base_filename)
 
     def get_baseline(self, folder=None, delim=',', 
@@ -932,16 +942,16 @@ class Spectrum():
         filename = ''.join((folder, self.fname, baseline_ending))
         if os.path.isfile(filename) is False:
             return
-        data = np.genfromtxt(filename, delimiter=',', dtype='float', 
-                             skip_header=1)
+        data = pd.read_csv(filename)
 
         if print_confirmation is True:
             print('Got baseline ', filename)
-        self.base_wn = data[:, 0]
-        self.base_abs = data[:, 1]
-        self.abs_nobase_cm = data[:, 2]
-        self.base_high_wn = max(data[:, 0])
-        self.base_low_wn = min(data[:, 0])
+        columns = data.columns
+        self.base_wn = data[columns[0]]
+        self.base_abs = data[columns[1]]
+        self.abs_nobase_cm = data[columns[2]]
+        self.base_high_wn = np.max(data[columns[0]])
+        self.base_low_wn = np.min(data[columns[0]])
         return self.base_abs, self.abs_nobase_cm
         
     def get_3baselines(self, folder=None, delim=',', 
@@ -1016,24 +1026,14 @@ class Spectrum():
         for separating values in the file is a comma.
         """
         if folder is None:
-            folder = self.folder
-            
+            folder = self.folder          
         filename = folder + self.fname + peak_ending
-        
-        # make headings in the peakfit file
-        t = ['peak position (wavenumber /cm)', 'height (/cm)', 
-             'width of gaussian (/cm)']
-        with open(filename, 'w') as peak_file:
-            for item in t:
-                peak_file.write(item+delim)
-            peak_file.write('\n')
-            
-        # write data to peakfit file 
         a = np.transpose(np.vstack((self.peakpos, self.peak_heights, 
                                     self.peak_widths)))
-        with open(filename, 'a') as peak_file:
-            np.savetxt(peak_file, a, delimiter=delim)
-            
+        t = ['peak position (wavenumber /cm)', 'height (/cm)', 
+             'width of gaussian (/cm)']
+        d = pd.DataFrame(data=a, columns=t)
+        d.to_csv(filename, index=False)
         print('Saved', filename)
 
     def make_peakfit_like(self, spectrum):
@@ -1225,8 +1225,6 @@ class Spectrum():
     def absorbance_picker(self):
         """Is this raw or thickness normalized absorbance you're after?"""
         if self.thickness_microns is None:
-            if self.abs_raw is None:
-                self.get_data()
             absorbance = self.abs_raw
         else:
             try:
@@ -1234,7 +1232,7 @@ class Spectrum():
             except AttributeError:
                 self.start_at_zero()
                 absorbance = self.abs_full_cm
-        return absorbance            
+        return absorbance
         
     def plot_showbaseline(self, axes=None, 
                           abs_baseline=None, 

@@ -1,11 +1,12 @@
 setup.py
 pynams/__init__.py
+pynams/blocks.py
+pynams/experiments.py
 pynams/profiles.py
 pynams/pynams.py
 pynams/samples.py
 pynams/spectra.py
 pynams/styles.py
-pynams/wholeblock.py
 pynams.egg-info/PKG-INFO
 pynams.egg-info/SOURCES.txt
 pynams.egg-info/dependency_links.txt
@@ -15,10 +16,4 @@ pynams/diffusion/__init__.py
 pynams/diffusion/arrhenius.py
 pynams/diffusion/literaturevalues.py
 pynams/diffusion/models.py
-pynams/uncertainties/1to2.py
-pynams/uncertainties/__init__.py
-pynams/uncertainties/core.py
-pynams/uncertainties/test_umath.py
-pynams/uncertainties/test_uncertainties.py
-pynams/uncertainties/umath.py
-pynams/uncertainties/umath_core.py
+pynams/example_FTIR_spectra/__init__.py

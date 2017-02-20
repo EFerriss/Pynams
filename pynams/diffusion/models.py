@@ -617,7 +617,7 @@ def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
                                     points=int(points))
 
         if centered is True:
-            for idx in xrange(3):
+            for idx in range(3):
                 x[idx] = x[idx] - (lengths_microns[idx] / 2.)
                         
         if show_plot is True:
