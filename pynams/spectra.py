@@ -869,10 +869,6 @@ class Spectrum():
         if printout is True:
             print('Saved', abs_filename)
             
-        d = pd.DataFrame(data=a, columns=['baseline wavenumber (cm-1)', 
-                                      'baseline absorbance (cm-1)', 
-                                      'baseline-subtracted absorbance (cm-1)'])
-        
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
         """

@@ -4,6 +4,7 @@ Code for grouping 3 orthogonal Profiles into a single Block object.
 from __future__ import print_function, division, absolute_import
 import pynams.styles as styles
 from pynams.diffusion import models
+from pynams import Spectrum
 import numpy as np
 import matplotlib.pyplot as plt
 import lmfit
@@ -134,6 +135,26 @@ class Block():
             """
             for prof in self.profiles:
                 prof.make_wholeblock()
+
+    def average_spectra(self):
+        """
+        Create and return a single spectrum that is an average of all spectra 
+        in all three profiles of the Block
+        """
+        specs = []
+        for prof in self.profiles:
+            specs.append(prof.average_spectra())
+
+        avespec = Spectrum(folder=None, fname=None)
+        avespec.make_average_spectra(specs, folder=self.folder)
+        
+        if self.name is not None:
+            avespec.fname = (self.name + '\naverage across all profiles')
+        else:
+            avespec.fname = 'average across all profiles'
+            
+        return avespec
+
 
     def plot_spectra(self, profile_idx=None, show_baseline=True, 
                      show_initial_ave=True,

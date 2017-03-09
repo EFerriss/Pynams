@@ -24,12 +24,6 @@ import string as string
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import json
 import lmfit
-#import matplotlib.lines as mlines
-#from matplotlib.backends.backend_pdf import PdfPages
-#import xlsxwriter
-#from scipy import signal as scipysignal
-#import scipy.interpolate as interp
-
 
 class Profile():
     def __init__(self, profile_name=None,
