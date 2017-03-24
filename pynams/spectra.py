@@ -19,23 +19,10 @@ import matplotlib.pyplot as plt
 import pynams.styles as styles
 import scipy.interpolate as interp
 import pandas as pd
-#from .uncertainties import ufloat
 from uncertainties import ufloat
 from . import pynams
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-#import diffusion
 import gc
-#import matplotlib.lines as mlines
-#from .uncertainties import ufloat
-#from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-#import matplotlib.gridspec as gridspec
-#from matplotlib.ticker import MultipleLocator
-#import string as string
-#import lmfit
-#import uncertainties
-#from matplotlib.backends.backend_pdf import PdfPages
-#import xlsxwriter
-#import json
 from scipy import signal as scipysignal
 
 class Spectrum():
@@ -97,8 +84,7 @@ class Spectrum():
     def __init__(self, fname, filetype='.CSV', folder='', sample=None,
                  thickness_microns=None, raypath=None, polar=None, 
                  base_low_wn=3200, base_high_wn=3700,
-                 base_mid_wn=3550,
-                 ):
+                 base_mid_wn=3550):
         """
         Automatically locates the FTIR file and pulls out the wavenumber 
         (wn_full) and raw absorbance data (abs_raw) and sets the 
@@ -115,47 +101,45 @@ class Spectrum():
         self.filetype = filetype
         self.raypath = raypath        
         
-        try:
-            self.filename = self.folder + self.fname + self.filetype
-            synthetic = False
-        except TypeError:
-            synthetic = True
+        if self.fname is None:
+            return
+        
+#        try:
+        self.filename = self.folder + self.fname + self.filetype
+#        except TypeError:
+#            print()
+#            print('Problem making filename. Check folder and fname.')
+#            print()
+#            return
 
-        ### Get the wavenumber and absorbance data from the FTIR file
-        if synthetic is False:
-            if os.path.isfile(self.filename):
-                # read in the signal
-                if self.filetype == '.CSV':
-                    signal = pd.read_csv(self.filename, header=None)
-#                    signal = np.loadtxt(self.filename, delimiter=',')
-                elif self.filetype == '.txt':
-                    try:
-                        signal = np.loadtxt(self.filename, delimiter='\t', 
-                                            dtype=None) 
-                    except ValueError:
-                        print('\nProblem reading this file format. Try .CSV')
-                else:
-                    print('For now only CSV and txt files work.')
-
-                signal = signal.sort_values(by=[0])
-                self.wn_full = np.array(signal[0])
-                self.abs_raw = np.array(signal[1])
-                
-                # set up thickness information
-                if thickness_microns is not None:
-                    self.thickness_microns = thickness_microns
-                else:
-                    if sample is not None:
-                        idx = styles.get_iorient(raypath)
-                        self.thickness_microns = sample.thickness_microns[idx]
-                    else:
-                        self.thickness_microns = None
-    #                    print('Warning: the thickness was not set.')
+        if os.path.isfile(self.filename):
+            if self.filetype == '.CSV':
+                signal = pd.read_csv(self.filename, header=None)
+            elif self.filetype == '.txt':
+                try:
+                    signal = np.loadtxt(self.filename, delimiter='\t', 
+                                        dtype=None) 
+                except ValueError:
+                    print('\nProblem reading this file format. Try .CSV')
             else:
-                print('There is a problem finding the file.')
-                print('filename =', self.filename)
-    #            print('current working directory = ', os.getcwd())
-                print('Maybe check the folder name')
+                print('For now only CSV and txt files work.')
+
+            signal = signal.sort_values(by=[0])
+            self.wn_full = np.array(signal[0])
+            self.abs_raw = np.array(signal[1])
+            
+            if thickness_microns is not None:
+                self.thickness_microns = thickness_microns
+            else:
+                if sample is not None:
+                    idx = styles.get_iorient(raypath)
+                    self.thickness_microns = sample.thickness_microns[idx]
+                else:
+                    self.thickness_microns = None
+        else:
+            print('There is a problem finding the file.')
+            print('filename =', self.filename)
+            print('Maybe check the folder name')
 
     def plot_spectrum(self, axes=None, style=None, offset=0., 
                       label=None, wn_xlim_left=4000., wn_xlim_right=3000., 
@@ -422,16 +406,23 @@ class Spectrum():
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""       
         list_abs_to_average = []
+        list_abs_full_to_average = []
         list_wn = []
+        thicknesses = []
         for sp in spectra_list:
-            abs_to_append = sp.abs_raw
-            list_abs_to_average.append(abs_to_append)
+            list_abs_to_average.append(sp.abs_raw)
+            try:
+                list_abs_full_to_average.append(sp.abs_full_cm)
+            except AttributeError:
+                sp.divide_by_thickness()
+                sp.start_at_zero()
+                list_abs_full_to_average.append(sp.abs_full_cm)
             list_wn.append(sp.wn_full)
-        ave_abs = np.mean(list_abs_to_average, axis=0)
-        waven = np.mean(list_wn, axis=0)
-        self.wn_full = waven
-        self.abs_raw = ave_abs
-        self.thickness_microns = None
+            thicknesses.append(sp.thickness_microns)
+        self.wn_full = np.mean(list_wn, axis=0)
+        self.abs_raw = np.mean(list_abs_to_average, axis=0)
+        self.abs_full_cm = np.mean(list_abs_full_to_average, axis=0)
+        self.thickness_microns = np.mean(thicknesses, axis=0)
     
     def divide_by_thickness(self):
         """
@@ -863,9 +854,8 @@ class Spectrum():
             
         abs_filename = ''.join((folder, self.fname, file_ending))
         a = np.transpose(np.vstack((self.wn_full, absorbance)))
-        d = pd.DataFrame(data=a, columns=['wavenumber (cm-1)', 
-                                          'absorbance (cm-1)'])
-        d.to_csv(abs_filename, index=False)
+        d = pd.DataFrame(data=a)
+        d.to_csv(abs_filename, index=False, header=False)
         if printout is True:
             print('Saved', abs_filename)
             
@@ -1220,14 +1210,17 @@ class Spectrum():
 
     def absorbance_picker(self):
         """Is this raw or thickness normalized absorbance you're after?"""
-        if self.thickness_microns is None:
+        try:
+            if self.thickness_microns is None:
+                absorbance = self.abs_raw
+            else:
+                try:
+                    absorbance = self.abs_full_cm
+                except AttributeError:
+                    self.start_at_zero()
+                    absorbance = self.abs_full_cm
+        except AttributeError:
             absorbance = self.abs_raw
-        else:
-            try:
-                absorbance = self.abs_full_cm
-            except AttributeError:
-                self.start_at_zero()
-                absorbance = self.abs_full_cm
         return absorbance
         
     def plot_showbaseline(self, axes=None, 
@@ -1309,8 +1302,11 @@ class Spectrum():
 
         ax.plot(self.wn_full, absorbance + offset, **style_to_use)
         ax.plot(wn_baseline, abs_baseline + offset, **style_base)
-        
-        if self.thickness_microns is None:
+
+        try:        
+            if self.thickness_microns is None:
+                ax.set_ylabel('Raw absorbance')
+        except AttributeError:
             ax.set_ylabel('Raw absorbance')
 
         # zoom in on y-axis

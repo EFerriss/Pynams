@@ -20,12 +20,12 @@ import numpy as np
 GAS_CONSTANT = constants.physical_constants['molar gas constant'][0] # J/molK
 FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
 
-style_pressure_medium = {'hatch' : 'O', 'facecolor' : 'lightgrey'}
+style_pressure_medium = {'hatch' : '..', 'facecolor' : 'lightgrey'}
 style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
-style_MgO = {'hatch' : '..', 'facecolor' : 'white'}
+style_MgO = {'hatch' : None, 'facecolor' : 'white', 'edgecolor' : 'k'}
 style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
 style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
-style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
+style_buffer = {'facecolor' : 'w', 'hatch' : 'xxxxx', 'edgecolor' : 'k'}
 
 def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
@@ -290,6 +290,46 @@ def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
     mV = -1. * log10fO2 * Kelvin / my_constant
     print('\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n')
     
+def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
+    """
+    Makes and returns path representing the capsule shape for use in 
+    pressure vessel schematics as in pressure_design()
+    """
+    thick = (outerD - innerD) / 2.
+    if shape == 'regular':
+        verts = [(x + thick*2 + innerD, y),
+                 (x, y),
+                 (x, y + height),
+                 (x + thick, y + height),
+                 (x + thick, y + innerD/2.),
+                 (x + thick + innerD/2., y + thick),
+                 (x + thick + innerD, y + innerD/2.),
+                 (x + thick + innerD, y + height),
+                 (x + thick*2 + innerD, y + height),
+                 (0., 0.)]
+        codes = [Path.MOVETO] + ([Path.LINETO] * 8) + [Path.CLOSEPOLY]
+    elif shape == 'suaged':
+        th_flap = thick/2.
+        verts = [(x + thick*2 + innerD, y),
+                 (x, y),
+                 (x, y + height + th_flap),
+                 (x + thick + innerD/2., y + height + th_flap),
+                 (x + thick + innerD/2., y + height),
+                 (x + thick, y + height),
+#                 (x + thick, y + thick),
+                 (x + thick, y + innerD/2.),
+                 (x + thick + innerD/2., y + thick),
+                 (x + thick + innerD, y + innerD/2.), 
+#                 (x + thick + innerD, y + thick),
+                 (x + thick + innerD, y + height),
+                 (x + thick + innerD/2., y + height),
+                 (x + thick + innerD/2., y + height + th_flap),
+                 (x + thick*2 + innerD, y + height + th_flap),
+                 (x + thick*2 + innerD, y + height - th_flap),
+                 (0., 0.)]
+        codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
+    path = Path(verts, codes)
+    return path
        
 def pressure_design(capsule_material = 'copper',
                     pressure_medium_material='BaCO$_3$',
@@ -366,41 +406,7 @@ def pressure_design(capsule_material = 'copper',
                              
     MgO_base = patches.Rectangle((xgc+th_gc, h_graphite_button),
                                  od_MgO_base, h_MgO_base, **style_MgO)
-
-    def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
-        thick = (outerD - innerD) / 2.
-        if shape == 'regular':
-            verts = [(x + thick*2 + innerD, y),
-                     (x, y),
-                     (x, y + height),
-                     (x + thick, y + height),
-                     (x + thick, y + innerD/2.),
-                     (x + thick + innerD/2., y + thick),
-                     (x + thick + innerD, y + innerD/2.),
-                     (x + thick + innerD, y + height),
-                     (x + thick*2 + innerD, y + height),
-                     (0., 0.)]
-            codes = [Path.MOVETO] + ([Path.LINETO] * 8) + [Path.CLOSEPOLY]
-        elif shape == 'suaged':
-            th_flap = thick/2.
-            verts = [(x + thick*2 + innerD, y),
-                     (x, y),
-                     (x, y + height + th_flap),
-                     (x + thick + innerD/2., y + height + th_flap),
-                     (x + thick + innerD/2., y + height),
-                     (x + thick, y + height),
-                     (x + thick, y + thick),
-                     (x + thick + innerD, y + thick),
-                     (x + thick + innerD, y + height),
-                     (x + thick + innerD/2., y + height),
-                     (x + thick + innerD/2., y + height + th_flap),
-                     (x + thick*2 + innerD, y + height + th_flap),
-                     (x + thick*2 + innerD, y + height - th_flap),
-                     (0., 0.)]
-            codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
-        path = Path(verts, codes)
-        return path
-    
+   
     # sleeve around capsule
     sleeve_path = make_capsule_shape(x=xgc + th_gc, 
                                      y=h_graphite_button + h_MgO_base,

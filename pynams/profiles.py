@@ -268,6 +268,14 @@ class Profile():
                                        label_baseline=label_baseline,
                                        offset=offset)
             
+            
+    def plot_subtractbaselines(self):
+        """
+        Plot all spectra.plot_subtractbaseline() with default settings
+        """
+        for spec in self.spectra:
+            spec.plot_subtractbaseline()
+
     def change_baseline(self, highwn=3800, lowwn=3000, shift=None):
         """Change baseline parameters for all spectra, final and initial"""
         for spectrum in self.spectra + self.initial_profile.spectra:

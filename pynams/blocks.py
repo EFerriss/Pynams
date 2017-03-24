@@ -129,6 +129,14 @@ class Block():
             for spec in prof.spectra:
                 spec.plot_showbaseline()
 
+    def plot_subtractbaselines(self):
+        """
+        Plot all spectra.plot_subtractbaseline() with default settings
+        """
+        for prof in self.profiles:
+            for spec in prof.spectra:
+                spec.plot_subtractbaseline()
+            
     def make_areas(self, show_plot=False, printout_area=False, peak=None):
             """
             Make list of areas from all profiles, including whole-block areas.
@@ -141,12 +149,17 @@ class Block():
         Create and return a single spectrum that is an average of all spectra 
         in all three profiles of the Block
         """
-        specs = []
+        absorbances_per_cm = []
         for prof in self.profiles:
-            specs.append(prof.average_spectra())
-
+            profile_average_spectrum = prof.average_spectra()
+            absorb = profile_average_spectrum.abs_full_cm
+            absorbances_per_cm.append(absorb)
+        ave_abs = np.mean(absorbances_per_cm, axis=0)
+        
         avespec = Spectrum(folder=None, fname=None)
-        avespec.make_average_spectra(specs, folder=self.folder)
+        avespec.abs_full_cm = ave_abs
+        avespec.wn_full = prof.spectra[0].wn_full
+        avespec.abs_raw = ave_abs
         
         if self.name is not None:
             avespec.fname = (self.name + '\naverage across all profiles')
@@ -404,8 +417,9 @@ class Block():
                         radius=0.25, center=(0, 0), frame=False)
                 ax_pie.axis('equal')
                 ax_pie.set_title(tit)
-                
-            return fig, ax
+            
+            if axes3 is None:
+                return fig, ax
 
     def make_composite_peak(self, peak_idx_list):
         """Make composite peaks for all spectra in whole block"""
@@ -611,12 +625,12 @@ class Block():
         for prof in self.profiles:
             prof.get_diffusivities(folder, file_ending)
 
-    def diffusion_profiles(self, wholeblock=False, 
+    def diffusion_profiles(self, wholeblock_data=False,
+                           wholeblock_diffusion=False,
                            peak_idx=None, 
                            time_seconds=None, 
                            log10D_m2s=[-12., -12., -12.], 
                            erf_or_sum='erf', 
-                           wb_or_3Dnpi='wb', 
                            points=50, 
                            heights_instead=False, 
                            init=1., 
@@ -629,17 +643,13 @@ class Block():
         Requires time in seconds either explicitly passed here or as 
         attributes of the WholeBlock object.
 
-        Assumes 3D non-path-integrated ('npi'), but wholeblock can be set to 
-        True.
+        Assumes 3D non-path-integrated (wholeblock_diffusion=False), 
+        but wholeblock_diffusion can be set to True.
         """
         if self.lengths is None:
             self.setupWB(peakfit=False, make_wb_areas=False)
         if self.lengths is None:
             print('Need to setup self.lengths, which is in microns')
-            return False
-
-        if (wb_or_3Dnpi != 'npi') and (wb_or_3Dnpi != 'wb'):
-            print('wb_or_3Dnpi only takes "wb" or "npi"')
             return False
 
         if self.directions is None:           
@@ -661,12 +671,12 @@ class Block():
         # Pick which diffusivities to use
         if log10D_m2s is not None:
             D3 = models.D_checker(log10D_m2s)
-        elif wb_or_3Dnpi == 'wb' and peak_idx is None:
+        elif wholeblock_diffusion is True and peak_idx is None:
             D3 = self.D_area_wb
         else:
             D3 = []
             for prof in self.profiles:
-                D = prof.D_picker(wholeblock, heights_instead, peak_idx)
+                D = prof.D_picker(wholeblock_data, heights_instead, peak_idx)
                 D3.append(D)
         if D3 is None or 0.0 in D3:
             print('D3:', D3)
@@ -680,7 +690,7 @@ class Block():
         params = models.params_setup3D(L3, D3, time_seconds, 
                                        init, fin)
 
-        if wholeblock is True:        
+        if wholeblock_diffusion is True:        
             xdiff, ydiff = models.diffusion3Dwb_params(params, 
                                                    raypaths=self.raypaths, 
                                                    erf_or_sum=erf_or_sum,
@@ -690,7 +700,7 @@ class Block():
                                                            points=points, 
                                                            centered=False)
         
-        if wholeblock is False:
+        if wholeblock_data is False:
             maxareas = []
             for prof in self.profiles:
                 if len(prof.fnames) > 0:
@@ -704,15 +714,16 @@ class Block():
 
         return params, xdiff, list(ydiff)
             
-    def plot_diffusion(self, wholeblock=False, 
+    def plot_diffusion(self, wholeblock_data=False, 
+                       wholeblock_diffusion=False,
                        peak_idx=None, 
                        time_seconds=None, 
                        log10D_m2s=[-12., -12., -12.], 
                        erf_or_sum='erf', 
                        show_plot=True, 
+                       show_data=True,
                        xaxis='centered',
                        show_slice=False, 
-                       wb_or_3Dnpi='wb', 
                        label4legend=[None, None, None],
                        axes3=None, 
                        points=50, 
@@ -734,11 +745,17 @@ class Block():
                        ):
         """
         Applies 3-dimensionsal diffusion equations using equations in 
-        pynams.diffusion.models and plots them with areas (default)
-        or ratio of areas to initial areas (wholeblock=True)
+        pynams.diffusion.models and plots non-path-integrated 3-dimensional
+        diffusion curves (default) or path-integrated whole-block profiles
+        described in Ferriss et al. 2015 (set wholeblock_diffusion=True).
+        
+        If show_data is True (the default), also plots the data, either
+        directly as the measured areas (default) or as the ratio of the
+        measured area to a best-fit line through the initial areas
+        (set wholeblock_data=True)
         
         See the help documentation for Block.diffusion_profiles()
-        for details about the diffusion modeling.
+        for more details about the diffusion modeling. 
         
         If axes3 = a list of 3 axes handles, the data and diffusion curve
         are plotted there. Otherwise, the figure handle and a list of 
@@ -755,23 +772,23 @@ class Block():
         D3 = models.D_checker(log10D_m2s)
         hinstead = heights_instead
         approx = approximation1D
-        params, xdiff, ydiff = self.diffusion_profiles(wholeblock=wholeblock,
-                                                   peak_idx=peak_idx,
-                                                   time_seconds=time_seconds,
-                                                   log10D_m2s=D3,
-                                                   erf_or_sum=erf_or_sum,
-                                                   wb_or_3Dnpi=wb_or_3Dnpi,
-                                                   points=points,
-                                                   heights_instead=hinstead,
-                                                   init=init, fin=fin,
-                                                   approximation1D=approx)
+        params, xdiff, ydiff = self.diffusion_profiles(
+                               wholeblock_diffusion=wholeblock_diffusion,
+                               peak_idx=peak_idx,
+                               time_seconds=time_seconds,
+                               log10D_m2s=D3,
+                               erf_or_sum=erf_or_sum,
+                               points=points,
+                               heights_instead=hinstead,
+                               init=init, fin=fin,
+                               approximation1D=approx)
 
         if params is False:
             return False, False
 
         if axes3 is None:
             fig, axes3 = self.plot_areas_3panels(peak_idx=peak_idx, ytop=ytop,
-                                              wholeblock=wholeblock, 
+                                              wholeblock=wholeblock_data, 
                                               heights_instead=heights_instead,
                                               show_line_at_1=False,
                                               label4legend=label4legend,
@@ -782,7 +799,7 @@ class Block():
             for idx_len in range(3):
                 xdiff[idx_len] = xdiff[idx_len] - (self.lengths[idx_len]/2.)
 
-        if wholeblock is False:
+        if wholeblock_data is False:
             maxareas = []
             for prof in self.profiles:
                 if len(prof.fnames) > 0:
@@ -825,19 +842,18 @@ class Block():
        
     def fitD(self, peak_idx=None, init=1., fin=0.,
              guesses_log10D=[-13., -13., -13.], 
-             heights_instead=False, wholeblock=True,
+             heights_instead=False, wholeblock_data=True,
              vary_initials=False, vary_finals=False, 
              vary_diffusivities=[True, True, True],
-             erf_or_sum='erf', 
-             show_plot=True, wb_or_3Dnpi='wb', centered=True,
-             show_initial_guess=True, style_initial=None,
+             erf_or_sum='erf', show_plot=True, wholeblock_diffusion=True, 
+             centered=True, show_initial_guess=True, style_initial=None,
              style_final={'color' : 'red'}, points=50, top=1.2):
         """
         Forward modeling to determine diffusivities in three dimensions 
         from blocks of data.
         """        
         # x and y are the data that we will fit to, centered for fitting
-        x, y = self.xy_picker(peak_idx, wholeblock, heights_instead, 
+        x, y = self.xy_picker(peak_idx, wholeblock_data, heights_instead, 
                               centered=True)
                 
         # for processing results
@@ -857,7 +873,7 @@ class Block():
         dict_fitting = {'points' : points,
                         'erf_or_sum' : erf_or_sum} 
 
-        if wb_or_3Dnpi == 'wb':
+        if wholeblock_diffusion is True:
             # need raypaths and don't plot twice
             if self.raypaths is None:
                 self.setupWB()
@@ -874,15 +890,14 @@ class Block():
                                             erf_or_sum=erf_or_sum,
                                             show_plot=False)
             
-        elif wb_or_3Dnpi == 'npi':
-            print('npi not working well right now, sorry')
+        elif wholeblock_diffusion is False:
             lmfit.minimize(models.diffusion3Dnpi_params, 
                            params, args=(x, y), 
                            kws=dict_fitting)
      
             resid = models.diffusion3Dnpi(params, x, y)
         else:
-            print('wb_or_3Dnpi can only be wb or npi')
+            print('wholeblock_diffusion must be either True or False')
             return            
 
         # convert to ufloats because ufloats are fun
@@ -901,7 +916,7 @@ class Block():
             e3.append(bestD[k].s)
 
         if show_plot is True:
-            if wb_or_3Dnpi == 'wb':
+            if wholeblock_diffusion is True:
                 self.plot_diffusion(init=init, 
                                     peak_idx=peak_idx,
                                     log10D_m2s=D3,
@@ -920,7 +935,7 @@ class Block():
                              
         # Store values in profile attributes        
         for k in range(3):
-            self.profiles[k].D_saver(D3[k], e3[k], wholeblock, 
+            self.profiles[k].D_saver(D3[k], e3[k], wholeblock_data, 
                             heights_instead, peak_idx)
         return bestD
     

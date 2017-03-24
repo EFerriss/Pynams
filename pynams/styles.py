@@ -194,12 +194,15 @@ def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1,
     y-axis of plots based on the absorbance values for the specified wavenumber
     range and padded top and bottom with pad variable
     """
-    if spectrum.thickness_microns is None:
+    try:
+        if spectrum.thickness_microns is None:
+            absorbance = spectrum.abs_raw
+        else:
+            spectrum.start_at_zero(wn_xlim_left=wn_xlim_left,
+                               wn_xlim_right=wn_xlim_right)
+            absorbance = spectrum.abs_full_cm
+    except AttributeError:
         absorbance = spectrum.abs_raw
-    else:
-        spectrum.start_at_zero(wn_xlim_left=wn_xlim_left,
-                           wn_xlim_right=wn_xlim_right)
-        absorbance = spectrum.abs_full_cm
         
     idx_lo = (np.abs(spectrum.wn_full-wn_xlim_right)).argmin()
     idx_hi = (np.abs(spectrum.wn_full-wn_xlim_left)).argmin()
