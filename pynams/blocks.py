@@ -316,9 +316,15 @@ class Block():
             
         return positions, y
 
-    def plot_areas_3panels(self, peak_idx=None, axes3=None, centered=False,
-                           ytop=None, heights_instead=False, wholeblock=False,
-                           xerror=0., yerror=None, pie=True,
+    def plot_areas_3panels(self, peak_idx=None, 
+                           axes3=None, 
+                           centered=False,
+                           ytop=None, 
+                           heights_instead=False, 
+                           wholeblock=False,
+                           xerror=0., 
+                           yerror=None, 
+                           pie=True,
                            label4legend=[None, None, None],
                            styles3=[styles.style_points]*3,
                            unit='microns',
@@ -326,15 +332,13 @@ class Block():
                            show_errorbars=True):
         """
         Plots areas (default) or ratio of area to initial area 
-        (wholeblock=True) for all 3 profiles.  
+        (set wholeblock=True) for all 3 profiles.  
         
         Returns figure handle and a list of 3 axes handles (default) unless
         axes3 is not equal to None. 
         
         Keywords are similar to those for profile.plot_areas
         """
-        self.make_areas()
-        
         if peak_idx is not None:
             for prof in self.profiles:
                 for spec in prof.spectra:
@@ -741,7 +745,7 @@ class Block():
                        labelDx=[None, None, None],
                        style_data=styles.style_points,
                        style_diffusion=styles.style_1,
-                       show_line_at_init=True,
+                       show_line_at_1=True,
                        ):
         """
         Applies 3-dimensionsal diffusion equations using equations in 
@@ -812,7 +816,7 @@ class Block():
             init = np.max(maxareas)
 
         styles.plot_3panels(xdiff, np.array(ydiff), 
-                            show_line_at_1=show_line_at_init, 
+                            show_line_at_1=show_line_at_1, 
                             figaxis3=axes3, init=init, ytop=ytop,
                             styles3=[style_diffusion]*3, 
                             label4legend=label4legend,
