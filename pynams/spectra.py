@@ -925,7 +925,11 @@ class Spectrum():
         """
         if folder is None:
             folder = self.folder
-        filename = ''.join((folder, self.fname, baseline_ending))
+        try:
+            filename = ''.join((folder, self.fname, baseline_ending))
+        except TypeError:
+            print('Problem making filename.')
+            print('Probably you need to specify the folder.')
         if os.path.isfile(filename) is False:
             return
         data = pd.read_csv(filename)
