@@ -347,9 +347,11 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
                  use_errorbar=False):
-    """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
+    """
+    Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
-    Positions are assumed to start at 0 and then are centered.
+    
+    
     """
     if figaxis3 is None:
         fig, axis3 = plot_3panels_outline(ytop=ytop, wholeblock=wholeblock,
@@ -377,10 +379,13 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         a = lengths[k] / 2.
         pos = x 
         
+        current_length = axis3[k].get_xlim()[1]
         if centered is True:
-            axis3[k].set_xlim(-a, a)
+            if current_length < a:
+                axis3[k].set_xlim(-a, a)
         else:
-            axis3[k].set_xlim(0., lengths[k])            
+            if current_length < lengths[k]:
+                axis3[k].set_xlim(0., lengths[k])            
 
         if show_line_at_1 is True:
             axis3[k].plot([-a, lengths[k]], [init, init], '--k')

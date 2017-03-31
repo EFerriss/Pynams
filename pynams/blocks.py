@@ -141,8 +141,12 @@ class Block():
             """
             Make list of areas from all profiles, including whole-block areas.
             """
+            self.areas = []
+            self.wb_areas = []
             for prof in self.profiles:
                 prof.make_wholeblock()
+                self.areas.append(prof.areas)
+                self.wb_areas.append(prof.wb_areas)            
 
     def average_spectra(self):
         """
