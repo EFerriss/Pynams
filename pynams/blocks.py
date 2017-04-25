@@ -333,6 +333,7 @@ class Block():
                            styles3=[styles.style_points]*3,
                            unit='microns',
                            show_line_at_1=False, 
+                           show_data=True,
                            show_errorbars=True):
         """
         Plots areas (default) or ratio of area to initial area 
@@ -375,6 +376,10 @@ class Block():
             print('unit must be microns (default) or mm')
             return
                 
+        if show_data is False:
+            positions = [[], [], []]
+            y = [[], [], []]
+            
         # Sent positions and areas to plotting command
         if axes3 is not None:
             styles.plot_3panels(positions, y, lengths, figaxis3=axes3,
