@@ -26,7 +26,7 @@ import json
 import lmfit
 
 class Profile():
-    def __init__(self, profile_name=None,
+    def __init__(self, name=None,
                  fnames=[], 
                  folder='',
                  positions_microns = np.array([]),
@@ -48,7 +48,7 @@ class Profile():
         Creates a group of FTIR Spectrum objects that can be handled
         and interpreted together.
         
-        profile_name is a description automatically used for labeling plots.
+        name is a description automatically used for labeling plots.
         
         fnames must be a *list* of spectra filenames without the .CSV or 
         .txt extension, just like the fname when making a Spectrum.
@@ -67,7 +67,7 @@ class Profile():
         and length_c_microns.
         
         """
-        self.profile_name = profile_name
+        self.name = name
         self.folder = folder
         self.fnames = fnames
         self.positions_microns = positions_microns
@@ -174,7 +174,7 @@ class Profile():
         profile.sample.thickness_microns
         """ 
         if self.sample is None:
-            print('\n', self.profile_name)
+            print('\n', self.name)
             print('Need to specify profile sample\n')
             return False
         else:
@@ -224,7 +224,7 @@ class Profile():
                                                             centered=False)
         ax.plot(self.positions_microns, self.thickness_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
-        ax.set_title(self.profile_name)
+        ax.set_title(self.name)
         ax.set_ylim(min(self.thickness_microns_list)-0.05*min(self.thickness_microns_list), 
                     max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
@@ -238,8 +238,8 @@ class Profile():
         avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list, folder=self.folder)
         
-        if self.profile_name is not None:
-            avespec.fname = (self.profile_name + '\naveraged across profile')
+        if self.name is not None:
+            avespec.fname = (self.name + '\naveraged across profile')
         else:
             avespec.fname = 'averaged across profile'
             
@@ -499,7 +499,7 @@ class Profile():
             
     def print_peakfits(self):
         """Print out peakfit information for all spectra in profile"""
-        print('\n', self.profile_name)
+        print('\n', self.name)
 
         poscounter = 0
         for spectrum in self.spectra:
@@ -534,7 +534,7 @@ class Profile():
         max_peakheights = np.max(self.peak_heights, axis=1)
 
         if printout is True:
-            print('\n', self.profile_name)
+            print('\n', self.name)
             print('peak positions (cm-1)\n', self.spectra[0].peakpos)
             print('average peak areas (cm-2)\n', average_peakareas)
             print('average peak heights (cm-1)\n', average_peakheights)
@@ -640,7 +640,7 @@ class Profile():
         # Add check that argument is actually a profile
         
         if self.peakpos is None: 
-            print('Getting peaks fit in matlab for', self.profile_name)
+            print('Getting peaks fit in matlab for', self.name)
             self.get_peakfit()
 
         # Getting peak from wavenumber if index not given
@@ -804,9 +804,9 @@ class Profile():
             style_bestfitline = styles.style_baseline
         if label is None:
             if style is not None:
-                style['label'] = self.profile_name
+                style['label'] = self.name
             else:
-                label = self.profile_name
+                label = self.name
         else:
             if style is not None:
                 style['label'] = label
@@ -1443,7 +1443,7 @@ class Profile():
         D_area_wb = ufloat(self.D_area_wb, self.D_area_wb_error)   
         wbmax = '{:.2f}'.format(self.maximum_wb_area)
 
-        print('\n', self.profile_name)
+        print('\n', self.name)
         print(' Diffusivities as log10(D in m2/s), errors, then max value A/A0')
         print('bulkH', D_area_wb, wbmax)
 
@@ -1474,7 +1474,7 @@ class Profile():
 #                              ';  n/a;         n/a'))
 #
 #        if show_on_screen is True:
-#            print '\n', self.profile_name
+#            print '\n', self.name
 #            print ' Diffusivities as log10(D in m2/s) (max value)'
 #            print '         wb areas;         areas;       wb heights;     heights'
 #            print bulkstring
@@ -1836,7 +1836,7 @@ def make_3DWB_area_profile(final_profile,
             # Make sure area lists are populated
             for profile in [init, fin]:
                 if len(profile.areas) == 0:
-                    print(profile.profile_name)
+                    print(profile.name)
                     print('making area list for profile')
                     profile.make_areas(show_plot=False)
             A0 = init.areas
