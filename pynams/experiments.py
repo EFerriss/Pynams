@@ -4,34 +4,91 @@ Created on Wed Dec 02 09:33:13 2015
 
 @author: Ferriss
 
-supporting functions for performing experiments on 
-nominally anhydrous minerals. For now there's only one function.
+Functions to help with performing and interpreting experiments on 
+nominally anhydrous minerals. 
 
-pressure_design() takes dimensions and details for sample in 
-high pressure piston cylinder experiments
+
 """
 from __future__ import print_function, division, absolute_import
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
 from scipy import constants
+from scipy.interpolate import interp1d
 import numpy as np
 
 GAS_CONSTANT = constants.physical_constants['molar gas constant'][0] # J/molK
 FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
 
-style_pressure_medium = {'hatch' : '..', 'facecolor' : 'lightgrey'}
-style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
-style_MgO = {'hatch' : None, 'facecolor' : 'white', 'edgecolor' : 'k'}
-style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
-style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
-style_buffer = {'facecolor' : 'w', 'hatch' : 'xxxxx', 'edgecolor' : 'k'}
+#%% water concentration as a function of water fugacity   
+def solubility_of_H_in_olivine(Celsius, water_fugacity_GPa=None, 
+                               pressure_GPa=1, author='Mosenfelder',
+                               printout=True):
+    """
+    Returns fully saturated solubility of olivine in H/10^6 Si and ppm H2O.
+
+    Required: temperature in Celsius and either the pressure in GPa (default=1)
+    or the water fugacity in GPa. Setting the water fugacity overrides the
+    water fugacity calculated based on the pressure and an assumed temperature
+    of 1100 C.
+        
+    Options for volume change with pressure dV are set by kwarg author.
+    Use 'Mosenfelder' (default) for dV from Mosenfelder et al. 2006, 
+    'Kohlstedt' for Kohlstedt et al. 1996, or 'Zhao' for Zhao et al. 2004
+    """
+    Kelvin = Celsius + 273.15
+    
+    if water_fugacity_GPa is None and pressure_GPa is None:
+        print('Required: either water_fugacity in GPa or pressure in GPa')
+        return
+    
+    if author == 'Mosenfelder':
+        # Mosenfelder et al. 2006
+        dV = 10.2e-6 # m^3/mol
+    elif author == 'Kohlstedt':
+        # Kohlstedt et al. 1996
+        dV = 10.0e-6 # m^3/mol
+    elif author == 'Zhao':
+        # Zhao et al. 2004
+        dV = 10.6e-6 # m^3/mol
+    else:
+        print('author options are Mosenfelder, Kohlstedt, or Zhao')
+        print('defaulting to Mosenfelder et al. 2006')
+        dV = 10.2e-6 # m^3/mol
+
+    # water fugacity as a function of pressure at constant temp of 1100 C
+    # www.esci.umn.edu/people/researchers/withe012/fugacity.htm
+    GPa = [0.01, 0.1, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    fugacity = [0.00997, 0.098, 0.6, 2, 12.13, 55.3, 218.66, 784.98, 2625, 
+                8305.9, 25092.63, 72904., 204764.6, 558205.715, 1481665.06]
+
+    if pressure_GPa is None:
+        f_spline_fit = interp1d(np.log10(fugacity), GPa, kind='cubic')
+        pressure_GPa = f_spline_fit(np.log10(water_fugacity_GPa))
+
+    if water_fugacity_GPa is None:
+        f_spline_fit_p2f = interp1d(GPa, fugacity, kind='cubic')
+        water_fugacity_GPa = f_spline_fit_p2f(pressure_GPa)
+
+    # The exponent part keeps going to 1 because all the numbers are so small.
+    pressure_Nm2 = pressure_GPa * 1e9
+    exponent_part = np.exp((-1.0*pressure_Nm2*dV) / (GAS_CONSTANT*Kelvin))
+    A = 2.45 # H/10^6 Si / GPa
+    n = 1
+    C = A * (water_fugacity_GPa**n) * exponent_part
+
+#    ppm = convertH(C, from_unit='H/10^6 Si', printout=False)
+    ppm = C * 60
+    if printout is True:
+        print('Solubility of H in olivine:', ppm, 'ppm H2O')
+#    print C, ppm
+    return ppm
 
 def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
     """
     Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
-    See Table 3 of Denis et al. 2013
+    Based on Table 3 of Denis et al. 2013
     """
     if phase == 'Fo90':
         H_to_1_ppm = 16.35
@@ -330,6 +387,14 @@ def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
         codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
     path = Path(verts, codes)
     return path
+
+style_pressure_medium = {'hatch' : '..', 'facecolor' : 'lightgrey'}
+style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
+style_MgO = {'hatch' : None, 'facecolor' : 'white', 'edgecolor' : 'k'}
+style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
+style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
+style_buffer = {'facecolor' : 'w', 'hatch' : 'xxxxx', 'edgecolor' : 'k'}
+
        
 def pressure_design(capsule_material = 'copper',
                     pressure_medium_material='BaCO$_3$',
