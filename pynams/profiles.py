@@ -592,7 +592,7 @@ class Profile():
         # stop if not doing peaks
         if peakfit is False:
             return area_ratio
-    
+
         # Peak-specific whole-block values
         self.get_peakfit()            
         if self.initial_profile.peak_areas is None:
@@ -656,8 +656,7 @@ class Profile():
             peakwn = self.peakpos[peak_idx]
 
         # Make peak-specific whole-block areas
-        self.make_wholeblock(peakfit=True, show_plot=False, 
-                                 bulk=False)
+        self.make_wholeblock(peakfit=True, show_plot=False)
                
         if heights_instead is False:
             returnvals = self.peak_wb_areas[peak_idx]
@@ -1115,8 +1114,10 @@ class Profile():
 
     def D_saver(self, D, error, wholeblock=True, heights_instead=False, 
                 peak_idx=None):
-        """Saves a diffusivity in the profile attribute of interest.
-        Consider using get_diffusivity() first"""
+        """
+        Saves a diffusivity in the profile attribute of interest.
+        Consider using get_diffusivity() first
+        """
         if peak_idx is not None:
             if heights_instead is True:
                 if wholeblock is False:
