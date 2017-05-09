@@ -143,7 +143,7 @@ class Block():
             """
             self.areas = []
             self.wb_areas = []
-            for prof in self.profiles:
+            for idx, prof in enumerate(self.profiles):
                 prof.make_wholeblock()
                 self.areas.append(prof.areas)
                 self.wb_areas.append(prof.wb_areas)            
@@ -287,11 +287,11 @@ class Block():
                 
                 # absolute areas
                 else:
-                    if prof.areas is None:
+                    try:
+                        y_to_add = prof.areas
+                    except AttributeError:
                         prof.make_areas()
-                    y_to_add = prof.areas
-
-
+          
             # Peak-specific                
             else:
                 if heights_instead is True:
@@ -344,7 +344,6 @@ class Block():
                            xerror=0., 
                            yerror=None, 
                            pie=False,
-                           label4legend=[None, None, None],
                            styles3=[styles.style_points]*3,
                            unit='microns',
                            show_line_at_1=False, 
@@ -410,7 +409,6 @@ class Block():
                                 wholeblock=wholeblock,
                                 show_line_at_1=show_line_at_1,
                                 heights_instead=heights_instead,
-                                label4legend=label4legend,
                                 use_errorbar=show_errorbars,
                                 yerror=yerror, unit=unit,
                                 xerror=xerror, centered=centered)
@@ -420,7 +418,6 @@ class Block():
                                           styles3=styles3, ytop=ytop, 
                                           wholeblock=wholeblock,
                                           show_line_at_1=show_line_at_1,
-                                          label4legend=label4legend,
                                           heights_instead=heights_instead,
                                           use_errorbar=show_errorbars,
                                           yerror=yerror, unit=unit,
@@ -769,7 +766,6 @@ class Block():
                        show_data=True,
                        xaxis='centered',
                        show_slice=False, 
-                       label4legend=[None, None, None],
                        axes3=None, 
                        points=50, 
                        top_spectra=1.0,
@@ -836,7 +832,6 @@ class Block():
                                              wholeblock=wholeblock_data, 
                                              heights_instead=heights_instead,
                                              show_line_at_1=False,
-                                             label4legend=label4legend,
                                              styles3=[style_data]*3,
                                              centered=centered)
             except TypeError:
@@ -863,7 +858,6 @@ class Block():
                             show_line_at_1=show_line_at_1, 
                             figaxis3=axes3, init=init, ytop=ytop,
                             styles3=[style_diffusion]*3, 
-                            label4legend=label4legend,
                             centered=centered)
 
         # label diffusivities
