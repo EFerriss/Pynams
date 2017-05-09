@@ -324,7 +324,6 @@ class Block():
                         
             y.append(y_to_add)
             
-        
         if centered is True:
             a = np.mean(self.profiles[0].sample.length_a_microns) / 2.
             b = np.mean(self.profiles[1].sample.length_b_microns) / 2.
@@ -341,6 +340,7 @@ class Block():
                            ytop=None, 
                            heights_instead=False, 
                            wholeblock=False,
+                           scale=1.,
                            xerror=0., 
                            yerror=None, 
                            pie=False,
@@ -351,12 +351,17 @@ class Block():
                            show_errorbars=True):
         """
         Plots areas (default) or ratio of area to initial area 
-        (set wholeblock=True) for all 3 profiles.  
+        (wholeblock=True) for all 3 profiles.  
+        
+        For wholeblock data, all data is by default scaled to 
+        between 0 and 1. To scale up those values by some amount, e.g.,
+        because you have some insight about the water content,
+        use the scale keyword.
         
         Returns figure handle and a list of 3 axes handles (default) unless
         axes3 is not equal to None. 
         
-        Keywords are similar to those for profile.plot_areas
+        Additional keywords are similar to those for profile.plot_areas
         """
         if peak_idx is not None:
             prof = self.profiles[0]
@@ -450,6 +455,9 @@ class Block():
                         radius=0.25, center=(0, 0), frame=False)
                 ax_pie.axis('equal')
                 ax_pie.set_title(tit)
+
+        yticks = ax[0].get_yticks()
+        ax[0].set_yticklabels(yticks*scale)
             
         if axes3 is None:
             return fig, ax
@@ -1033,3 +1041,25 @@ class Block():
         Default plot showing residuals for how well results match the whole-block
         observations."""
         pass
+
+    def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
+        """
+        Requires a list of peak wavenumber locations in cm-1
+            (default peaks=[3600, 3525, 3356, 3236])
+        Creates or overwrites profiles peak positions and peak_heights using 
+        that baseline, not heights from gaussian curves
+        """
+        for prof in self.profiles:
+            prof.peakpos = peaks
+            prof.peak_heights = [[]]*len(peaks)
+            for heights, peak in zip(prof.peak_heights, peaks):
+                if len(heights) < len(prof.spectra):
+                    for spec in prof.spectra:
+                        idx = np.abs(peak - spec.base_wn).argmin()
+                        height_base = spec.base_abs[idx]
+                        
+                        idx = np.abs(peak - spec.wn_full).argmin()
+                        height_abs = spec.abs_full_cm[idx]
+                        
+                        height = height_abs - height_base
+                        heights.append(height)
