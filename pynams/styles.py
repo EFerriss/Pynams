@@ -345,7 +345,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                  centered=True, unit='microns',
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
-                 use_errorbar=False):
+                 use_errorbar=False, scale=1.):
     """
     Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
@@ -366,7 +366,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         x = positions_microns[k]
         if unit == 'mm':
             x = np.array(x) / 1000.
-        y = area_profiles[k]
+        y = np.array(area_profiles[k])
 
         if len(x) != len(y):
             print('Problem in plot_3panels')
@@ -406,13 +406,13 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         else:
             if use_errorbar is True:
                 if yerror is None:
-                    yerrorplot = np.array(y) * percent_error/100.
+                    yerrorplot = np.array(y*scale) * percent_error/100.
                 else:
                     yerrorplot = np.ones_like(pos) * yerror
-                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
-                                **styles3[k])
+                axis3[k].errorbar(pos, y*scale, 
+                                  xerr=xerror, yerr=yerrorplot, **styles3[k])
             else:
-                axis3[k].plot(pos, y, **styles3[k])
+                axis3[k].plot(pos, y*scale, **styles3[k])
 
     if figaxis3 is None:
         return fig, axis3   

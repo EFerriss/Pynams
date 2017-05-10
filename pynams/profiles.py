@@ -557,79 +557,80 @@ class Profile():
             for spectrum in self.initial_profile.spectra:
                 spectrum.plot_peakfit(legloc=legloc)
                 
-    def make_wholeblock(self, peakfit=False, show_plot=False):
+    def make_wholeblock(self, peakfit=False, show_plot=False,
+                        heights_or_areas='both'):
         """
         Take initial and final profiles and make self.wb_areas.
-        If peakfit=True, then get_peakfit and make peak-specific ratios
-        peak_wb_areas, peak_wb_heights, peak_wb_widths
+        
+        If peakfit=True, then make whole-block ratios for heights and
+        peak areas (heights_or_areas='both' by default) or just 'heights' or
+        'areas'. The results are stored in peak_wb_areas, peak_wb_heights, 
+        peak_wb_widths
         """
-
         if self.initial_profile is None:
             self.initial_profile = self
         init=self.initial_profile
 
-        # Bulk H whole-block        
-        iareas = self.initial_profile.make_areas()
-        areas = self.make_areas()
-
-        # best-fit line through initial areas        
-        if ((len(iareas) == 2) and 
-            (init.positions_microns[0] == init.positions_microns[1])):
-            p = (0, np.mean(init.areas))
-        elif len(iareas) > 1:
-            p = np.polyfit(init.positions_microns, iareas, 1)
-        else:
-            try:
-                p = (0, iareas[0])
-            except IndexError:
-                p = (0, 1)
-        init_line = np.polyval(p, self.positions_microns)
-        
-        # whole-block areas relative to that initial line
-        area_ratio = self.areas / init_line            
-        self.wb_areas = area_ratio
-
-        # stop if not doing peaks
-        if peakfit is False:
-            return area_ratio
+        if peakfit is False:        
+            iareas = self.initial_profile.make_areas()
+            areas = self.make_areas()
+    
+            # best-fit line through initial areas        
+            if ((len(iareas) == 2) and 
+                (init.positions_microns[0] == init.positions_microns[1])):
+                p = (0, np.mean(init.areas))
+            elif len(iareas) > 1:
+                p = np.polyfit(init.positions_microns, iareas, 1)
+            else:
+                try:
+                    p = (0, iareas[0])
+                except IndexError:
+                    p = (0, 1)
+            init_line = np.polyval(p, self.positions_microns)
+            
+            # whole-block areas relative to that initial line
+            area_ratio = self.areas / init_line            
+            self.wb_areas = area_ratio
+            return
 
         # Peak-specific whole-block values
-        self.get_peakfit()            
-        if self.initial_profile.peak_areas is None:
-            self.initial_profile.get_peakfit()
-            if self.initial_profile.peak_areas is None:
-                print('\nCould not get initial peak areas')
-                return False
-            
         ipos = self.initial_profile.positions_microns
-        iareas = self.initial_profile.peak_areas
-        iheights = self.initial_profile.peak_heights
-        iwidths = self.initial_profile.peak_widths
         pos = self.positions_microns       
-        areas = self.peak_areas
-        heights = self.peak_heights
-        widths = self.peak_widths        
-        npeaks = len(iareas)
         
-        wb_areas = []
-        wb_heights = []
-        wb_widths = []
-        for k in range(npeaks):           
-            pa = np.polyfit(ipos, iareas[k], 1)
-            ph = np.polyfit(ipos, iheights[k], 1)
-            pw = np.polyfit(ipos, iwidths[k], 1)
-            anormalizeto = np.polyval(pa, pos)
-            hnormalizeto = np.polyval(ph, pos)
-            wnormalizeto = np.polyval(pw, pos)
-            
-            wb_areas.append(areas[k] / anormalizeto)                
-            wb_heights.append(heights[k] / hnormalizeto)
-            wb_widths.append(widths[k] / wnormalizeto)
-
-        self.peak_wb_areas = wb_areas
-        self.peak_wb_heights = wb_heights
-        self.peak_wb_widths = wb_widths
-        return wb_areas
+        if heights_or_areas == 'heights' or heights_or_areas == 'both':
+            wb_heights = []
+            if self.peak_heights is None:
+                self.get_peakfit()
+                
+            try:
+                heights = self.peak_heights
+            except AttributeError:
+                self.get_peakfit()
+            try:
+                iheights = self.initial_profile.peak_heights
+            except AttributeError:
+                self.initial_profile.get_peakfit()
+                iheights = self.initial_profile.peak_heights
+                
+            for height, iheight in zip(heights, iheights):
+                ph = np.polyfit(ipos, iheight, 1)
+                hnormalizeto = np.polyval(ph, pos)
+                wb_heights.append(height / hnormalizeto)
+            self.peak_wb_heights = wb_heights
+                
+        if heights_or_areas == 'areas' or heights_or_areas == 'both':
+            wb_areas = []
+            try:
+                areas = self.peak_areas
+            except AttributeError:
+                print('need profile.peak_areas')
+                return
+            iareas = self.initial_profile.peak_areas
+            for area, iarea in zip(areas, iareas):
+                pa = np.polyfit(ipos, iarea, 1)
+                anormalizeto = np.polyval(pa, pos)
+                wb_areas.append(area / anormalizeto)                
+            self.peak_wb_areas = wb_areas            
 
     def get_peak_wb_areas(self, peak_idx=0, peakwn=None, 
                           heights_instead=False):
@@ -656,7 +657,14 @@ class Profile():
             peakwn = self.peakpos[peak_idx]
 
         # Make peak-specific whole-block areas
-        self.make_wholeblock(peakfit=True, show_plot=False)
+        if heights_instead is True:
+            h_or_a = 'heights'
+        elif heights_instead is False:
+            h_or_a = 'areas'
+        else:
+            h_or_a = 'both'
+        self.make_wholeblock(peakfit=True, show_plot=False,
+                             heights_or_areas=h_or_a)
                
         if heights_instead is False:
             returnvals = self.peak_wb_areas[peak_idx]

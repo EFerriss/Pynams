@@ -9,11 +9,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import lmfit
 from uncertainties import ufloat
+from matplotlib.ticker import FormatStrFormatter
 
 class Block():
     def __init__(self,profiles=[], folder='', name='', get_peakfit=False, 
-                 make_wb_areas=False, time_seconds=None, sample=None,
-                 get_baselines=False, initialWB=None, celsius=None):
+                 time_seconds=None, sample=None, get_baselines=False, 
+                 initialWB=None, celsius=None):
         """
         Sets up and checks new Block
         - Check that profiles list contains a list of three (3) profiles
@@ -63,11 +64,6 @@ class Block():
                 prof.initial_profile = prof
             ip.append(prof.initial_profile)
             
-            if make_wb_areas is True:
-                check = prof.make_wholeblock(peakfit=get_peakfit)
-                if check is False:
-                    return False
-
             if prof.spectra is None:
                 prof.make_spectra()
                 
@@ -340,9 +336,9 @@ class Block():
                            ytop=None, 
                            heights_instead=False, 
                            wholeblock=False,
-                           scale=1.,
                            xerror=0., 
                            yerror=None, 
+                           scale=1., 
                            pie=False,
                            styles3=[styles.style_points]*3,
                            unit='microns',
@@ -352,11 +348,6 @@ class Block():
         """
         Plots areas (default) or ratio of area to initial area 
         (wholeblock=True) for all 3 profiles.  
-        
-        For wholeblock data, all data is by default scaled to 
-        between 0 and 1. To scale up those values by some amount, e.g.,
-        because you have some insight about the water content,
-        use the scale keyword.
         
         Returns figure handle and a list of 3 axes handles (default) unless
         axes3 is not equal to None. 
@@ -415,7 +406,7 @@ class Block():
                                 show_line_at_1=show_line_at_1,
                                 heights_instead=heights_instead,
                                 use_errorbar=show_errorbars,
-                                yerror=yerror, unit=unit,
+                                yerror=yerror, unit=unit, scale=scale,
                                 xerror=xerror, centered=centered)
             axes3[1].set_title(tit)                                
         else:
@@ -426,7 +417,8 @@ class Block():
                                           heights_instead=heights_instead,
                                           use_errorbar=show_errorbars,
                                           yerror=yerror, unit=unit,
-                                          xerror=xerror, centered=centered)
+                                          xerror=xerror, centered=centered,
+                                          scale=scale)
             ax[1].set_title(tit)
             fig.set_size_inches(6.5, 3.)
             fig.autofmt_xdate()
@@ -456,9 +448,14 @@ class Block():
                 ax_pie.axis('equal')
                 ax_pie.set_title(tit)
 
-        yticks = ax[0].get_yticks()
-        ax[0].set_yticklabels(yticks*scale)
-            
+#        if axes3 is None:
+#            yticks = ax[0].get_yticks()
+#            ax[0].set_yticklabels(yticks*scale)
+#            ax[0].yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+#        else:
+#            yticks = axes3[0].get_yticks()
+#            axes3[0].set_yticklabels(yticks*scale)
+#            axes3[0].yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         if axes3 is None:
             return fig, ax
 
@@ -1034,12 +1031,14 @@ class Block():
                smoothness_constraint=True, rim_constraint=True, 
                rim_value=None, weighting_factor_lambda=0.2, 
                show_residuals_plot=True):
-        """Takes a list of three whole-block concentration profiles (either A/Ao 
+        """
+        Takes a list of three whole-block concentration profiles (either A/Ao 
         or water ok but must be consistent for all three) in three orthogonal 
         directions and list of three integers to indicate number of divisions
         in each direction. Returns matrix of values in each grid cell. 
-        Default plot showing residuals for how well results match the whole-block
-        observations."""
+        Default plot showing residuals for how well results match the 
+        whole-block observations.
+        """
         pass
 
     def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
@@ -1051,15 +1050,18 @@ class Block():
         """
         for prof in self.profiles:
             prof.peakpos = peaks
-            prof.peak_heights = [[]]*len(peaks)
-            for heights, peak in zip(prof.peak_heights, peaks):
-                if len(heights) < len(prof.spectra):
-                    for spec in prof.spectra:
-                        idx = np.abs(peak - spec.base_wn).argmin()
-                        height_base = spec.base_abs[idx]
-                        
-                        idx = np.abs(peak - spec.wn_full).argmin()
-                        height_abs = spec.abs_full_cm[idx]
-                        
-                        height = height_abs - height_base
-                        heights.append(height)
+            prof.peak_heights = []
+#            print(prof.name)
+            for peak in (peaks):
+#                print('peak', peak)
+                heights = []
+                for spec in prof.spectra:
+                    idx = np.abs(peak - spec.base_wn).argmin()
+                    height_base = spec.base_abs[idx]
+                    idx = np.abs(peak - spec.wn_full).argmin()
+                    height_abs = spec.abs_full_cm[idx]                        
+                    height = height_abs - height_base
+                    heights.append(height)
+#                    print(height)
+                prof.peak_heights.append(heights)
+#                print()
