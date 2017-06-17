@@ -578,3 +578,12 @@ def mix_olivine_mechanisms(percent_slow, celsius):
     D = np.array(Ds) + np.array(Df)
     D = np.log10(D)
     return list(D)
+
+#%%
+def print_info(Diff):
+    """ Takes Diffusivity object and prints out data nicely for copying """
+    orients = ['a', 'b', 'c', 'u']
+    for d3, temp, orient in zip(Diff.logD, Diff.celsius, orients):
+        for d, t in zip(d3, temp):
+            print(orient, t, d)
+            
