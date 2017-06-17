@@ -26,7 +26,7 @@ import json
 import lmfit
 
 class Profile():
-    def __init__(self, profile_name=None,
+    def __init__(self, name=None,
                  fnames=[], 
                  folder='',
                  positions_microns = np.array([]),
@@ -48,7 +48,7 @@ class Profile():
         Creates a group of FTIR Spectrum objects that can be handled
         and interpreted together.
         
-        profile_name is a description automatically used for labeling plots.
+        name is a description automatically used for labeling plots.
         
         fnames must be a *list* of spectra filenames without the .CSV or 
         .txt extension, just like the fname when making a Spectrum.
@@ -67,7 +67,7 @@ class Profile():
         and length_c_microns.
         
         """
-        self.profile_name = profile_name
+        self.name = name
         self.folder = folder
         self.fnames = fnames
         self.positions_microns = positions_microns
@@ -174,7 +174,7 @@ class Profile():
         profile.sample.thickness_microns
         """ 
         if self.sample is None:
-            print('\n', self.profile_name)
+            print('\n', self.name)
             print('Need to specify profile sample\n')
             return False
         else:
@@ -224,7 +224,7 @@ class Profile():
                                                             centered=False)
         ax.plot(self.positions_microns, self.thickness_microns_list, 'o')
         ax.set_ylabel('thickness ($\mu$m)')
-        ax.set_title(self.profile_name)
+        ax.set_title(self.name)
         ax.set_ylim(min(self.thickness_microns_list)-0.05*min(self.thickness_microns_list), 
                     max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
@@ -238,8 +238,8 @@ class Profile():
         avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list, folder=self.folder)
         
-        if self.profile_name is not None:
-            avespec.fname = (self.profile_name + '\naveraged across profile')
+        if self.name is not None:
+            avespec.fname = (self.name + '\naveraged across profile')
         else:
             avespec.fname = 'averaged across profile'
             
@@ -499,7 +499,7 @@ class Profile():
             
     def print_peakfits(self):
         """Print out peakfit information for all spectra in profile"""
-        print('\n', self.profile_name)
+        print('\n', self.name)
 
         poscounter = 0
         for spectrum in self.spectra:
@@ -534,7 +534,7 @@ class Profile():
         max_peakheights = np.max(self.peak_heights, axis=1)
 
         if printout is True:
-            print('\n', self.profile_name)
+            print('\n', self.name)
             print('peak positions (cm-1)\n', self.spectra[0].peakpos)
             print('average peak areas (cm-2)\n', average_peakareas)
             print('average peak heights (cm-1)\n', average_peakheights)
@@ -557,79 +557,80 @@ class Profile():
             for spectrum in self.initial_profile.spectra:
                 spectrum.plot_peakfit(legloc=legloc)
                 
-    def make_wholeblock(self, peakfit=False, show_plot=False):
+    def make_wholeblock(self, peakfit=False, show_plot=False,
+                        heights_or_areas='both'):
         """
         Take initial and final profiles and make self.wb_areas.
-        If peakfit=True, then get_peakfit and make peak-specific ratios
-        peak_wb_areas, peak_wb_heights, peak_wb_widths
+        
+        If peakfit=True, then make whole-block ratios for heights and
+        peak areas (heights_or_areas='both' by default) or just 'heights' or
+        'areas'. The results are stored in peak_wb_areas, peak_wb_heights, 
+        peak_wb_widths
         """
-
         if self.initial_profile is None:
             self.initial_profile = self
         init=self.initial_profile
 
-        # Bulk H whole-block        
-        iareas = self.initial_profile.make_areas()
-        areas = self.make_areas()
-
-        # best-fit line through initial areas        
-        if ((len(iareas) == 2) and 
-            (init.positions_microns[0] == init.positions_microns[1])):
-            p = (0, np.mean(init.areas))
-        elif len(iareas) > 1:
-            p = np.polyfit(init.positions_microns, iareas, 1)
-        else:
-            try:
-                p = (0, iareas[0])
-            except IndexError:
-                p = (0, 1)
-        init_line = np.polyval(p, self.positions_microns)
-        
-        # whole-block areas relative to that initial line
-        area_ratio = self.areas / init_line            
-        self.wb_areas = area_ratio
-
-        # stop if not doing peaks
-        if peakfit is False:
-            return area_ratio
+        if peakfit is False:        
+            iareas = self.initial_profile.make_areas()
+            areas = self.make_areas()
     
-        # Peak-specific whole-block values
-        self.get_peakfit()            
-        if self.initial_profile.peak_areas is None:
-            self.initial_profile.get_peakfit()
-            if self.initial_profile.peak_areas is None:
-                print('\nCould not get initial peak areas')
-                return False
+            # best-fit line through initial areas        
+            if ((len(iareas) == 2) and 
+                (init.positions_microns[0] == init.positions_microns[1])):
+                p = (0, np.mean(init.areas))
+            elif len(iareas) > 1:
+                p = np.polyfit(init.positions_microns, iareas, 1)
+            else:
+                try:
+                    p = (0, iareas[0])
+                except IndexError:
+                    p = (0, 1)
+            init_line = np.polyval(p, self.positions_microns)
             
-        ipos = self.initial_profile.positions_microns
-        iareas = self.initial_profile.peak_areas
-        iheights = self.initial_profile.peak_heights
-        iwidths = self.initial_profile.peak_widths
-        pos = self.positions_microns       
-        areas = self.peak_areas
-        heights = self.peak_heights
-        widths = self.peak_widths        
-        npeaks = len(iareas)
-        
-        wb_areas = []
-        wb_heights = []
-        wb_widths = []
-        for k in range(npeaks):           
-            pa = np.polyfit(ipos, iareas[k], 1)
-            ph = np.polyfit(ipos, iheights[k], 1)
-            pw = np.polyfit(ipos, iwidths[k], 1)
-            anormalizeto = np.polyval(pa, pos)
-            hnormalizeto = np.polyval(ph, pos)
-            wnormalizeto = np.polyval(pw, pos)
-            
-            wb_areas.append(areas[k] / anormalizeto)                
-            wb_heights.append(heights[k] / hnormalizeto)
-            wb_widths.append(widths[k] / wnormalizeto)
+            # whole-block areas relative to that initial line
+            area_ratio = self.areas / init_line            
+            self.wb_areas = area_ratio
+            return
 
-        self.peak_wb_areas = wb_areas
-        self.peak_wb_heights = wb_heights
-        self.peak_wb_widths = wb_widths
-        return wb_areas
+        # Peak-specific whole-block values
+        ipos = self.initial_profile.positions_microns
+        pos = self.positions_microns       
+        
+        if heights_or_areas == 'heights' or heights_or_areas == 'both':
+            wb_heights = []
+            if self.peak_heights is None:
+                self.get_peakfit()
+                
+            try:
+                heights = self.peak_heights
+            except AttributeError:
+                self.get_peakfit()
+            try:
+                iheights = self.initial_profile.peak_heights
+            except AttributeError:
+                self.initial_profile.get_peakfit()
+                iheights = self.initial_profile.peak_heights
+                
+            for height, iheight in zip(heights, iheights):
+                ph = np.polyfit(ipos, iheight, 1)
+                hnormalizeto = np.polyval(ph, pos)
+                wb_heights.append(height / hnormalizeto)
+            self.peak_wb_heights = wb_heights
+                
+        if heights_or_areas == 'areas' or heights_or_areas == 'both':
+            wb_areas = []
+            try:
+                areas = self.peak_areas
+            except AttributeError:
+                print('need profile.peak_areas')
+                return
+            iareas = self.initial_profile.peak_areas
+            for area, iarea in zip(areas, iareas):
+                pa = np.polyfit(ipos, iarea, 1)
+                anormalizeto = np.polyval(pa, pos)
+                wb_areas.append(area / anormalizeto)                
+            self.peak_wb_areas = wb_areas            
 
     def get_peak_wb_areas(self, peak_idx=0, peakwn=None, 
                           heights_instead=False):
@@ -640,7 +641,7 @@ class Profile():
         # Add check that argument is actually a profile
         
         if self.peakpos is None: 
-            print('Getting peaks fit in matlab for', self.profile_name)
+            print('Getting peaks fit in matlab for', self.name)
             self.get_peakfit()
 
         # Getting peak from wavenumber if index not given
@@ -656,8 +657,14 @@ class Profile():
             peakwn = self.peakpos[peak_idx]
 
         # Make peak-specific whole-block areas
-        self.make_wholeblock(peakfit=True, show_plot=False, 
-                                 bulk=False)
+        if heights_instead is True:
+            h_or_a = 'heights'
+        elif heights_instead is False:
+            h_or_a = 'areas'
+        else:
+            h_or_a = 'both'
+        self.make_wholeblock(peakfit=True, show_plot=False,
+                             heights_or_areas=h_or_a)
                
         if heights_instead is False:
             returnvals = self.peak_wb_areas[peak_idx]
@@ -804,9 +811,9 @@ class Profile():
             style_bestfitline = styles.style_baseline
         if label is None:
             if style is not None:
-                style['label'] = self.profile_name
+                style['label'] = self.name
             else:
-                label = self.profile_name
+                label = self.name
         else:
             if style is not None:
                 style['label'] = label
@@ -1115,8 +1122,10 @@ class Profile():
 
     def D_saver(self, D, error, wholeblock=True, heights_instead=False, 
                 peak_idx=None):
-        """Saves a diffusivity in the profile attribute of interest.
-        Consider using get_diffusivity() first"""
+        """
+        Saves a diffusivity in the profile attribute of interest.
+        Consider using get_diffusivity() first
+        """
         if peak_idx is not None:
             if heights_instead is True:
                 if wholeblock is False:
@@ -1443,7 +1452,7 @@ class Profile():
         D_area_wb = ufloat(self.D_area_wb, self.D_area_wb_error)   
         wbmax = '{:.2f}'.format(self.maximum_wb_area)
 
-        print('\n', self.profile_name)
+        print('\n', self.name)
         print(' Diffusivities as log10(D in m2/s), errors, then max value A/A0')
         print('bulkH', D_area_wb, wbmax)
 
@@ -1474,7 +1483,7 @@ class Profile():
 #                              ';  n/a;         n/a'))
 #
 #        if show_on_screen is True:
-#            print '\n', self.profile_name
+#            print '\n', self.name
 #            print ' Diffusivities as log10(D in m2/s) (max value)'
 #            print '         wb areas;         areas;       wb heights;     heights'
 #            print bulkstring
@@ -1836,7 +1845,7 @@ def make_3DWB_area_profile(final_profile,
             # Make sure area lists are populated
             for profile in [init, fin]:
                 if len(profile.areas) == 0:
-                    print(profile.profile_name)
+                    print(profile.name)
                     print('making area list for profile')
                     profile.make_areas(show_plot=False)
             A0 = init.areas

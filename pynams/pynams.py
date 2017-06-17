@@ -67,3 +67,20 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
 
+def make_peakheights(wb, peaks=[3600, 3525, 3356, 3236]):
+    """
+    Requires:
+        1. wb: a wholeblock object that already has baselines.
+        2. peaks: a list of peak wavenumber locations in cm-1
+        (default peaks=[3600, 3525, 3356, 3236])
+    Creates profiles peak positions and peak_heights using that baseline
+    """
+    for prof in wb.profiles:
+        prof.peakpos = peaks
+        prof.peak_heights = [[]]*len(peaks)    
+        for pidx, peak in enumerate(peaks): 
+            prof.peak_heights[pidx] = []
+            for spec in prof.spectra:
+                idx = np.abs(peak - spec.base_wn).argmin()
+                height = spec.abs_nobase_cm[idx]
+                prof.peak_heights[pidx].append(height)

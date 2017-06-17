@@ -342,16 +342,13 @@ def plot_3panels_outline(style=None, ytop=1.2, figsize=(6.5, 2.5),
 def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], ytop=1.2, figaxis3=None, 
                  show_line_at_1=True, init=1., 
-                 label4legend=[None, None, None],
                  centered=True, unit='microns',
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
-                 use_errorbar=False):
+                 use_errorbar=False, scale=1.):
     """
     Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
-    
-    
     """
     if figaxis3 is None:
         fig, axis3 = plot_3panels_outline(ytop=ytop, wholeblock=wholeblock,
@@ -369,8 +366,8 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         x = positions_microns[k]
         if unit == 'mm':
             x = np.array(x) / 1000.
-        y = area_profiles[k]
-                
+        y = np.array(area_profiles[k])
+
         if len(x) != len(y):
             print('Problem in plot_3panels')
             print('len(x):', len(x))
@@ -392,7 +389,7 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
             
         if styles3[k] is None:
             styles3[k] = style_lightgreen
-            
+                   
         if np.isnan(y).any():
             axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
                          'nan values!\n\nProbably the\ninitial area was 0',
@@ -407,16 +404,15 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                          verticalalignment='center')
 
         else:
-            styles3[k]['label'] = label4legend[k]
             if use_errorbar is True:
                 if yerror is None:
-                    yerrorplot = np.array(y) * percent_error/100.
+                    yerrorplot = np.array(y*scale) * percent_error/100.
                 else:
                     yerrorplot = np.ones_like(pos) * yerror
-                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
-                                **styles3[k])
+                axis3[k].errorbar(pos, y*scale, 
+                                  xerr=xerror, yerr=yerrorplot, **styles3[k])
             else:
-                axis3[k].plot(pos, y, **styles3[k])
+                axis3[k].plot(pos, y*scale, **styles3[k])
 
     if figaxis3 is None:
         return fig, axis3   
