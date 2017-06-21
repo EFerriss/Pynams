@@ -98,9 +98,11 @@ KM98_fast = Diffusivities(description = 'fast mech., KM98',
                         'markersize' :  10})
 
 # Demouchy&Mackwell 2006 - 1 hr for all "fast"
+SanCarlosOlivineDM = Sample(Mg=0.904, Fe=0.092)
 DM06_fast = Diffusivities(description = 'fast mech., DM06', 
             celsius_all = [900], logDx = [np.log10(4e-11)], 
             logDy = [np.log10(2e-12)], logDz = [np.log10(1e-12)],
+            sample = SanCarlosOlivineDM,
             basestyle = {'marker' : 's', 'color' : 'navy', 'alpha' : 0.5,
                         'markersize' :  markersizefloat})
 
@@ -118,6 +120,7 @@ DM06_slow = Diffusivities(description = 'slow mech., DM06', celsius_x = [900],
             logDx = [np.log10(5e-13)], 
             logDy = [np.log10(5e-14), np.log10(3e-13)], 
             logDz = [np.log10(1e-12)],
+            sample = SanCarlosOlivineDM,
             basestyle = {'marker' : 's', 'color' : KM98_slow.basestyle['color'], 
                          'alpha' : 0.5, 'markersize' : markersizefloat+3})
 

@@ -37,25 +37,29 @@ def solve_Ea_D0(log10D_list, celsius_list):
         print('Warning: fitting to only one point')
         return None, None
     
-    # If I don't add in a very low weighted extra number, the covariance
-    # matrix, and hence the error, comes out as infinity. The actual
-    # fitting results don't change. The very low number in this case I'm 
-    # getting from sys.float_info.
-    x_extra = np.concatenate((x, x[-1:]), axis=0)
-    y_extra = np.concatenate((y, y[-1:]), axis=0)    
-    weights = list(np.ones(len(x))) + [sys.float_info.epsilon]
-
-    fit_extra, cov_extra = np.polyfit(x_extra, y_extra, 1, w=weights, cov=True)
-
-    if cov_extra[0][0] > 0:
-        Ea_error = cov_extra[0][0]
-    else:
-        Ea_error = 0.
-
-    if cov_extra[1][1] > 0:
-        D0_error = cov_extra[1][1]
-    else:
-        D0_error = 0.
+    try:
+        # If I don't add in a very low weighted extra number, the covariance
+        # matrix, and hence the error, comes out as infinity. The actual
+        # fitting results don't change. The very low number in this case I'm 
+        # getting from sys.float_info.
+        x_extra = np.concatenate((x, x[-1:]), axis=0)
+        y_extra = np.concatenate((y, y[-1:]), axis=0)    
+        weights = list(np.ones(len(x))) + [sys.float_info.epsilon]
+        fit_extra, cov_extra = np.polyfit(x_extra, y_extra, 1, w=weights, 
+                                          cov=True)
+        if cov_extra[0][0] > 0:
+            Ea_error = cov_extra[0][0]
+        else:
+            Ea_error = 0.
+        if cov_extra[1][1] > 0:
+            D0_error = cov_extra[1][1]
+        else:
+            D0_error = 0.
+    except ValueError:
+#        print('Not enough points to estimate error')
+        fit_extra = np.polyfit(x_extra, y_extra, 1)
+        D0_error = 0
+        Ea_error = 0
 
     Ea_extra = -ufloat(fit_extra[0], Ea_error) * 2.303 * GAS_CONSTANT * 1.E4
     D0_extra = 10.**ufloat(fit_extra[1], D0_error)
