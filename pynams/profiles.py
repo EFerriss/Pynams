@@ -229,12 +229,26 @@ class Profile():
                     max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
 
-    def average_spectra(self):
+    def average_spectra(self, ignore_idx=[]):
         """
         Creates and returns a spectrum that is the average of all spectra
-        in the profile
+        in the profile.
+        
+        Pass a list of the indexes of any spectra that you don't included 
+        to ignore_idx 
         """
-        spec_list = self.spectra
+        spec_list = self.spectra.copy()
+        
+        # ignore certain data points
+        if ignore_idx is None:
+            pass
+        elif type(ignore_idx) != list:
+            print('ignore_idx takes a list')
+        elif len(ignore_idx) == 0:
+            pass
+        else:
+             spec_list = [i for j, i in enumerate(spec_list) if j not in ignore_idx]
+             
         avespec = Spectrum(folder=None, fname=None)
         avespec.make_average_spectra(spec_list, folder=self.folder)
         
@@ -1255,7 +1269,8 @@ class Profile():
              show_plot=True, 
              heights_instead=False,
              symmetric=True,
-             points=200):
+             points=200,
+             ignore_idx=[]):
         """
         Fits a 1D diffusion curve to profile data.
         
@@ -1294,11 +1309,24 @@ class Profile():
             print('Need to set profile positions')
             return
         
-        y_raw = self.y_data_picker(wholeblock, heights_instead, peak_idx)
+        x = self.positions_microns.copy()
+        y_raw = self.y_data_picker(wholeblock, heights_instead, peak_idx).copy()
+
+        # ignore certain data points
+        if ignore_idx is None:
+            pass
+        elif type(ignore_idx) != list:
+            print('ignore_idx takes a list')
+        elif len(ignore_idx) == 0:
+            pass
+        else:
+             x = [i for j, i in enumerate(x) if j not in ignore_idx]
+             y_raw = [i for j, i in enumerate(y_raw) if j not in ignore_idx]
+
         scale_diffusion = max(y_raw)
         y = y_raw / scale_diffusion 
-        x = self.positions_microns
 
+             
         if starting_value is None:
             init = initial_unit_value
         else:
