@@ -697,7 +697,8 @@ class Profile():
                           phase='olivine',
                           calibration='Bell', 
                           scale_water=3.,
-                          shift_water=0.):
+                          shift_water=0., 
+                          ignore_idx=[]):
         """
         Plots the area profile. 
         
@@ -740,7 +741,10 @@ class Profile():
         Set peak_idx and whole_block for peak-specific and whole-block 
         profiles.
         
+        The keyword ignore_idx allows you to pass in a list of indexes
+        for points in your profile to exclude from the plot.
         """
+        
         if len(self.positions_microns) < 1:
             print('Need positions_microns for profile')
             return
@@ -866,7 +870,20 @@ class Profile():
             else:
                 x = self.positions_microns            
 
-        # error bars
+            
+        # ignore certain data points
+        if ignore_idx is None:
+            pass
+        elif type(ignore_idx) != list:
+            print('ignore_idx takes a list')
+        elif len(ignore_idx) == 0:
+            pass
+        else:
+             areas = [i for j, i in enumerate(areas) if j not in ignore_idx]
+             areas_for_water = [i for j, i in enumerate(areas_for_water) if j not in ignore_idx]
+             x = [i for j, i in enumerate(x) if j not in ignore_idx]
+             
+        # plot
         yerror = np.array(areas)*error_percent/100.       
         if error_percent == 0:
             if style is None:
@@ -878,6 +895,7 @@ class Profile():
                 ax.errorbar(x, areas, yerr=yerror, **style)
             else:
                 ax.errorbar(x, areas, yerr=yerror, label=label)
+
             
         # Plot best fit line beneath data points
         if bestfitline is True:
