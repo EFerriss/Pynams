@@ -115,8 +115,8 @@ class Sample():
             print("You don't seem to have any Mg")            
         try:
             MgNum = 100. * self.Mg / (self.Fe + self.Mg)
-            print('Woohoo! Another successful test! Here is the Mg#:')
+            print('\nThe Mg#:')
             print(MgNum)
             self.MgNum = MgNum
         except TypeError:
-            print('Check your Mg and Fe values')
+            print('\nCheck your Mg and Fe values')

@@ -18,3 +18,4 @@ from . import example_FTIR_spectra
 import os
 ftirpath = os.path.dirname(example_FTIR_spectra.__file__)
 example_FTIR_file_location = ''.join((ftirpath,'\\'))
+thisfolder = ''.join((ftirpath,'\\..\\'))

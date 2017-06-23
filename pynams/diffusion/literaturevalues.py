@@ -49,7 +49,8 @@ DM03 = Diffusivities(
                     'linestyle' : 'none', 'markersize' : markersizefloat})
 
 # Padron-Navarta et al. 2014
-# [Si]: 3613 peak in MgO-buffered Fo, [Si]-[Ti]: 3613 peak in Ti-doped sample
+# [Si]: 3613 peak in MgO-buffered Fo, 
+# [Si]-[Ti]: 3613 peak in Ti-doped sample
 # [Ti]: 3525 peak, [Mg]: 3220 peak
 pnav_Si = Diffusivities(description = 'forsterite, [Si]', 
           celsius_u = [1000, 1100, 1200],
@@ -80,9 +81,11 @@ DuFrane = Diffusivities(
           basestyle = {'color' : 'purple', 'marker' : 's', 'alpha' : 0.5,
                        'markersize' :  markersizefloat})
 
-# Kohlstedt and Mackwell 1hr data "fast proton-polaron mechanism"
 # Data from Frey and Prinz 1978
 SanCarlosOlivine = Sample(Fe3=0.003, Fe2=0.174, Mg=1.821, Ti=0., Al=0.)
+
+# Kohlstedt and Mackwell 1hr data "fast proton-polaron mechanism"
+SanCarlosOlivineKM = Sample(Mg=0.907, Fe=0.090)
 KM98_fast = Diffusivities(description = 'fast mech., KM98',
             celsius_x = [1000, 1000, 900, 900, 800],
             celsius_y = [1000, 1000, 900, 900, 800],
@@ -90,14 +93,16 @@ KM98_fast = Diffusivities(description = 'fast mech., KM98',
             logDx = [-9.5634, -9.3928, -9.9876, -10.3970, -10.8071],
             logDy = [-11.0066, -10.6898, -11.3043, -11.9967, -12.2306],
             logDz = [-11.4068, -11.0066, -11.2551, -11.1582, -12.1140],
-            sample=SanCarlosOlivine,
+            sample=SanCarlosOlivineKM,
             basestyle = {'marker' : 'd', 'color' : 'grey', 'alpha' : 0.5,
                         'markersize' :  10})
 
 # Demouchy&Mackwell 2006 - 1 hr for all "fast"
+SanCarlosOlivineDM = Sample(Mg=0.904, Fe=0.092)
 DM06_fast = Diffusivities(description = 'fast mech., DM06', 
             celsius_all = [900], logDx = [np.log10(4e-11)], 
             logDy = [np.log10(2e-12)], logDz = [np.log10(1e-12)],
+            sample = SanCarlosOlivineDM,
             basestyle = {'marker' : 's', 'color' : 'navy', 'alpha' : 0.5,
                         'markersize' :  markersizefloat})
 
@@ -105,7 +110,7 @@ DM06_fast = Diffusivities(description = 'fast mech., DM06',
 KM98_slow = Diffusivities(description = 'slow mech., KM98', 
             celsius_all = [900, 1000], logDx = [-13.994, -12.783],
             logDy = [-14.17, -13.171], logDz = [-12.885, -11.776],
-            sample=SanCarlosOlivine,
+            sample=SanCarlosOlivineKM,
             basestyle = {'marker' : 'D', 'color' : 'green', 'alpha' : 0.5,
                       'markersize' :  10})
 
@@ -115,6 +120,7 @@ DM06_slow = Diffusivities(description = 'slow mech., DM06', celsius_x = [900],
             logDx = [np.log10(5e-13)], 
             logDy = [np.log10(5e-14), np.log10(3e-13)], 
             logDz = [np.log10(1e-12)],
+            sample = SanCarlosOlivineDM,
             basestyle = {'marker' : 's', 'color' : KM98_slow.basestyle['color'], 
                          'alpha' : 0.5, 'markersize' : markersizefloat+3})
 
@@ -152,15 +158,15 @@ Hauri02 = Diffusivities(description = 'Hauri 2002',
 
 # Portnyagin 2008 minimum value, see new Miranov paper
 # See Supplementary Materials. Al and Ti not measured in host olivines
-Portnyagin = Diffusivities(
-             description = 'Portnyagin et al. 2008\nMironov et al. 2015',
-             celsius_u = [1140.], logDu = [np.log10(5e-12)],
-             sample = Sample(Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.),
-             basestyle = {'marker' : 's', 'color' : 'darkmagenta', 
-                          'markerfacecolor' : 'white',
-                          'markeredgecolor' : 'darkmagenta',
-                          'markersize' : markersizefloat,
-                          'markeredgewidth' : '1'})
+Portnyagin08 = Diffusivities(
+                 description = 'Portnyagin et al. 2008\nMironov et al. 2015',
+                 celsius_u = [1140.], logDu = [np.log10(5e-12)],
+                 sample = Sample(Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.),
+                 basestyle = {'marker' : 's', 'color' : 'darkmagenta', 
+                              'markerfacecolor' : 'white',
+                              'markeredgecolor' : 'darkmagenta',
+                              'markersize' : markersizefloat,
+                              'markeredgewidth' : '1'})
 
 # Chen et al. 2011
 # Chemistry from Le Voyer 2014 Table 1 SOM1 olivine; Al and Ti not measured...
@@ -578,3 +584,12 @@ def mix_olivine_mechanisms(percent_slow, celsius):
     D = np.array(Ds) + np.array(Df)
     D = np.log10(D)
     return list(D)
+
+#%%
+def print_info(Diff):
+    """ Takes Diffusivity object and prints out data nicely for copying """
+    orients = ['a', 'b', 'c', 'u']
+    for d3, temp, orient in zip(Diff.logD, Diff.celsius, orients):
+        for d, t in zip(d3, temp):
+            print(orient, t, d)
+            
