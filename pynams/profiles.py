@@ -1285,7 +1285,9 @@ class Profile():
         keyword log10D_m2s (default is -12).
         
         Default initial is the maximum y-value, but you can change that
-        with initial_unit_value or starting_value.        
+        with initial_unit_value or starting_value.
+        
+        Pass list of indexes of points you don't want included to ignore_idx
         """           
         if time_seconds is None:
             try:
