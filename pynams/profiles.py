@@ -838,6 +838,30 @@ class Profile():
             if style is not None:
                 style['label'] = label
 
+          
+        # x data
+        if normalize_positions is True:
+            x = np.array(self.positions_microns) / leng
+            if centered is True:
+                x = x - 0.5
+        else:
+            if centered is True:
+                x = np.array(self.positions_microns) - leng/2.0
+            else:
+                x = self.positions_microns            
+                
+        # ignore certain data points
+        if ignore_idx is None:
+            pass
+        elif type(ignore_idx) != list:
+            print('ignore_idx takes a list of integers: indices to ignore')
+        elif len(ignore_idx) == 0:
+            pass
+        else:
+             areas = [i for j, i in enumerate(areas) if j not in ignore_idx]
+             areas_for_water = [i for j, i in enumerate(areas_for_water) if j not in ignore_idx]
+             x = [i for j, i in enumerate(x) if j not in ignore_idx]
+             
         # Use new or old figure axes
         if axes is None:
             if ytop is None:
@@ -874,31 +898,7 @@ class Profile():
         else:
             ax = axes
             show_water_ppm = False
-          
-        # x data
-        if normalize_positions is True:
-            x = np.array(self.positions_microns) / leng
-            if centered is True:
-                x = x - 0.5
-        else:
-            if centered is True:
-                x = np.array(self.positions_microns) - leng/2.0
-            else:
-                x = self.positions_microns            
 
-            
-        # ignore certain data points
-        if ignore_idx is None:
-            pass
-        elif type(ignore_idx) != list:
-            print('ignore_idx takes a list')
-        elif len(ignore_idx) == 0:
-            pass
-        else:
-             areas = [i for j, i in enumerate(areas) if j not in ignore_idx]
-             areas_for_water = [i for j, i in enumerate(areas_for_water) if j not in ignore_idx]
-             x = [i for j, i in enumerate(x) if j not in ignore_idx]
-             
         # plot
         yerror = np.array(areas)*error_percent/100.       
         if error_percent == 0:
