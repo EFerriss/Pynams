@@ -24,6 +24,7 @@ import string as string
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import json
 import lmfit
+import copy
 
 class Profile():
     def __init__(self, name=None,
@@ -237,7 +238,8 @@ class Profile():
         Pass a list of the indexes of any spectra that you don't included 
         to ignore_idx 
         """
-        spec_list = self.spectra.copy()
+
+        spec_list = copy.deepcopy(self.spectra)
         
         # ignore certain data points
         if ignore_idx is None:
