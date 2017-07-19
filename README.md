@@ -2,7 +2,6 @@
 # pynams
 Interpret [FTIR](https://en.wikipedia.org/wiki/Fourier_transform_infrared_spectroscopy) profiles with emphasis on water in nominally anhydrous minerals (NAMs)
 
-Pynams includes tools to
 * Create consistent baselines for groups of FTIR spectra
 * Determine and plot integrated areas across profiles
 * Estimate water concentrations
