@@ -1,0 +1,278 @@
+Author,Year,Fo,peak,name,celsius,GPa ,hours,fO2Buffer,fO2_log10bars,orientation,log10D,Experiment,mechanism,percentpv,maxmin,method
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#1,800,0.3,1,Fe-FeO,-18.9,a,-10.301029995664,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#1,800,0.3,1,Fe-FeO,-18.9,b,-11.5228787452803,hydration,bulk,0,maximum,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#7,800,0.3,1,Fe-FeO,-18.9,a,-10.698970004336,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#7,800,0.3,1,Fe-FeO,-18.9,c,-11.5228787452803,hydration,bulk,0,maximum,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC16#2,850,0.3,1,Fe-FeO,-17.8,a,-10.5228787452803,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC16#2,850,0.3,1,Fe-FeO,-17.8,c,-11.301029995664,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#2,900,0.3,1,Fe-FeO,-16.7,a,-10.0969100130081,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#2,900,0.3,1,Fe-FeO,-16.7,b,-11.698970004336,hydration,bulk,0,maximum,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#6,900,0.3,1,Fe-FeO,-16.7,a,-10,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#6,900,0.3,1,Fe-FeO,-16.7,b,-11.5228787452803,hydration,bulk,0,maximum,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#6,900,0.3,1,Fe-FeO,-16.7,c,-11,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC14#3,1000,0.3,1,Fe-FeO,-14.9,a,-9.39794000867204,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC16#4,1000,0.3,0.6,Ni-NiO,-14.9,a,-9.69897000433602,hydration,bulk,0,no,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC16#4,1000,0.3,0.6,Ni-NiO,-14.9,b,-12,hydration,bulk,0,maximum,unpolarized FTIR
+Mackwell & Kohlstedt,1990,91,bulk H,SC16#4,1000,0.3,0.6,Ni-NiO,-14.9,c,-11,hydration,bulk,0,no,unpolarized FTIR
+,,,,,,,,,,,,,,,,
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#1 or SC14#7,800,0.3,1,Fe-FeO,-18.9,a,-10.7,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#1 or SC14#7,800,0.3,1,Fe-FeO,-18.9,b,-12.5,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#1 or SC14#7,800,0.3,1,Fe-FeO,-18.9,c,-12.4,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#1 or SC14#7,800,0.3,1,Fe-FeO,-18.9,a,-11.1,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#2,900,0.3,1,Fe-FeO,-16.7,b,-11.6,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#2,900,0.3,1,Fe-FeO,-16.7,c,-11.5,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H, SC14#6,900,0.3,1,Fe-FeO,-16.7,a,-10.3,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H, SC14#6,900,0.3,1,Fe-FeO,-16.7,b,-12.3,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H, SC14#6,900,0.3,1,Fe-FeO,-16.7,c,-11.5,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,a,-9.7,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,a,-9.9,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,b,-11,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,b,-11.3,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,c,-11.3,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC14#3 or SC16#4,1000,0.3,0.6 or 1,Fe-FeO or Ni-NiO,,c,-11.7,hydration,bulk,0,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,?,900,0.2,?,Ni-NiO,-12,a,-14.2,hydration,bulk,100,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,?,900,0.2,?,Ni-NiO,-12,b,-14,hydration,bulk,100,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,?,900,0.2,?,Ni-NiO,-12,c,-12.9,hydration,bulk,100,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC31-3,1000,0.2,8,Ni-NiO,-10.3,a,-13.1,hydration,bulk,100,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC31-3,1000,0.2,8,Ni-NiO,-10.3,b,-12.8,hydration,bulk,100,no,polarized FTIR E || a
+Kohlstedt & Mackwell,1998,91,bulk H,SC31-3,1000,0.2,8,Ni-NiO,-10.3,c,-11.75,hydration,bulk,100,no,polarized FTIR E || a
+,,,,,,,,,,,,,,,,
+Demouchy & Mackwell,2003,100,bulk H,Fo1-3,1000,1.5,3,Fe-FeO,-14.2,a,-12.8538719643218,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo1-3,1000,1.5,3,Fe-FeO,-14.2,b,-12.5228787452803,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo1-3,1000,1.5,3,Fe-FeO,-14.2,c,-12.301029995664,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-2,1000,1.5,3,Ni-NiO,-10.3,a,-12.1549019599857,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-2,1000,1.5,3,Ni-NiO,-10.3,b,-12.5228787452803,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-4,1000,0.2,8,Ni-NiO,-10.3,a,-13,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-4,1000,0.2,8,Ni-NiO,-10.3,b,-13,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-4,1000,0.2,8,Ni-NiO,-10.3,c,-12,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-5,1060,0.2,8,Ni-NiO,-9.4,a,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-5,1060,0.2,8,Ni-NiO,-9.4,b,-11.7958800173441,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-5,1060,0.2,8,Ni-NiO,-9.4,c,-11.4559319556497,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-6,1060,0.2,8,Ni-NiO,-9.4,a,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-6,1060,0.2,8,Ni-NiO,-9.4,b,-12.2218487496164,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-6,1060,0.2,8,Ni-NiO,-9.4,c,-11.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-8,1100,0.2,3,Ni-NiO,-8.9,a,-12.301029995664,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-8,1100,0.2,3,Ni-NiO,-8.9,b,-12,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-8,1100,0.2,3,Ni-NiO,-8.9,c,-10.8860566476932,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-9,1100,0.2,3,Ni-NiO,-8.7,a,-13.0757207139381,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-9,1100,0.2,3,Ni-NiO,-8.7,b,-11.7958800173441,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-9,1100,0.2,3,Ni-NiO,-8.7,c,-11.4559319556497,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-10,1110,0.2,3,Ni-NiO,-8.7,a,-13,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-10,1110,0.2,3,Ni-NiO,-8.7,b,-12.4436974992327,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-10,1110,0.2,3,Ni-NiO,-8.7,c,-12,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-12,900,0.2,20,Ni-NiO,-11.8,c,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-13,950,0.2,12,Ni-NiO,-11,b,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-13,950,0.2,12,Ni-NiO,-11,c,-12.1549019599857,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-14,900,0.2,20,Ni-NiO,-11.9,a,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-14,900,0.2,20,Ni-NiO,-11.9,b,-12.698970004336,hydration,bulk,100,no,
+Demouchy & Mackwell,2003,100,bulk H,Fo2-14,900,0.2,20,Ni-NiO,-11.9,c,-12.602059991328,hydration,bulk,100,no,
+,,,,,,,,,,,,,,,,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-B,900,0.2,1,Ni-NiO,-11.9,a,-10.397940008672,hydration,bulk,0,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-B,900,0.2,1,Ni-NiO,-11.9,b,-11.698970004336,hydration,bulk,0,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-B,900,0.2,1,Ni-NiO,-11.9,c,-12,hydration,bulk,0,no,
+,,,,,,,,,,,,,,,,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-A,900,0.2,20,Ni-NiO,-11.9,a,-12.301029995664,hydration,bulk,100,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-A,900,0.2,20,Ni-NiO,-11.9,b,-13.301029995664,hydration,bulk,100,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 33-A,900,0.2,20,Ni-NiO,-11.9,c,-12,hydration,bulk,100,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 32-G,1000,1.5,5,Ni-NiO,-10.3,b,-12.5228787453,hydration,bulk,100,no,
+Demouchy & Mackwell,2006,90.8,bulk H,SC 32-B,1000,1.5,5,Ni-NiO,-10.3,b,-12.5228787453,hydration,bulk,100,no,
+,,,,,,,,,,,,,,,,
+Padron-Navarta et al.,2014,100,3613,,1000,0.0001,191,no fO2 buffer,air,u,-15.66,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3613,,1100,0.0001,19,no fO2 buffer,air,u,-14.17,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3613,,1200,0.0001,23,no fO2 buffer,air,u,-13.02,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3613,,1000,0.0001,,no fO2 buffer,air,u,-13.35,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3613,,900,0.0001,,no fO2 buffer,air,u,-14.3,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3613,,800,0.0001,,no fO2 buffer,air,u,-15.29,dehydration,[Si],nan,no,
+Padron-Navarta et al.,2014,100,3525,,1000,0.0001,,no fO2 buffer,air,u,-13.16,dehydration,[Ti],nan,no,
+Padron-Navarta et al.,2014,100,3525,,900,0.0001,,no fO2 buffer,air,u,-14.1,dehydration,[Ti],nan,no,
+Padron-Navarta et al.,2014,100,3525,,800,0.0001,,no fO2 buffer,air,u,-15.26,dehydration,[Ti],nan,no,
+Padron-Navarta et al.,2014,100,3220,,1000,0.0001,,no fO2 buffer,air,u,-12.66,dehydration,[Mg],nan,no,
+Padron-Navarta et al.,2014,100,3220,,900,0.0001,,no fO2 buffer,air,u,-13.7,dehydration,[Mg],nan,no,
+Padron-Navarta et al.,2014,100,3220,,800,0.0001,,no fO2 buffer,air,u,-14.29,dehydration,[Mg],nan,no,
+,,,,,,,,,,,,,,,,
+Newcombe et al.,2017,86.2,bulk H,,1200,,,,,a,-10,dehydration,bulk,90,no,SIMS
+Hauri,2002,86.7,bulk H,,1275,,,,,u,-8.39794000867,dehydration,bulk,0,no,
+Portnyagin et al.,2008,85.1,bulk H,,1140,,,,,u,-11.3010299957,dehydration,bulk,100,minimum,
+Chen et al.,2011,90.3,bulk H,,1260,0.0001,,QFM-5.5 to 7,,u,-10.6989700043,dehydration,bulk,100,no,no
+Chen et al.,2011,90.3,bulk H,,1198,0.0001,,QFM-5.5 to 7,,u,-10.6020599913,dehydration,bulk,100,no,no
+Chen et al.,2011,90.3,bulk H,,1164,0.0001,,QFM-5.5 to 7,,u,-11.3010299957,dehydration,bulk,100,no,no
+Chen et al.,2011,90.3,bulk H,,1288,0.0001,,QFM-5.5 to 7,,u,-10.6020599913,dehydration,bulk,100,no,no
+Gaetani et al.,2012,88,bulk H,,1250,0.0001,18,Ni-NiO,,u,-10.7695510786,dehydration,bulk,100,no,
+,,,,,,,,,,,,,,,,
+Demouchy et al. ,2016,90.75,bulk H,SD1-273,1093,3,5,Ni-NiO,-9,a,-1.21E+01,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD2-274,905,3,1,Ni-NiO,-11.9,a,-12,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD3-275,1200,3,10,Ni-NiO,-7.7,a,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD5-277,1200,3,5,Ni-NiO,-7.7,a,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD6-278,900,3,10,Ni-NiO,-11.9,a,-12.2218487496164,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD7-279,1000,3,5,Ni-NiO,-10.3,a,-11.698970004336,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD1-273,1093,3,5,Ni-NiO,-9,b,-1.21E+01,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD2-274,905,3,1,Ni-NiO,-11.9,b,-12,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD3-275,1200,3,10,Ni-NiO,-7.7,b,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD5-277,1200,3,5,Ni-NiO,-7.7,b,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD6-278,900,3,10,Ni-NiO,-11.9,b,-12.2218487496164,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD7-279,1000,3,5,Ni-NiO,-10.3,b,-11.698970004336,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD1-273,1093,3,5,Ni-NiO,-9,c,-10.8239087409443,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD2-274,905,3,1,Ni-NiO,-11.9,c,-11.0969100130081,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD3-275,1200,3,10,Ni-NiO,-7.7,c,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD5-277,1200,3,5,Ni-NiO,-7.7,c,-12.698970004336,hydration,bulk,100,minimum,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD6-278,900,3,10,Ni-NiO,-11.9,c,-11.2218487496164,hydration,bulk,100,no,polarized FTIR E || a
+Demouchy et al. ,2016,90.75,bulk H,SD7-279,1000,3,5,Ni-NiO,-10.3,c,-11.698970004336,hydration,bulk,100,no,polarized FTIR E || a
+,,,,,,,,,,,,,,,,
+Ferriss,in prep,87.7,bulk H,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,a,-12.9,hydration,bulk,100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,b,-11.9,hydration,bulk,100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,c,-11.4,hydration,bulk,100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3236,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,a,-12.9,hydration,[Mg],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3236,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,b,-11.4,hydration,[Mg],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3236,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,c,-11.4,hydration,[Mg],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3356,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,a,-12.9,hydration,[tri],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3356,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,b,-11.9,hydration,[tri],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3356,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,c,-11.4,hydration,[tri],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,a,-12.9,hydration,[Ti],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,b,-12.9,hydration,[Ti],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,c,-11.3,hydration,[Ti],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,a,-12.9,hydration,[Si],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,b,-12.9,hydration,[Si],100,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-7,1000,0.0001,7,Ni-NiO,-10.3,c,-11.3,hydration,[Si],100,no,polarized FTIR E || a
+,,,,,,,,,,,,,,,,
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,a,-10.9,hydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,b,-12.3,hydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,c,-11.9,hydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,a,-10.9,hydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,b,-12.3,hydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,17.4,Ni-NiO,-13.9,c,-11.9,hydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,a,-10.8,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,a,-10.8,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,1,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,a,-10.8,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,a,-10.8,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,3,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,a,-11.4,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,a,-11,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,7,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,a,-11.2,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,a,-11,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,13,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,a,-11.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,a,-11.1,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,a,-12.5,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,19,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,a,-11.7,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,a,-11.4,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,a,-12,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,43,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,a,-11.6,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,bulk H,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,a,-11.5,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3525,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,a,-11.8,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,b,-12.3,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,87.7,3600,SC1-2,800,0.0001,68,Ni-NiO-2.6,-16.5,c,-11.9,dehydration,[Si],,no,polarized FTIR E || a
+,,,,,,,,,,,,,,,,
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,a,-12,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,b,13.319,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,c,-12.874,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,a,-10,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,b,13.319,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,c,-12.874,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,a,-12.5,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,b,13.319,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,c,-12.874,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,b,13.319,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,1,Ni-NiO-2.6,-16.75,c,-12.874,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,a,-12,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,b,-12.3,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,c,-11.9,dehydration,bulk,,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,a,-10,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,b,-12.3,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,c,-11.9,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,a,-12.5,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,b,-12.3,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,c,-11.9,dehydration,[Ti],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,a,-12.5,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,b,-12.3,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,800,0.0001,8,Ni-NiO-2.6,-16.75,c,-11.9,dehydration,[Si],,yes,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,a,-10.73,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,b,-12.04,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,c,-11.86,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,a,-11.028,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,b,-12.3567,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,c,-11.728,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,a,-11.028,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,b,-12.3567,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,c,-11.728,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,a,-10.607,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,b,-11.974,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,3,Ni-NiO-2.6,-13.1,c,-11.656,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,a,-10.73,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,b,-12.04,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,c,-11.86,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,a,-11.028,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,b,-12.3567,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,c,-11.728,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,a,-11.028,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,b,-12.3567,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,c,-11.728,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,a,-10.607,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,b,-11.974,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,6,Ni-NiO-2.6,-13.1,c,,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,a,-10.73,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,b,-12.04,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,c,-11.86,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,a,-11.028,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,b,-12.3567,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,c,-11.728,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,a,-10.8097,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,b,-12.162,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,c,-11.698,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,a,-10.607,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,b,-11.974,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,7,Ni-NiO-2.6,-13.1,c,-11.656,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,a,-10.73,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,b,-12.04,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,bulk H,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,c,-11.86,dehydration,bulk,,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,a,-11.028,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,b,-12.3567,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3356,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,c,-11.728,dehydration,[tri],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,a,-10.8097,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,b,-12.162,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3525,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,c,-11.698,dehydration,[Ti],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,a,-10.607,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,b,-11.974,dehydration,[Si],,no,polarized FTIR E || a
+Ferriss,in prep,86.2,3600,kiki,1000,0.0001,8,Ni-NiO+1.9,-8.4,c,-11.656,dehydration,[Si],,no,polarized FTIR E || a

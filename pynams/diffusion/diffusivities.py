@@ -24,8 +24,9 @@ import sys
 
 GAS_CONSTANT = 0.00831 # kJ/mol K
 
-def solve_Ea_D0(log10D_list, celsius_list):
-    """Takes lists of diffusivities as log10 in m2/s and associated 
+def solve_Ea_D0(log10D_list, celsius_list, printout=True):
+    """
+    Takes lists of diffusivities as log10 in m2/s and associated 
     temperatures in celsius. Returns activation energy Ea in kJ/mol K and D0 
     in m2/s. The errors on the individual diffusivities are not included.
     """
@@ -33,10 +34,6 @@ def solve_Ea_D0(log10D_list, celsius_list):
     x = 1.E4 / T
     y = np.array(log10D_list)
 
-    if (len(x) < 2) or (len(y) < 2):
-        print('Warning: fitting to only one point')
-        return None, None
-    
     try:
         # If I don't add in a very low weighted extra number, the covariance
         # matrix, and hence the error, comes out as infinity. The actual
@@ -45,8 +42,14 @@ def solve_Ea_D0(log10D_list, celsius_list):
         x_extra = np.concatenate((x, x[-1:]), axis=0)
         y_extra = np.concatenate((y, y[-1:]), axis=0)    
         weights = list(np.ones(len(x))) + [sys.float_info.epsilon]
-        fit_extra, cov_extra = np.polyfit(x_extra, y_extra, 1, w=weights, 
-                                          cov=True)
+        try:
+            fit_extra, cov_extra = np.polyfit(x_extra, 
+                                              y_extra, 1, 
+                                              w=weights, 
+                                              cov=True)
+        except np.linalg.linalg.LinAlgError as err:
+            return 0, 0                            
+            
         if cov_extra[0][0] > 0:
             Ea_error = cov_extra[0][0]
         else:
@@ -55,15 +58,26 @@ def solve_Ea_D0(log10D_list, celsius_list):
             D0_error = cov_extra[1][1]
         else:
             D0_error = 0.
+            
+        Ea = -ufloat(fit_extra[0], Ea_error) * 2.303 * GAS_CONSTANT * 1.E4
+        D0 = 10.**ufloat(fit_extra[1], D0_error)
+        
     except ValueError:
-#        print('Not enough points to estimate error')
         fit_extra = np.polyfit(x_extra, y_extra, 1)
-        D0_error = 0
-        Ea_error = 0
-
-    Ea_extra = -ufloat(fit_extra[0], Ea_error) * 2.303 * GAS_CONSTANT * 1.E4
-    D0_extra = 10.**ufloat(fit_extra[1], D0_error)
-    return Ea_extra, D0_extra
+        Ea = fit_extra[0] * 2.303*GAS_CONSTANT*1.E4
+        D0 = 10.**fit_extra[1]
+    except IndexError:
+        # probably no points or unequal number of points
+        Ea = 0
+        D0 = 0
+    except TypeError:
+        Ea = 0
+        D0 = 0
+    
+    if printout is True:
+        print(Ea, D0)
+        
+    return Ea, D0
 
 def whatIsD(Ea, D0, celsius, printout=True):
     """
@@ -71,183 +85,128 @@ def whatIsD(Ea, D0, celsius, printout=True):
     temperature in celsius. Returns log10 diffusivity in m2/s
     """
     T = celsius + 273.15
+    try:
+        D0 = D0.n
+    except AttributeError:
+        pass
+    
+    try:
+        Ea = Ea.n
+    except AttributeError:
+        pass
+    
     D = D0 * np.exp(-Ea / (GAS_CONSTANT * T))
+    D = np.log10(D)
+        
     if printout is True:
-        print('log10 D at ', celsius, 'C: ', '{:.1f}'.format(np.log10(D)), 
-              ' in m2/s')
-    return np.log10(D)
+        print('log10 D at ', celsius, 'C: ', '{:.1f}'.format(D), ' in m2/s')
+    return D
 
 class Diffusivities():
-    def __init__(self, description=None, 
-                 celsius_x=[], celsius_y=[], celsius_z=[], celsius_u=[], 
-                 logDx=[], logDy=[], logDz=[], logDu=[], 
-                 logDx_error=[], logDy_error=[], logDz_error=[], 
-                 logDu_error=[],                  
-                 celsius_all=None, logD_all=[], logD_all_error = [], 
-                 activation_energy_kJmol = [None, None, None, None], 
-                 logD0 = [None, None, None, None], 
-                 sample=None, basestyle = styles.style_points, 
-                 ):
+    def __init__(self, 
+                description=None, 
+                celsius = [[], [], [], []],
+                log10D = [[], [], [], []],
+                activation_energy_kJmol = [],
+                D0_m2s = [],
+                sample=None,  
+                ):
         """
-        Groups together temperatures and diffusivities for measurements
-        for use in easy plotting directly onto Arrhenius diagrams
+        Handy groupings of experimentally determined diffusivities.
         
-        You can include lists of temperatures in celsius in 3 directions
-        (abc=xyz=[100], [010], [001] here) and unoriented (u), and of their 
-        associated diffusivities, input as log base 10 and in m2/s, and the
-        errors in those diffusivities. 
-        
-        You can also ignore directions and just input temperatures and/or
-        diffusivities for all measurements.
-        
-        The activations energies and pre-exponential factors are input as lists
-        ordered as [a, b, c, unoriented]. They can also be determined by the 
-        code for you [need to clarify by which functions]. 
-        
-        It can be convenient to link to compositional information here
-        by specifying the sample.
-        
-        The basestyle and marker information are just to change how the 
-        points show up when plotted on an Arrhenius diagram.
-        
+        Data is grouped as lists in order or orientation:
+        parallel a, parallel b, parallel c, and unoriented.
         """
         self.description = description
-        self.celsius_all = celsius_all
-        self.basestyle = basestyle.copy()
+        self.celsius = celsius
+        self.log10D = log10D
         self.sample = sample
-        
-        if celsius_all is not None:
-            celsius_x = celsius_all
-            celsius_y = celsius_all
-            celsius_z = celsius_all
-            celsius_u = celsius_all
-            
-        if len(logD_all) > 0:
-            logDx = logD_all
-            logDy = logD_all
-            logDz = logD_all
-            logDu = logD_all
-            
-        if len(logD_all_error) > 0:
-            logDx_error = logD_all_error
-            logDy_error = logD_all_error
-            logDz_error = logD_all_error
-            logDu_error = logD_all_error
-            
-        self.celsius = [celsius_x, celsius_y, celsius_z, celsius_u]
-        self.logD = [logDx, logDy, logDz, logDu]
-        self.logD_error = [logDx_error, logDy_error, logDz_error, logDu_error]
         self.activation_energy_kJmol = activation_energy_kJmol
-        self.logD0 = logD0
+        self.D0_m2s = D0_m2s
 
-    def picker_DCelsius(self, orient=None):
-        """Returns lists of log10D in m2/s and temperatures in Celsius
-        of Diffusivities object for specified orientation"""
-        iorient = styles.get_iorient(orient)
-        try:
-            logD_of_interest = self.logD[iorient]
-            celsius_of_interest = self.celsius[iorient]
-        except TypeError:
-            print(''.join(("orient must be an integer 0-3 or", 
-                           "'x' (=0), 'y' (=1), 'z' (=2), or 'u' (=3) for unoriented")))
-        except IndexError:
-            print(''.join(("orient must be an integer 0-3 or", 
-                           "'x'=0, 'y'=1, 'z'=2, or 'u'=3 for unoriented")))
-        else:
-            return logD_of_interest, celsius_of_interest
+    def fill_in_data(self, df, mech, percentpv, paper=None):
+        """
+        See usage example in literaturevalues.py in this folder.
         
-    def solve_Ea_D0(self, orient=None):
-        """Returns activation energy in kJ/mol and D0 in m2/s for 
-        diffusivity estimates""" 
+        Input: grouped pandas dataframe, 
+               mechanism name (bulk, [Mg], etc.)
+               the paper name used to make the pandas groupby
+               default assumes paper = self.description
         
-        logD_and_Celsius = self.picker_DCelsius(orient=orient)        
-
-        if logD_and_Celsius is None:
-            print('Problem with self.picker_DCelsius()')
-            return None            
-        else:
-            logD = logD_and_Celsius[0]
-            celsius = logD_and_Celsius[1]
-
-        if (len(logD) < 2) or (len(celsius) < 2):
-            print
-            print('Only one point for orientation', orient)
-            print('logD:', logD)
-            print('celsius:', celsius)
-            print
-            return None
-        Ea, D0 = solve_Ea_D0(logD, celsius)
-        return Ea, D0
+        Fills in temperature and diffusivities from a spreadsheet.
+        """
+        self.log10D = [[], [], [], []]
+        self.celsius = [[], [], [], []]
+        if paper is None:
+            paper = self.description
+        for idx, orient in enumerate(['a', 'b', 'c', 'u']):
+            group = (paper, mech, float(percentpv), orient)
+            try:
+                self.log10D[idx] = list(df.get_group(group)['log10D'])
+                self.celsius[idx] = list(df.get_group(group)['celsius'])
+            except KeyError:
+                self.log10D[idx] = []
+                self.celsius[idx] = []
+       
+    def solve_Ea_D0(self, printout=True):
+        """
+        Returns and saves as attributes the
+        activation energy in kJ/mol and D0 (log10) in m2/s 
+        """ 
+        self.activation_energy_kJmol = []
+        self.D0_m2s = []
+        for idx in range(4):
+            logD = self.log10D[idx]
+            celsius = self.celsius[idx]
+            Ea, D0 = solve_Ea_D0(logD, celsius, printout=printout)
+            self.activation_energy_kJmol.append(Ea)
+            self.D0_m2s.append(D0)
 
     def whatIsD(self, celsius, orient='ALL', printout=True):
-        """ Takes temperature in celsius. Returns log10 diffusivity in m2/s.
-        """
-        D = []  
-        if orient == 'ALL':
-            for idx, direction in enumerate(['x', 'y', 'z', 'u']):
-                if len(self.logD[idx]) > 0:
-                    Ea_and_D0 = self.solve_Ea_D0(orient=direction)
-                    if Ea_and_D0 is not None:
-                        if printout is True:
-                            print('||', direction)
-                        xD = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, 
-                                     celsius, printout=printout)
-                        D.append(xD)
-                else:
-                    D.append(None)
-        else:
-            Ea_and_D0 = self.solve_Ea_D0(orient=orient)
-            if Ea_and_D0 is None:
-                print('Problem with self.solve_Ea_D0()')
+        """ 
+        Takes temperature in celsius. 
+        
+        Returns log10 diffusivity in m2/s.
+        """ 
+        D = [] 
+        for idx, direction in enumerate(['a', 'b', 'c', 'not oriented']):
+            try:
+                Ea = self.activation_energy_kJmol[idx]
+                D0 = self.D0_m2s[idx]
+                
+            except IndexError:
+                print('\nThese should have 4 items')
+                print('Remember 0 placeholder for no measurements')
+                print('activation energy')
+                print(self.activation_energy_kJmol)
+                print('D0')
+                print(self.D0_m2s)
                 return None
-            D = whatIsD(Ea_and_D0[0].n, Ea_and_D0[1].n, celsius, 
-                        printout=printout)
             
+            try:
+                if (D0 != 0) and (Ea != 0):
+                    xD = whatIsD(Ea, D0, celsius, printout=False)
+                else: 
+                    xD = 'D0 or Ea = 0'
+            except TypeError:
+                xD = 'Type Error'
+                
+            if (printout is True) and (orient == 'ALL'):
+                print(xD, '||', direction)
+            D.append(xD)
+        
+        orient_list = ['a', 'b', 'c', 'u', 'not oriented', 'ALL']
+        if orient in orient_list:
+            idx = orient_list.index(orient)
+            if idx == 4:
+                idx = 3
+            if (printout is True) and (orient != 'ALL'):
+                print(D[idx], '||', orient)
+        else:
+            print('Accepted orient values:')
+            print('ALL default', orient_list)
         return D
         
-#    def get_from_wholeblock(self, peak_idx=None, print_diffusivities=False,
-#                            wholeblock=True, heights_instead=False):
-#        """Grab diffusivities from whole-block"""
-#        self.celsius_all = []
-#        D = [[], [], []]
-#        error = [[], [], []]
-#
-#        for wb in self.wholeblocks:
-#            if wb.temperature_celsius is None:
-#                print wb.name, 'needs temperature_celsius attribute'
-#                return
-#
-#            wb.get_diffusivities()
-#            
-#            if print_diffusivities is True:
-#                wb.print_diffusivities()
-#            
-#            self.celsius_all.append(wb.temperature_celsius)
-#
-#            if wholeblock is True:
-#                if peak_idx is None:
-#                    for k in range(3):
-#                        D[k].append(wb.profiles[k].D_area_wb)
-#                        error[k].append(wb.profiles[k].D_area_wb_error)
-#                else:
-#                    if heights_instead is False:
-#                        for k in range(3):
-#                            D[k].append(wb.profiles[k].D_peakarea_wb[peak_idx])
-#                            error[k].append(wb.profiles[k].D_peakarea_wb_error[peak_idx])
-#                    else:
-#                        for k in range(3):
-#                            D[k].append(wb.profiles[k].D_height_wb[peak_idx])
-#                            error[k].append(wb.profiles[k].D_height_wb_error[peak_idx])
-#            else:
-#                print 'Sorry, only working with wholeblock data so far'
-#                return
-#                
-#        self.logDx = D[0]
-#        self.logDy = D[1]
-#        self.logDz = D[2]
-#        self.logDx_error = error[0]
-#        self.logDy_error = error[1]
-#        self.logDz_error = error[2]
 
     def plotD(self, axes, orient='ALL', plotdata=True,
               offset_celsius=0, plotline=True, extrapolate_line=False,
@@ -292,7 +251,7 @@ class Diffusivities():
                     label = '|| [001]'
                 elif iorient == 3:
                     label = 'not oriented'                   
-#    
+  
             if legend_add is True and legend_handle is None:
                 print(self.description)
                 print('Need legend_handle for legend')

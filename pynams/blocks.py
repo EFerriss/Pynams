@@ -944,7 +944,7 @@ class Block():
         D3 = []
         e3 = []
 
-        # set up fitting parameters in the reqquired format
+        # set up fitting parameters in the required format
         params = models.params_setup3D(microns3=self.lengths, 
                  log10D3=log10Ds_m2s,
                  time_seconds=self.time_seconds, 
@@ -963,70 +963,73 @@ class Block():
             dict_fitting['raypaths'] = self.raypaths
             dict_fitting['show_plot'] = False
             
+            x = np.array(x)
+            y = np.array(y)
             # run the minimizer
             lmfit.minimize(models.diffusion3Dwb_params, 
                            params, args=(x, y), 
-                           kws=dict_fitting)
+                           kws=dict_fitting
+                           )
 
 #            resid = models.diffusion3Dwb_params(params, x, y, 
 #                                            raypaths=self.raypaths,
 #                                            erf_or_sum=erf_or_sum,
 #                                            show_plot=False)
             
-        elif wholeblock_diffusion is False:
-            lmfit.minimize(models.diffusion3Dnpi_params, 
-                           params, args=(x, y), 
-                           kws=dict_fitting)
-     
-#            resid = models.diffusion3Dnpi(params, x, y)
-        else:
-            print('wholeblock_diffusion must be either True or False')
-            return            
-
-        # convert to ufloats because ufloats are fun
-        bestD.append(ufloat(params['log10Dx'].value, 
-                            params['log10Dx'].stderr))
-        bestD.append(ufloat(params['log10Dy'].value, 
-                            params['log10Dy'].stderr))
-        bestD.append(ufloat(params['log10Dz'].value, 
-                            params['log10Dz'].stderr))
-        bestinit = (ufloat(params['initial_unit_value'].value, 
-                             params['initial_unit_value'].stderr))
-        bestfin = (ufloat(params['final_unit_value'].value, 
-                             params['final_unit_value'].stderr))
-
-        if wholeblock_data is False:
-            bestinit = bestinit * maxy
-            bestfin = bestfin * maxy
-
-        # Plot and print results
-        for k in range(3):
-            D3.append(bestD[k].n)
-            e3.append(bestD[k].s)
-
-        if show_plot is True:
-            self.plot_diffusion(init=bestinit.n, fin=bestfin.n,
-                                peak_idx=peak_idx,
-                                log10D_m2s=D3, 
-                                wholeblock_diffusion=wholeblock_diffusion,
-                                heights_instead=heights_instead,
-                                centered=centered)
-                                
-        print('\ntime in hours:', params['time_seconds'].value / 3600.)
-        print('\ninitial:', bestinit)
-        print('\nfinal:', bestfin)
-        print('\nbestfit log10D in m2/s:')
-        for D in bestD:
-            print(D)
-#        print('residual sum of squares:', np.sum(np.array(resid)**2.))
-#        print(D3[0], e3[0], D3[1], e3[1], D3[2], e3[2])
-                             
-        # Store values in profile attributes        
+#        elif wholeblock_diffusion is False:
+#            lmfit.minimize(models.diffusion3Dnpi_params, 
+#                           params, args=(x, y), 
+#                           kws=dict_fitting)
+#     
+##            resid = models.diffusion3Dnpi(params, x, y)
+#        else:
+#            print('wholeblock_diffusion must be either True or False')
+#            return            
+#
+#        # convert to ufloats because ufloats are fun
+#        bestD.append(ufloat(params['log10Dx'].value, 
+#                            params['log10Dx'].stderr))
+#        bestD.append(ufloat(params['log10Dy'].value, 
+#                            params['log10Dy'].stderr))
+#        bestD.append(ufloat(params['log10Dz'].value, 
+#                            params['log10Dz'].stderr))
+#        bestinit = (ufloat(params['initial_unit_value'].value, 
+#                             params['initial_unit_value'].stderr))
+#        bestfin = (ufloat(params['final_unit_value'].value, 
+#                             params['final_unit_value'].stderr))
+#
+#        if wholeblock_data is False:
+#            bestinit = bestinit * maxy
+#            bestfin = bestfin * maxy
+#
+#        # Plot and print results
 #        for k in range(3):
-#            self.profiles[k].D_saver(D3[k], e3[k], wholeblock_data, 
-#                            heights_instead, peak_idx)
-        return bestD, bestinit, bestfin
-    
+#            D3.append(bestD[k].n)
+#            e3.append(bestD[k].s)
+#
+#        if show_plot is True:
+#            self.plot_diffusion(init=bestinit.n, fin=bestfin.n,
+#                                peak_idx=peak_idx,
+#                                log10D_m2s=D3, 
+#                                wholeblock_diffusion=wholeblock_diffusion,
+#                                heights_instead=heights_instead,
+#                                centered=centered)
+#                                
+#        print('\ntime in hours:', params['time_seconds'].value / 3600.)
+#        print('\ninitial:', bestinit)
+#        print('\nfinal:', bestfin)
+#        print('\nbestfit log10D in m2/s:')
+#        for D in bestD:
+#            print(D)
+##        print('residual sum of squares:', np.sum(np.array(resid)**2.))
+##        print(D3[0], e3[0], D3[1], e3[1], D3[2], e3[2])
+#                             
+#        # Store values in profile attributes        
+##        for k in range(3):
+##            self.profiles[k].D_saver(D3[k], e3[k], wholeblock_data, 
+##                            heights_instead, peak_idx)
+#        return bestD, bestinit, bestfin
+#    
     def invert(self, grid_xyz, symmetry_constraint=True, 
                smoothness_constraint=True, rim_constraint=True, 
                rim_value=None, weighting_factor_lambda=0.2, 

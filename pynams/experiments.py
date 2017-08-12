@@ -284,11 +284,16 @@ def bubble_tower(panel='middle', minor_setting=40,
 
 def fO2(celsius, bars=1., buffer_curve='QFM'):
     """ 
-    Input is temperature in Celcius, pressure in bars (default is 1)
+    Input:
+        Temperature in Celcius
+        Pressure in bars (default is 1)
+        Buffer curve. Options are QFM (default), NNO, and IW
+            QFM = quartz - fayalite - magnetite buffer (default)
+            NNO = Ni-NiO
+            IW = iron-wustite; Fe-FeO
+
     Output is log10 oxygen fugacity in bars for buffer_curve
-    QFM = quartz - fayalite - magnetite buffer (default)
-    NNO = Ni-NiO
-    IW = iron-wustite; Fe-FeO
+
     Regression of data from O’Neill (1987b) from Herd, 2008.
     """
     Kelvin = celsius + 273.15

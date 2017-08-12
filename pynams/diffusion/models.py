@@ -65,8 +65,10 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
                    vD=True, vinit=False, vfin=False, vTime=False):
     """
     Takes required info for diffusion in 1D - length, diffusivity, time,
-    and whether or not to vary them - vD, vinit, vfin. 
+    and whether or not to vary them - vD, vinit, vfin, vTime.
+    
     Return appropriate lmfit params to pass into diffusion1D_params
+    See https://lmfit.github.io/lmfit-py/parameters.html
     """
     params = lmfit.Parameters()
     params.add('microns', microns, False, None, None, None)
@@ -76,14 +78,23 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
     params.add('final_unit_value', fin, vfin, None, None, None)
     return params
 
-def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', centered=True, symmetric=True,
-                 infinity=100, points=50):
+def diffusion1D_params(params, 
+                       data_x_microns=None, 
+                       data_y_unit_areas=None, 
+                       erf_or_sum='erf', 
+                       centered=True, 
+                       symmetric=True,
+                       infinity=100, 
+                       points=50):
     """
     Function set up to follow lmfit fitting requirements.
-    Requires input as lmfit parameters value dictionary 
-    passing in key information as 'length_microns',
-    'time_seconds', 'log10D_m2s', and 'initial_unit_value'. 
+    See https://lmfit.github.io/lmfit-py/parameters.html
+    
+    Requires:
+        lmfit parameters value dictionary 
+        passing in key information as 'length_microns',
+        'time_seconds', 'log10D_m2s', and 'initial_unit_value'. 
+        See function params_setup1D
 
     If data are None (default), returns 1D unit diffusion profile 
     x_microns and y as vectors of length points (default 50). 
@@ -99,7 +110,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
     If not including data, returns the x vector and model y values.
     With data, return the residual for use in fitting.
     """
-    # extract important values from parameter dictionary passed in
+
     p = params.valuesdict()
     L_meters = p['microns'] / 1e6
     t = p['time_seconds']
@@ -160,7 +171,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
             
         model = xsum * 4. / np.pi
     
-    # Or make the error function
+    # or make the error function
     elif erf_or_sum == 'erf':
         if symmetric is False:
             a_meters = a_meters*2
@@ -189,7 +200,7 @@ def diffusion1D_params(params, data_x_microns=None, data_y_unit_areas=None,
     # With data, return the residual for use in fitting.
     if fitting is False:
         return x_microns, model
-    return model-data_y_unit_areas
+    return model- data_y_unit_areas
 
 def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
                 erf_or_sum='erf', show_plot=True, 
@@ -296,50 +307,74 @@ def params_setup3D(microns3, log10D3, time_seconds,
                    initial=1., final=0., isotropic=False, slowb=False,
                    vD=[True, True, True], vinit=False, vfin=False):
     """
-    Takes required info for diffusion in 3D without path averaging and 
-    return appropriate lmfit params.
+    Requires:
+        microns3: a list of 3 lengths in microns
+        log10D3: a list of 3 diffusivities in m2/s and converted to log10
+        time_seconds: the time in seconds
+        
+    Optional input:
+        initial and final unit values
+        whether to force diffusive anisotropy (default: isotropic=False)
+        slowb: whether to force [010] to be an order of magnitude slower
+        vD: a list of whether to vary diffusivities and which ones
+        vinit: whether to vary the initial concentration
+        vfin: whether to vary the final concentration
     
-    Returning full matrix and 
-    slice profiles in one long list for use in fitting
+    Returns:
+        an lmfit parameters object for use in 3D fitting functions
+        See https://lmfit.github.io/lmfit-py/parameters.html
 
     """
     params = lmfit.Parameters()
     params.add('microns3', microns3, False, None, None, None)
-    params.add('log10Dx', log10D3[0], vD[0], None, None, None)
-    params.add('time_seconds', time_seconds, False, None, None, None)
-    params.add('initial_unit_value', initial, vinit, None, None, None)
-    params.add('final_unit_value', final, vfin, None, None, None)
+    params.add('log10Dx', float(log10D3[0]), vD[0], None, None, None)
+    params.add('time_seconds', float(time_seconds), False, None, None, None)
+    params.add('initial_unit_value', float(initial), vinit, None, None, None)
+    params.add('final_unit_value', float(final), vfin, None, None, None)
 
     if isotropic is True:
-        params.add('log10Dy', log10D3[1], vD[1], None, None, 'log10Dx')
-        params.add('log10Dz', log10D3[2], vD[2], None, None, 'log10Dx')
+        params.add('log10Dy', float(log10D3[1]), vD[1], None, None, 'log10Dx')
+        params.add('log10Dz', float(log10D3[2]), vD[2], None, None, 'log10Dx')
     elif slowb is True:
-        params.add('log10Dy', log10D3[1], vD[1], None, None, 'log10Dx - 1.')
-        params.add('log10Dz', log10D3[2], vD[2], None, None, 'log10Dx')
+        params.add('log10Dy', float(log10D3[1]), vD[1], None, None,\
+                   'log10Dx - 1.')
+        params.add('log10Dz', float(log10D3[2]), vD[2], None, None, 'log10Dx')
     else:            
-        params.add('log10Dy', log10D3[1], vD[1], None, None, None)
-        params.add('log10Dz', log10D3[2], vD[2], None, None, None)
+        params.add('log10Dy', float(log10D3[1]), vD[1], None, None, None)
+        params.add('log10Dz', float(log10D3[2]), vD[2], None, None, None)
 
     return params
 
-def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None, 
-                 erf_or_sum='erf', centered=True, 
-                 infinity=100, points=50):
+def diffusion3Dnpi_params(params, 
+                          data_x_microns=None, 
+                          data_y_unit_areas=None, 
+                          erf_or_sum='erf', 
+                          centered=True, 
+                          infinity=100, 
+                          points=50):
     """ 
     Diffusion in 3 dimensions in a rectangular parallelipiped.
-    Takes params - Setup parameters with params_setup3D.
-    General setup and options similar to diffusion1D_params.
+    Requires:
+        params - lmfit parameters. Setup parameters with params_setup3D.
+        For more on parameters, see 
+        https://lmfit.github.io/lmfit-py/parameters.html 
     
-    Returns complete 3D concentration
-    matrix v, slice profiles, and 
-    positions of slice profiles.
+    Option inpur aimilar to diffusion1D_params.
     
-    ### NOT COMPLETELY SET UP FOR FITTING JUST YET ###
+    Returns:
+        v: complete 3D concentration matrix
+        y: slice profiles
+        x: positions of slice profiles
+    
+    ### NOT SET UP FOR FITTING YET ###
     """   
+    
     fitting = False
+    
     if (data_x_microns is not None) and (data_y_unit_areas is not None):
         x_data = np.array(data_x_microns)
         y_data = np.array(data_y_unit_areas)
+        
         if np.shape(x_data) == np.shape(y_data):
             fitting = True
             print('fitting to data')
@@ -372,11 +407,11 @@ def diffusion3Dnpi_params(params, data_x_microns=None, data_y_unit_areas=None,
     yprofiles = []
     kwdict = {'points' : points}
     
-    for k in range(3):
+    for microns, D, vD in zip(L3_microns, log10D3, vary_D):
         p1D = lmfit.Parameters()
-        p1D.add('microns', L3_microns[k], False)
+        p1D.add('microns', float(microns), False)
         p1D.add('time_seconds', t, params['time_seconds'].vary)
-        p1D.add('log10D_m2s', log10D3[k], vary_D[k])
+        p1D.add('log10D_m2s', D, vD)
         p1D.add('initial_unit_value', 1., vary_init)
         p1D.add('final_unit_value', 0., vary_fin)
         
@@ -523,7 +558,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     raypathA = v.mean(axis=0)
     raypathB = v.mean(axis=1)
     raypathC = v.mean(axis=2)
-
+    
     # Specify whole-block profiles in model
     mid = int(points/2)
     if raypaths[0] == 'b':
@@ -555,9 +590,8 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
     
     wb_profiles = [wbA, wbB, wbC]
     wb_positions = []
-    for k in range(3):
-        a = L3[k] / 2.
-        x_microns = np.linspace(0., 2.*a, points)
+    for length in L3:
+        x_microns = np.linspace(0., float(length), points)
         wb_positions.append(x_microns)
         
     if show_plot is True:
@@ -567,7 +601,8 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
                 style[k] = styles.style_lightgreen
 
         if fig_ax is None:
-            f, fig_ax = styles.plot_3panels(wb_positions, wb_profiles, L3, style)
+            f, fig_ax = styles.plot_3panels(wb_positions, wb_profiles, 
+                                            L3, style)
         else:
             styles.plot_3panels(wb_positions, wb_profiles, L3, style, 
                          figaxis3=fig_ax)                         
@@ -584,6 +619,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
             for pos in range(len(x_array[k])):
                 # wb_positions are centered, data are not
                 microns = x_array[k][pos]
+                
                 # Find the index of the full model whole-block value 
                 # closest to the data position
                 idx = (np.abs(wb_positions[k]-microns).argmin())
@@ -595,7 +631,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
                 y_model.append(model)
                 y_data.append(data)
                 residuals.append(res)                
-        return residuals
+        return np.array(residuals)
 
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
                    initial=1., final=0., ytop=1.2, points=50, show_plot=True,
