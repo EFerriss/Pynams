@@ -939,10 +939,7 @@ class Block():
         else:
             init_unit = init
             fin_unit = fin
-        
-        bestD = [] 
-        D3 = []
-        e3 = []
+
 
         # set up fitting parameters in the required format
         params = models.params_setup3D(microns3=self.lengths, 
@@ -1054,9 +1051,7 @@ class Block():
         for prof in self.profiles:
             prof.peakpos = peaks
             prof.peak_heights = []
-#            print(prof.name)
             for peak in (peaks):
-#                print('peak', peak)
                 heights = []
                 for spec in prof.spectra:
                     idx = np.abs(peak - spec.base_wn).argmin()
@@ -1065,6 +1060,4 @@ class Block():
                     height_abs = spec.abs_full_cm[idx]                        
                     height = height_abs - height_base
                     heights.append(height)
-#                    print(height)
                 prof.peak_heights.append(heights)
-#                print()

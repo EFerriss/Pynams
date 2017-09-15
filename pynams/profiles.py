@@ -403,6 +403,26 @@ class Profile():
                 return False
         return areas
         
+    def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
+        """
+        Requires a list of peak wavenumber locations in cm-1
+            (default peaks=[3600, 3525, 3356, 3236])
+        Creates or overwrites profiles peak positions and peak_heights using 
+        that baseline, not heights from gaussian curves
+        """
+        self.peakpos = peaks
+        self.peak_heights = []
+        for peak in (peaks):
+            heights = []
+            for spec in self.spectra:
+                idx = np.abs(peak - spec.base_wn).argmin()
+                height_base = spec.base_abs[idx]
+                idx = np.abs(peak - spec.wn_full).argmin()
+                height_abs = spec.abs_full_cm[idx]                        
+                height = height_abs - height_base
+                heights.append(height)
+            self.peak_heights.append(heights)
+
     def make_peakfit_like(self, spectrum):
         """
         Exactly like spectrum.make_peakfit_like() but applies the 
