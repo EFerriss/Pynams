@@ -12,9 +12,7 @@ The focus is on hydrogen diffusion in olivine and clinopyroxene.
 from __future__ import print_function, division, absolute_import
 import numpy as np
 import pynams
-#import pynams.styles as st
 from pynams import Sample
-#from pynams.diffusion.models import diffusion3Dnpi
 from pynams.diffusion.diffusivities import Diffusivities
 import pandas as pd
 import os
@@ -27,13 +25,13 @@ olivine.fillna(0, inplace=True) # replace missing values with zero
 olivine["paper"] = olivine["Author"] + ' ' + olivine["Year"].map(str)
 olivinegroups = olivine.groupby(['paper', 'mechanism', 
                                  'percentpv', 'orientation'])
-# Uncomment to see group names
+## Uncomment to see group names
 #for x, group in olivinegroups:
 #    print(x)
 #print()
 
-#%%
 
+#%%
 SanCarlosOlivine = Sample(Fe3=0.003, Fe2=0.174, Mg=1.821, Ti=0., Al=0.)
 
 # Mackwell and Kohlstedt 1990
@@ -89,6 +87,7 @@ pv.solve_Ea_D0(printout=False) # quite different from DM06 results
 pv.D0_m2s = [10**-4.5, 10**-4.5, 10**-1.4, 0] #DM06 pg 8
 pv.activation_energy_kJmol = [204, 204, 258, 0] #DM06 pg 8
 
+
 def mix_olivine_mechanisms(percent_slow, celsius):
     """
     Determines diffusivities assuming that some percentage
@@ -128,6 +127,9 @@ pnav_Ti.fill_in_data(df=olivinegroups, mech='[Ti]', percentpv=100)
 # Demouchy et al. 2016 hydration at 3GPa
 D16 = Diffusivities(description='Demouchy et al. 2016',
                     sample=Sample(Fe=0.092, Mg=0.903)) # Ni=0.005, trace Cr
+
+
+
 
 ##Wanamaker_Si = Diffusivities(
 ##               description = "San Carlos ol. $V''''_{Si}$\nWanamaker 1994",

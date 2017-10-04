@@ -142,10 +142,13 @@ class Diffusivities():
         for idx, orient in enumerate(['a', 'b', 'c', 'u']):
             group = (paper, mech, float(percentpv), orient)
             try:
-                self.log10D[idx] = list(df.get_group(group)['log10D'])
-                self.celsius[idx] = list(df.get_group(group)['celsius'])
+                self.log10D[idx] = list(df.get_group(group)['log10D'])                
             except KeyError:
                 self.log10D[idx] = []
+            
+            try:
+                self.celsius[idx] = list(df.get_group(group)['celsius'])
+            except KeyError:
                 self.celsius[idx] = []
        
     def solve_Ea_D0(self, printout=True):
@@ -210,7 +213,7 @@ class Diffusivities():
 
     def plotD(self, axes, orient='ALL', plotdata=True,
               offset_celsius=0, plotline=True, extrapolate_line=False,
-              show_error=True, legend_add=False, 
+              legend_add=False, 
               legend_handle=None, style=styles.style_points.copy(), 
               error_color=None, lower_legend_by=-2.0,
               style_line=styles.style_1, label=None):
@@ -236,8 +239,7 @@ class Diffusivities():
                   
         for iorient in orient_list:
             celsius = self.celsius[iorient]
-            logD = self.logD[iorient]
-            Derror = self.logD_error[iorient]
+            logD = self.log10D[iorient]
 
             if orient == 'ALL':
                 label = None
@@ -276,21 +278,7 @@ class Diffusivities():
             for k in range(len(celsius)):
                 x.append(1.0e4 / (celsius[k] + offset_celsius + 273.15))
 
-            if show_error is True:
-                if len(Derror) > 0:
-                    if error_color is None:
-                        error_color = style['color']
-                    axes.errorbar(x, logD, yerr=Derror, ecolor=error_color,
-                                      fmt=None)
-
-            if plotline is True:
-                if 'markerfacecolor' in self.basestyle:
-                    style_line['color'] = self.basestyle['markerfacecolor']
-                elif 'color' in self.basestyle:
-                    style_line['color'] = self.basestyle['color']
-                else:
-                    style_line['color'] = 'k'
-    
+            if plotline is True:    
                 Tmin = min(x)
                 Tmax = max(x)
                 T = [Tmin, Tmax]
@@ -317,8 +305,10 @@ class Diffusivities():
                       orient=None, plotline=False,
                       ncol=2, style=styles.style_points.copy(), 
                       style_line=styles.style_1, label=None):
-        """Take a figure axis and its list of legend handles 
-        and adds information to it"""
+        """
+        Take a figure axis and its list of legend handles 
+        and adds information to it
+        """
         if label is None:
             if self.description is None:
                 print('Need label or self.description to make legend')
@@ -348,6 +338,7 @@ class Diffusivities():
 generic = Diffusivities()
 generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
                      'markersize' : 8, 'linestyle': 'none'}
+
 
 def Arrhenius_outline(xlow=6., xhigh=11., ybottom=-18., ytop=-8.,
                       celsius_labels = np.arange(0, 2000, 100),
@@ -398,6 +389,7 @@ def Arrhenius_outline(xlow=6., xhigh=11., ybottom=-18., ytop=-8.,
     else:
         legend_handles_main = None
     return fig, ax, legend_handles_main
+
 
 def Arrhenius_add_line(fig_ax, Ea, D0, xlow=6.0, xhigh=10.0, 
                        style={'color' : 'k', 'linestyle' : '-'}):
