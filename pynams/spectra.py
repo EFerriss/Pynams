@@ -104,13 +104,7 @@ class Spectrum():
         if self.fname is None:
             return
         
-#        try:
         self.filename = self.folder + self.fname + self.filetype
-#        except TypeError:
-#            print()
-#            print('Problem making filename. Check folder and fname.')
-#            print()
-#            return
 
         if os.path.isfile(self.filename):
             if self.filetype == '.CSV':
@@ -140,6 +134,7 @@ class Spectrum():
             print('There is a problem finding the file.')
             print('filename =', self.filename)
             print('Maybe check the folder name')
+            
 
     def plot_spectrum(self, axes=None, style=None, offset=0., 
                       label=None, wn_xlim_left=4000., wn_xlim_right=3000., 
@@ -230,6 +225,7 @@ class Spectrum():
         ax.set_ylim(ylow, yhigh)
         ax.set_title(self.fname)
         return fig, ax
+    
 
     def orientation(self, label=None):
         """
@@ -291,6 +287,7 @@ class Spectrum():
         plt.subplots_adjust(wspace=-0.1)
         return fig
 
+
     def get_thickness_from_SiO(self, show_plot=False, printout=False,
                                accept_thickness=True):
         """
@@ -335,7 +332,8 @@ class Spectrum():
             self.divide_by_thickness()
             self.start_at_zero()
         return thickness_microns
-#
+
+
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
                                         wn_mid_range_low=3300.,
                                         relative=True):
@@ -401,7 +399,26 @@ class Spectrum():
                 ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
 
         return self.base_wn[peaks]
+    
         
+    def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
+        """
+        Requires a list of peak wavenumber locations in cm-1
+            (default peaks=[3600, 3525, 3356, 3236])
+        Creates or overwrites any existing peak positions and peak_heights 
+        with peak heights from current baseline
+        """
+        self.peakpos = peaks
+        self.peak_heights = []
+        for peak in (peaks):
+            idx = np.abs(peak - self.base_wn).argmin()
+            height_base = self.base_abs[idx]
+            idx = np.abs(peak - self.wn_full).argmin()
+            height_abs = self.abs_full_cm[idx]                        
+            height = height_abs - height_base
+            self.peak_heights.append(height)
+
+    
     def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""       
@@ -423,6 +440,7 @@ class Spectrum():
         self.abs_raw = np.mean(list_abs_to_average, axis=0)
         self.abs_full_cm = np.mean(list_abs_full_to_average, axis=0)
         self.thickness_microns = np.mean(thicknesses, axis=0)
+        
     
     def divide_by_thickness(self):
         """
@@ -444,6 +462,7 @@ class Spectrum():
             
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
+    
 
     def start_at_zero(self, wn_xlim_left=4000., wn_xlim_right=3000.):
         """
@@ -470,7 +489,8 @@ class Spectrum():
             print('index_hi at wn', wn_xlim_left, ':', index_hi)
             return False
         return self.abs_full_cm
-#
+    
+
     def make_baseline(self, 
                       raw_data=False, 
                       wn_low=3200, 
@@ -683,6 +703,7 @@ class Spectrum():
                     
         return base_abs
 
+
     def subtract_baseline(self, baseline_abs=None, wn_low=None, wn_high=None,
                           show_plot=False, raw_data=False):
         """
@@ -714,7 +735,6 @@ class Spectrum():
             print('No baseline. Try using raw data or check thickness.')
             return
 
-
         # get wavenumber range in cm-1
         if wn_low is None:
             wn_low = np.max(self.base_wn)
@@ -740,7 +760,6 @@ class Spectrum():
             for n in range(ndif):
                 humps = np.append(humps, humps[-1])
 
-
         abs_nobase_cm = humps - base_abs
 
         if show_plot is True:
@@ -748,6 +767,7 @@ class Spectrum():
 
         self.abs_nobase_cm = abs_nobase_cm
         return abs_nobase_cm
+
 
     def make_area(self, show_plot=False, raw_data=False,
                              printout=True, numformat='{:.1f}', 
@@ -797,6 +817,7 @@ class Spectrum():
             
         return area
 
+
     def water(self, phase='cpx', calibration='Bell', numformat='{:.1f}',
               printout=True, scale_water=3):
         """
@@ -820,6 +841,7 @@ class Spectrum():
                            str(scale_water), ' = ', 
                     numformat.format(w*3.), ' ppm H2O')))
         return w*scale_water
+
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
                       folder=None, raw_data=False, printout=True):
@@ -858,6 +880,7 @@ class Spectrum():
         d.to_csv(abs_filename, index=False, header=False)
         if printout is True:
             print('Saved', abs_filename)
+            
             
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -908,6 +931,7 @@ class Spectrum():
         d.to_csv(base_filename, index=False)
         print('Saved', base_filename)
 
+
     def get_baseline(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV',
                      print_confirmation=True):
@@ -944,6 +968,7 @@ class Spectrum():
         self.base_low_wn = np.min(data[columns[0]])
         return self.base_abs, self.abs_nobase_cm
         
+    
     def get_3baselines(self, folder=None, delim=',', 
                 baseline_ending='-3baselines.CSV'):
         """Returns block of baseline data saved by water_from_spectra()
@@ -959,6 +984,7 @@ class Spectrum():
                              skip_header=1)
         return data                            
                 
+    
     def make_peakfit(self, sensitivity=40, peak_positions=None,
                      peak_heights=None, peak_widths=None,
                      show_plot=True):
@@ -1008,6 +1034,7 @@ class Spectrum():
             fig, ax = self.plot_peakfit()
             return fig, ax
 
+
     def save_peakfit(self, folder=None, peak_ending='-peakfit.CSV',
                      delim=','):
         """
@@ -1026,6 +1053,7 @@ class Spectrum():
         d.to_csv(filename, index=False)
         print('Saved', filename)
 
+
     def make_peakfit_like(self, spectrum):
         """
         Takes another spectrum and sets this spectrum's peakfit information
@@ -1037,6 +1065,7 @@ class Spectrum():
         self.peak_widths = spectrum.peak_widths
         self.numPeaks = spectrum.numPeaks
         self.make_peakareas()
+
 
     def get_peakfit(self, folder=None, delim=',', 
                     peak_ending='-peakfit.CSV'):
@@ -1068,6 +1097,7 @@ class Spectrum():
             print('Unable to get peak info from', filename)
             print('Try spec.make_peakfit')            
         
+        
     def get_gaussians(self):
         """
         Generates Gaussian curves from peakfitting info. 
@@ -1098,6 +1128,7 @@ class Spectrum():
             summed_spectrum += peakfitcurves[k]
         return peakfitcurves, summed_spectrum
 
+
     def make_peakareas(self):
         """
         Assign peak area based on Gaussian curves from current peak
@@ -1113,6 +1144,7 @@ class Spectrum():
                 dy = np.mean(peakfitcurves[k])
                 area = dx * dy
                 self.peak_areas[k] = area
+    
     
     def make_composite_peak(self, peak_idx_list):
         """Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
@@ -1132,6 +1164,7 @@ class Spectrum():
         self.peak_heights = np.append(self.peak_heights, peak_height_new)
         self.peak_widths = np.append(self.peak_widths, peak_width_new)
         self.peak_areas = np.append(self.peak_areas, peak_area_new)
+        
         
     def plot_peakfit(self, style=styles.style_spectrum, 
                      stylesum=styles.style_summed, 
@@ -1180,6 +1213,7 @@ class Spectrum():
             ax.set_title(self.fname)
             return fig, ax
 
+
     def abs_at_given_wn(self, wn, absorbance='thickness normalized'):
         """Input wavenumber, output absorbance that is thickness normalized
         (absorbance='normalized' default), 'raw', or 'baseline-subtracted'"""
@@ -1200,8 +1234,6 @@ class Spectrum():
             
         elif absorbance == 'raw':
             print('Sorry, raw not programmed in yet')
-#            if self.abs_raw is None:
-#                self.get_data()
             return
         elif absorbance == 'baseline-subtracted':
             print('Sorry, baseline-subtracted not programmed in yet')
@@ -1211,6 +1243,7 @@ class Spectrum():
             print('thickness normalized (default)')
             print('raw')
             print('baseline-subtracted')
+
 
     def absorbance_picker(self):
         """Is this raw or thickness normalized absorbance you're after?"""
@@ -1227,6 +1260,7 @@ class Spectrum():
             absorbance = self.abs_raw
         return absorbance
         
+    
     def plot_showbaseline(self, axes=None, 
                           abs_baseline=None, 
                           wn_baseline=None, 
@@ -1320,6 +1354,7 @@ class Spectrum():
             
         return fig, ax
 
+
     def plot_subtractbaseline(self, 
                               style=styles.style_spectrum, 
                               axes=None, 
@@ -1349,6 +1384,7 @@ class Spectrum():
         ax.plot(self.base_wn, abs_nobase_cm+offset, **style_to_use)
         ax.set_title(self.fname)
         return fig, ax
+
 
     def plot_peakfit_and_baseline(self, style=styles.style_spectrum, 
                                   stylesum=styles.style_summed, 
@@ -1394,7 +1430,6 @@ class Spectrum():
 
         return fig, ax
 
-           
 
 def make_filenames(folder, classname=Spectrum, file_ending='.CSV'):
     """ Set filename attribute based on folder and fname attribute
@@ -1406,6 +1441,7 @@ def make_filenames(folder, classname=Spectrum, file_ending='.CSV'):
                     obj.filename = ''.join((folder, obj.fname, file_ending))
             except AttributeError:
                 print('just chill, ok?')
+
 
 def water_from_spectra(list3, folder, phase='cpx', 
                        proper3=False, numformat='{:.0f}',
@@ -1457,7 +1493,7 @@ def water_from_spectra(list3, folder, phase='cpx',
         spec.make_baseline()
         baseline_list = np.ones([3, len(spec.base_wn)])
         pek_list = np.ones([3, len(spec.base_wn)])
-#        
+        
         k = 0
         for bam in [window_small, -window_small, -window_large]:
             # Setting up 3 different baseline shapes
@@ -1530,6 +1566,7 @@ def water_from_spectra(list3, folder, phase='cpx',
     print('water:', numformat.format(w), 'ppm H2O')
     print(' ')
     return a, w  
+
 
 def list_with_attribute(classname, attributename, attributevalue):
     """Gather all instances in specified class with a particular attribute"""
