@@ -3,14 +3,14 @@
 Created on Tue May 05 08:16:08 2015
 @author: Ferriss
 
-Provides basic plotting and functions for creating Arrhenius diagrams and 
-handling groups of diffusivities that get plotted on them, including 
-determining activation energies and pre-exponential terms and calculating
-the expected diffusivity at a given temperature.
-
 class Diffusivities() groups together temperatures and diffusivities
 for use in plotting directly onto Arrhenius diagrams and solving 
 for activation energies and pre-exponential components
+
+Also provides basic plotting and functions for creating Arrhenius diagrams and 
+handling groups of diffusivities that get plotted on them, including 
+determining activation energies and pre-exponential terms and calculating
+the expected diffusivity at a given temperature.
 
 """
 from __future__ import print_function, division, absolute_import
@@ -23,6 +23,7 @@ from uncertainties import ufloat
 import sys
 
 GAS_CONSTANT = 0.00831 # kJ/mol K
+
 
 def solve_Ea_D0(log10D_list, celsius_list, printout=True):
     """
@@ -79,6 +80,7 @@ def solve_Ea_D0(log10D_list, celsius_list, printout=True):
         
     return Ea, D0
 
+
 def whatIsD(Ea, D0, celsius, printout=True):
     """
     Takes activation energy in kJ/mol, D0 in m2/s and 
@@ -102,6 +104,7 @@ def whatIsD(Ea, D0, celsius, printout=True):
         print('log10 D at ', celsius, 'C: ', '{:.1f}'.format(D), ' in m2/s')
     return D
 
+
 class Diffusivities():
     def __init__(self, 
                 description=None, 
@@ -123,6 +126,7 @@ class Diffusivities():
         self.sample = sample
         self.activation_energy_kJmol = activation_energy_kJmol
         self.D0_m2s = D0_m2s
+
 
     def fill_in_data(self, df, mech, percentpv, paper=None):
         """
@@ -151,6 +155,7 @@ class Diffusivities():
             except KeyError:
                 self.celsius[idx] = []
        
+        
     def solve_Ea_D0(self, printout=True):
         """
         Returns and saves as attributes the
@@ -164,6 +169,7 @@ class Diffusivities():
             Ea, D0 = solve_Ea_D0(logD, celsius, printout=printout)
             self.activation_energy_kJmol.append(Ea)
             self.D0_m2s.append(D0)
+
 
     def whatIsD(self, celsius, orient='ALL', printout=True):
         """ 

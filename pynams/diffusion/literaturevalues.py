@@ -5,7 +5,7 @@ Created on Mon Mar 23 10:49:59 2015
 @author: Ferriss
 
 Library of diffusivities, both data and fit lines, and 
-some functions to play with them. 
+some functions to play with them. The data in in a CSV in this folder.
 
 The focus is on hydrogen diffusion in olivine and clinopyroxene.
 """
@@ -18,20 +18,25 @@ import pandas as pd
 import os
 
 # pull data from spreadsheet
-file = os.path.join(pynams.__path__[0], 'diffusion', 'literaturevalues.csv')
+try:
+    file = os.path.join(pynams.__path__[0], 'diffusion', 
+                        'literaturevalues.csv')
+except FileNotFoundError:
+    print('Warning: Could not locate and import literature data')
+    exit()
+    
 olivine = pd.read_csv(file)
-olivine = olivine.dropna(how='all') # ignore empty rows
-olivine.fillna(0, inplace=True) # replace missing values with zero
+olivine = olivine.dropna(how='all') 
+olivine.fillna(0, inplace=True)
 olivine["paper"] = olivine["Author"] + ' ' + olivine["Year"].map(str)
 olivinegroups = olivine.groupby(['paper', 'mechanism', 
                                  'percentpv', 'orientation'])
+    
 ## Uncomment to see group names
 #for x, group in olivinegroups:
 #    print(x)
 #print()
 
-
-#%%
 SanCarlosOlivine = Sample(Fe3=0.003, Fe2=0.174, Mg=1.821, Ti=0., Al=0.)
 
 # Mackwell and Kohlstedt 1990
@@ -128,8 +133,8 @@ pnav_Ti.fill_in_data(df=olivinegroups, mech='[Ti]', percentpv=100)
 D16 = Diffusivities(description='Demouchy et al. 2016',
                     sample=Sample(Fe=0.092, Mg=0.903)) # Ni=0.005, trace Cr
 
-
-
+#%% The rest of this has data in an old format that I haven't had a 
+### need to switch over into the CSV but I don't want to discard
 
 ##Wanamaker_Si = Diffusivities(
 ##               description = "San Carlos ol. $V''''_{Si}$\nWanamaker 1994",
@@ -145,8 +150,6 @@ D16 = Diffusivities(description='Demouchy et al. 2016',
 #               basestyle = {'color' : 'g', 'marker' : '*', 'alpha' : 0.5,
 #                            'fillstyle' : 'none',
 #                            'linestyle' : 'none', 'markersize' : 10})
-
-
 #
 ## Du Frane & Tybursky 2012 self-diffusion in olivine
 #DuFrane = Diffusivities(
@@ -157,66 +160,7 @@ D16 = Diffusivities(description='Demouchy et al. 2016',
 #          basestyle = {'color' : 'purple', 'marker' : 's', 'alpha' : 0.5,
 #                       'markersize' :  markersizefloat})
 #
-## ---------------- natural olivine data -----------------------------
-## See also OlivineNormalization.xls
-#
-## Loihi, Hawaii: Hauri 2002 Part 2
-## Chemistry estimated from Garcia 1995 Table 2; Al and Ti not measured
-#Hauri02 = Diffusivities(description = 'Hauri 2002', 
-#                        celsius_u = [1275], 
-#                        logDu = [np.log10(4e-9)], 
-#                        logDu_error = [], 
-#                        sample=Sample(Fe3=0.004, Fe2=0.261, Mg=1.727, 
-#                                      Al=0., Ti=0.,),
-#                        basestyle = {'marker' : '+', 'color' : 'darkorange', 
-#                                     'markersize' : 12,
-#                                     'markeredgewidth' : '2'})
-#
-## Portnyagin 2008 minimum value, see new Miranov paper
-## See Supplementary Materials. Al and Ti not measured in host olivines
-#Portnyagin08 = Diffusivities(
-#                 description = 'Portnyagin et al. 2008\nMironov et al. 2015',
-#                 celsius_u = [1140.], logDu = [np.log10(5e-12)],
-#                 sample = Sample(Fe3=0.021, Fe2=0.276, Mg=1.7, Al=0., Ti=0.),
-#                 basestyle = {'marker' : 's', 'color' : 'darkmagenta', 
-#                              'markerfacecolor' : 'white',
-#                              'markeredgecolor' : 'darkmagenta',
-#                              'markersize' : markersizefloat,
-#                              'markeredgewidth' : '1'})
-#
-## Chen et al. 2011
-## Chemistry from Le Voyer 2014 Table 1 SOM1 olivine; Al and Ti not measured...
-#Chen11 = Diffusivities(description = 'Chen et al. 2011',
-#                       celsius_u = [1533.-273.15, 1471.-273.15, 
-#                                             1437.-273.15, 1561.-273.15],
-#                       logDu  = [np.log10(2e-11), np.log10(2.5e-11), 
-#                                           np.log10(0.5e-11), np.log10(2.5e-11)],
-#                       sample = Sample(Fe3=0.0, Fe2=0.192, Mg=1.784, 
-#                                       Al=0., Ti=0.,),
-#                       basestyle = {'marker' : 'x', 'color' : 'black',
-#                                     'markersize' : markersizefloat,
-#                                     'markeredgewidth' : '1'})
-#                    
-## Gaetani et al. 2012 hydration data
-## Moana Loa olivine with melt inclusion unoriented grain; 
-## MID-1 data in Supplement, Ti and Al not measured...
-## *** Si deficiency ***
-#Gaetani12 = Diffusivities(description = 'Gaetani et al., 2012',
-#                          celsius_u = [1250.],
-#                          logDu = [np.log10(1.7e-11)],
-#                          sample=Sample(Fe3=0.036, Fe2=0.206, Mg=1.769, 
-#                                        Al=0., Ti=0.),
-#                          basestyle = {'marker' : 'h', 'color' : 'red',
-#                                       'markeredgecolor' : 'red', 
-#                                       'markersize' : 10,
-#                                       'markeredgewidth' : '1',
-#                                       'markerfacecolor' : 'white'})
-#
-#
-#generic = Diffusivities()
-#generic.basestyle = {'marker' : 's', 'color' : 'black', 'alpha' : 0.5,
-#                     'markersize' : markersizefloat, 'linestyle': 'none'}
-#
+
 ##%% clinopyroxene
 #H_CrDiopside_Ingrin95 = Diffusivities(
 #                        description = ''.join(('H in Cr-rich diopside in air',
