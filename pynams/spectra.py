@@ -277,7 +277,6 @@ class Spectrum():
         ytext = ax1.get_ylim()[1] - 0.1*ax1.get_ylim()[1]
         wns = [2035, 1925, 1840, 1785, 1670, 1600]
         for idx, wn in enumerate(wns):
-#            print(wn)
             ax1.plot([wn, wn], ax1.get_ylim(), '-r')
             ax1.text(wn, ytext, str(wn), rotation=90, backgroundcolor='w',
                     va='center', ha='center', fontsize=12)
