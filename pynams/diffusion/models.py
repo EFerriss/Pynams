@@ -31,6 +31,7 @@ import scipy
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 
+
 #%% 1D Diffusion in a thin slab; Eq 4.18 in Crank, 1975
 def diffusionThinSlab(log10D_m2s, thickness_microns, max_time_hours=2000, 
                       infinity=200, timesteps=300):
@@ -77,6 +78,7 @@ def params_setup1D(microns, log10D_m2s, time_seconds, init=1., fin=0.,
     params.add('initial_unit_value', init, vinit, None, None, None)
     params.add('final_unit_value', fin, vfin, None, None, None)
     return params
+
 
 def diffusion1D_params(params, 
                        data_x_microns=None, 
@@ -202,6 +204,7 @@ def diffusion1D_params(params,
         return x_microns, model
     return model- data_y_unit_areas
 
+
 def diffusion1D(length_microns, log10D_m2s, time_seconds, init=1., fin=0.,
                 erf_or_sum='erf', show_plot=True, 
                 style=styles.style_blue, infinity=100, points=100, 
@@ -283,6 +286,7 @@ def length_checker(microns3):
         return False
     return microns3
 
+
 def D_checker(log10D3):
     """
     Checks diffusivities passed in and returns possibly modified diffusivities.
@@ -302,6 +306,7 @@ def D_checker(log10D3):
         print('only int, float, or list allowed for log10Ds_m2s')
         return False
     return log10D3
+
 
 def params_setup3D(microns3, log10D3, time_seconds, 
                    initial=1., final=0., isotropic=False, slowb=False,
@@ -344,6 +349,7 @@ def params_setup3D(microns3, log10D3, time_seconds,
         params.add('log10Dz', float(log10D3[2]), vD[2], None, None, None)
 
     return params
+
 
 def diffusion3Dnpi_params(params, 
                           data_x_microns=None, 
@@ -466,6 +472,7 @@ def diffusion3Dnpi_params(params,
         residuals = np.zeros_like(sliceprofiles)
         return residuals
 
+
 def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
                    initial=1, final=0., ytop=None, show_plot=True, 
                    centered=True, styles3=[None]*3, axes=None, 
@@ -522,6 +529,7 @@ def diffusion3Dnpi(lengths_microns, log10Ds_m2s, time_seconds, points=50,
         else:
             return v, x, y
             
+        
 #%% 3D whole-block: 3-dimensional diffusion with path integration
 def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None, 
                           raypaths=None, erf_or_sum='erf', show_plot=True, 
@@ -632,6 +640,7 @@ def diffusion3Dwb_params(params, data_x_microns=None, data_y_unit_areas=None,
                 y_data.append(data)
                 residuals.append(res)                
         return np.array(residuals)
+
 
 def diffusion3Dwb(lengths_microns, log10Ds_m2s, time_seconds, raypaths,
                    initial=1., final=0., ytop=1.2, points=50, show_plot=True,

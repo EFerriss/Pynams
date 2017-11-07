@@ -72,6 +72,7 @@ class Sample():
         else:
             self.Fe = Fe
 
+
         def floatify(lengthy):
             """
             Takes a length or list of lengths and makes it into a single 
@@ -98,6 +99,7 @@ class Sample():
         thinness = floatify(thickness_thinslab_microns)
         self.thickness_microns = [twoA, twoB, twoC, thinness]
         self.lengths_microns = [twoA, twoB, twoC]
+
         
     def get_MgNumber(self):
         """ 

@@ -7,9 +7,9 @@ but they both use functions stored here.
 
 """
 from __future__ import print_function, division, absolute_import
-#from .uncertainties import ufloat
 from uncertainties import ufloat
 import numpy as np
+
 
 def absorption_coefficients(phase, calibration):
     """
@@ -48,6 +48,7 @@ def absorption_coefficients(phase, calibration):
         return False
 
     return absorption_coeff        
+
     
 def area2water(area_cm2, phase='cpx', calibration='Bell'):
     """
@@ -58,6 +59,7 @@ def area2water(area_cm2, phase='cpx', calibration='Bell'):
                                                calibration=calibration)
     w = absorption_coeff * area_cm2
     return w
+
         
 def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     """
@@ -66,6 +68,7 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     """
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
+
 
 def make_peakheights(wb, peaks=[3600, 3525, 3356, 3236]):
     """

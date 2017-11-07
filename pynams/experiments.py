@@ -76,13 +76,11 @@ def solubility_of_H_in_olivine(Celsius, water_fugacity_GPa=None,
     A = 2.45 # H/10^6 Si / GPa
     n = 1
     C = A * (water_fugacity_GPa**n) * exponent_part
-
-#    ppm = convertH(C, from_unit='H/10^6 Si', printout=False)
     ppm = C * 60
     if printout is True:
         print('Solubility of H in olivine:', ppm, 'ppm H2O')
-#    print C, ppm
     return ppm
+
 
 def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
@@ -136,6 +134,7 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
                            '{:.2f}'.format(new_conc), to_unit, 'for', phase))
         print(output)
     return new_conc
+
 
 def bubble_tower(panel='middle', minor_setting=40, 
                  major_setting=155., major_gas='CO2',
@@ -282,6 +281,7 @@ def bubble_tower(panel='middle', minor_setting=40,
     percentCO2 = 100. * yCO2 / (yCO2 + yCO)
     ax.text(10., 0.9, ''.join(('{:.2f}'.format(percentCO2), '% CO$_2$')))
 
+
 def fO2(celsius, bars=1., buffer_curve='QFM'):
     """ 
     Input:
@@ -317,12 +317,14 @@ def fO2(celsius, bars=1., buffer_curve='QFM'):
     logfO2 = ((A / Kelvin) + B + (C * (bars-1.0) / Kelvin))
     return logfO2
     
+
 def furnace_calibration(reading_celsius):
     """Calibration for furnace 4 in Dave Walker's lab at LDEO
     based on gold calibration"""
     real_temp = reading_celsius - (6. / (reading_celsius/1064.))
     print('{:.1f}'.format(real_temp), 'degrees C')
     return real_temp
+
 
 def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
     """Takes milliVolts reading from pO2 meter and temperature in Celsius and 
@@ -337,6 +339,7 @@ def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
     logfO2 = -1. * my_constant * mV / (Kelvin)
     print('{:.1f}'.format(logfO2), 'log10 oxygen fugacity')
     return logfO2
+
     
 def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
     """Reverse of log10fO2_from_mV
@@ -351,6 +354,7 @@ def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
     mV = -1. * log10fO2 * Kelvin / my_constant
     print('\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n')
+
     
 def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
     """
@@ -607,7 +611,6 @@ def pressure_design(capsule_material = 'copper',
         lid = patches.Rectangle((xgc + th_gc + th_sleeve, 
                     h_graphite_button + h_MgO_base + th_sleeve + h_capsule),
                     id_sleeve, h_lid, **style_capsule)
-
 
     ax.add_patch(pressure_medium)
     ax.add_patch(graphite_button)

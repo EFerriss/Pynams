@@ -125,6 +125,7 @@ class Profile():
                     maxlen = max(list(self.positions_microns))
                     self.length_microns = maxlen + 0.1*maxlen
                 
+                
     def get_thicknesses_from_SiO(self, show_plots=False, printout=False,
                                accept_thickness=True):
         """
@@ -137,6 +138,7 @@ class Profile():
                                         accept_thickness=accept_thickness)
         if accept_thickness is True:
             self.update_profile_thicknesses_from_spectra()
+
 
     def update_profile_thicknesses_from_spectra(self):
         """
@@ -151,6 +153,7 @@ class Profile():
                 return
             thicknesses.append(thick)            
             self.thicknesses_microns = thicknesses        
+
 
     def update_spectra_thicknesses_from_profile(self):
         """
@@ -191,6 +194,7 @@ class Profile():
 
         return self.length_microns
 
+
     def set_thickness_from_sample(self):
         """
         Set profile.thickness_microns from profile.raypath and
@@ -214,6 +218,7 @@ class Profile():
             
         return self.thickness_microns
 
+
     def plot_thicknesses(self, axes=None):
         """Plot thickness across profile"""
         if self.length_microns is None:
@@ -230,6 +235,7 @@ class Profile():
                     max(self.thickness_microns_list)+0.05*max(self.thickness_microns_list))
         return fig, ax            
 
+
     def average_spectra(self, ignore_idx=[]):
         """
         Creates and returns a spectrum that is the average of all spectra
@@ -238,7 +244,6 @@ class Profile():
         Pass a list of the indexes of any spectra that you don't included 
         to ignore_idx 
         """
-
         spec_list = copy.deepcopy(self.spectra)
         
         # ignore certain data points
@@ -262,6 +267,7 @@ class Profile():
         avespec.thickness_microns = np.mean(self.thicknesses_microns)
         return avespec
 
+
     def plot_spectra(self):
         """
         Plot all spectra across profile with default spectrum.plot_spectrum()
@@ -270,6 +276,7 @@ class Profile():
         """
         for spec in self.spectra:
             spec.plot_spectrum()
+            
             
     def plot_showbaselines(self, axes=None, style=styles.style_spectrum, 
                           style_base=styles.style_baseline,
@@ -292,6 +299,7 @@ class Profile():
         for spec in self.spectra:
             spec.plot_subtractbaseline()
 
+
     def change_baseline(self, highwn=3800, lowwn=3000, shift=None):
         """Change baseline parameters for all spectra, final and initial"""
         for spectrum in self.spectra + self.initial_profile.spectra:
@@ -299,6 +307,7 @@ class Profile():
             spectrum.base_low_wn = lowwn
             if shift is not None:
                 spectrum.base_mid_yshift = shift
+
 
     def make_composite_peak(self, peak_idx_list):
         """
@@ -308,6 +317,7 @@ class Profile():
         for spec in self.spectra:
             spec.make_composite_peak(peak_idx_list)
         self.get_peak_info()
+
 
     def make_baselines(self,
                       raw_data=False, 
@@ -347,6 +357,7 @@ class Profile():
                                    abs_smear_low=abs_smear_low,
                                    store_baseline=store_baseline)
 
+
     def get_baselines(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV',
                      print_confirmation=True):
@@ -359,6 +370,7 @@ class Profile():
                                   baseline_ending=baseline_ending,
                                   print_confirmation=print_confirmation)
         self.make_areas()
+
                         
     def save_baselines(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -367,6 +379,7 @@ class Profile():
             spectrum.save_baseline(folder=folder, delim=delim,
                                    baseline_ending=baseline_ending)
         
+
     def make_areas(self, peak=None, show_plot=False, 
                        printout_area=False, wn_low=None, wn_high=None):
         """
@@ -402,6 +415,7 @@ class Profile():
                 print('peak positions:', peaklist)
                 return False
         return areas
+
         
     def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
         """
@@ -423,6 +437,7 @@ class Profile():
                 heights.append(height)
             self.peak_heights.append(heights)
 
+
     def make_peakfit_like(self, spectrum):
         """
         Exactly like spectrum.make_peakfit_like() but applies the 
@@ -437,6 +452,7 @@ class Profile():
         """
         for spec in self.spectra:
             spec.make_peakfit_like(spectrum)
+
             
     def save_peakfits(self, folder=None, peak_ending='-peakfit.CSV'):
         """
@@ -445,6 +461,7 @@ class Profile():
         """
         for spec in self.spectra:
             spec.save_peakfit(folder=folder, peak_ending=peak_ending)
+
 
     def get_peakfits(self, peak_ending='-peakfit.CSV'):
         """
@@ -465,6 +482,7 @@ class Profile():
 
         if len(self.spectra) > 0:        
             self.get_peak_info()
+
            
     def get_peak_info(self):
         """
@@ -518,6 +536,7 @@ class Profile():
         self.peak_maximum_heights = np.zeros_like(peakpos)
         self.peak_maximum_heights_wb = np.ones_like(peakpos)
 
+
     def get_area_total(self):
         """Sum up total area of all peaks"""
         total_peak_area = []
@@ -532,6 +551,7 @@ class Profile():
         self.total_peak_area = total_area
         self.total_peak_height = total_h
         return total_area, total_h
+
             
     def print_peakfits(self):
         """Print out peakfit information for all spectra in profile"""
@@ -581,6 +601,7 @@ class Profile():
         return average_peakareas, average_peakheights, total_area, \
                 max_peakareas, max_peakheights
 
+
     def plot_peakfits(self, initial_too=False, legloc=1, ytop=1.2):
         """Show fit peaks for all spectra in profile"""
         if len(self.spectra) < 1:
@@ -593,6 +614,7 @@ class Profile():
             for spectrum in self.initial_profile.spectra:
                 spectrum.plot_peakfit(legloc=legloc)
                 
+
     def make_wholeblock(self, peakfit=False, show_plot=False,
                         heights_or_areas='both'):
         """
@@ -668,6 +690,7 @@ class Profile():
                 wb_areas.append(area / anormalizeto)                
             self.peak_wb_areas = wb_areas            
 
+
     def get_peak_wb_areas(self, peak_idx=0, peakwn=None, 
                           heights_instead=False):
         """Returns peak-specific whole-block areas for the profile
@@ -708,6 +731,7 @@ class Profile():
             returnvals = self.peak_wb_heights[peak_idx]
     
         return returnvals, peakwn
+
 
     def plot_area_profile(self, 
                           axes=None, 
@@ -1004,6 +1028,7 @@ class Profile():
         else:
             return
 
+
     def diffusion1D(self, log10D_m2s, time_seconds, wholeblock=False,
                     peak_idx=None, centered=True, heights_instead=False, 
                     init=1., fin=0., erf_or_sum='erf', infinity=100, 
@@ -1115,6 +1140,7 @@ class Profile():
        
         return fig, ax, ax_water
     
+
     def y_data_picker(self, wholeblock, heights_instead, peak_idx=None):
         """
         Pick out and return peak area or height data of interest.
@@ -1147,6 +1173,7 @@ class Profile():
                     return False
         return y
 
+
     def D_picker(self, wholeblock=True, heights_instead=False, peak_idx=None):
         """Returns attribute name and diffusivity of interest. 
         Consider using get_diffusivity() first"""
@@ -1173,6 +1200,7 @@ class Profile():
             return None
             
         return log10D_m2s
+
 
     def D_saver(self, D, error, wholeblock=True, heights_instead=False, 
                 peak_idx=None):
@@ -1201,6 +1229,7 @@ class Profile():
         else:
             self.D_area_wb = D
             self.D_area_wb_error = error
+
 
     def scale_diffusion_picker(self, maximum_value=None, wholeblock=True,
                               heights_instead=False, peak_idx=None):
@@ -1241,6 +1270,7 @@ class Profile():
     
         return scale_diffusion
 
+
     def diffusion_residuals(self, time_seconds, log10D_m2s, wholeblock=False,
                             heights_instead=False, peak_idx=None,
                             initial_unit_value=1., final_unit_value=0.,
@@ -1275,6 +1305,7 @@ class Profile():
         RSS = np.sum(resid**2)        
         return resid, RSS
             
+
     def fitD(self, 
              time_seconds=None, 
              log10Dm2s=None, 
@@ -1418,6 +1449,7 @@ class Profile():
         minutes = best_time / 60.
         return init, fin, D, minutes
 
+
     def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
         """Save diffusivities for profile to a file"""
@@ -1514,6 +1546,7 @@ class Profile():
         
         return diffusivities
         
+
     def print_diffusivities(self, show_on_screen=True):
         """Print out all diffusivities, including peak-specific, in profile"""
         if self.peakpos is None:
@@ -1536,58 +1569,7 @@ class Profile():
             string = ' '.join((str(self.peakpos[k]), str1))
             print(string)
 
-#        ### Showing all ways to generate ###
-#        # bulk H diffusivities and initial values
-#        D_area_wb = ufloat(self.D_area_wb, self.D_area_wb_error)   
-#        D_area = ufloat(self.D_area, self.D_area_error)        
-#        wb = '{:.2f}'.format(D_area_wb)
-#        a = '{:.2f}'.format(D_area)
-#        wbmax = '{:.2f}'.format(self.maximum_wb_area)
-#        if self.maximum_area is not None:
-#            amax = '{:.1f}'.format(self.maximum_area)  
-#        else:
-#            amax = 'n/a'
-#        st1 = ''.join((wb, '(', wbmax, ')'))
-#        st2 = ''.join((a, '(', amax, ')'))
-#        bulkstring = ''.join(('bulk H : ', st1, ';  ', st2, 
-#                              ';  n/a;         n/a'))
-#
-#        if show_on_screen is True:
-#            print '\n', self.name
-#            print ' Diffusivities as log10(D in m2/s) (max value)'
-#            print '         wb areas;         areas;       wb heights;     heights'
-#            print bulkstring
-#
-#        # peak-specific
-#        peakstrings = []
-#        for k in range(len(self.peakpos)):
-#            D_area_wb = ufloat(self.D_peakarea_wb[k], 
-#                               self.D_peakarea_wb_error[k])   
-#            D_area = ufloat(self.D_peakarea[k], self.D_peakarea_error[k])   
-#            D_h_wb = ufloat(self.D_height_wb[k], self.D_height_wb_error[k])   
-#            D_h = ufloat(self.D_height[k], self.D_height_error[k])
-#            a = '{:.2f}'.format(self.peak_maximum_areas[k])
-#            awb = '{:.2f}'.format(self.peak_maximum_areas_wb[k])
-#            h = '{:.2f}'.format(self.peak_maximum_heights[k])
-#            hwb = '{:.2f}'.format(self.peak_maximum_heights_wb[k])
-#            
-#            Da = '{:.2f}'.format(D_area)
-#            Da_wb = '{:.2f}'.format(D_area_wb)
-#            Dh = '{:.2f}'.format(D_h)
-#            Dh_wb = '{:.2f}'.format(D_h_wb)   
-#            
-#            st1 = ''.join((Da_wb, '(', str(awb), ')'))
-#            st2 = ''.join((Da, '(', str(a), ')'))
-#            st3 = ''.join((Dh_wb, '(', str(hwb), ')'))
-#            st4 = ''.join((Dh, '(', str(h), ')'))
-#            
-#            string0 = str(self.peakpos[k])
-#            stringD = ';  '.join((st1, st2, st3, st4))
-#            string = ' '.join((string0, ':', stringD))
-#            if show_on_screen is True:
-#                print string
-#            peakstrings.append(string)
-#
+
     def start_at_arbitrary(self, wn_matchup=3000, offset=0.):
         """For each spectrum in profile, divide raw absorbance by thickness 
         and set spectra abs_full_cm such that they overlap at the specified 
@@ -1604,9 +1586,6 @@ class Profile():
             x.abs_full_cm = abs_matched
         return
 
-#
-# Other functions
-#
 
 class TimeSeries(Profile):
     def __init__(self, sample=None, fnames=[], time_hours=[], folder='',
@@ -1618,6 +1597,7 @@ class TimeSeries(Profile):
         self.style_base = style_base        
         self.folder = folder
         self.make_spectra()
+
     
     def plot_timeseries(self, y=None, peak_idx=None, tit=None, D_list=[], 
                         thickness_microns=None, max_hours=None,
@@ -1671,7 +1651,6 @@ class TimeSeries(Profile):
             return fig, ax
 
 
-
 def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
     """Subtract spectrum 1 from spectrum 0 input as list between given
     wavenumbers (defaults to 4000 and 3000 cm-1). Spectra do not need 
@@ -1708,8 +1687,6 @@ def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
         # find index of nearest wavenumber in spectrum to be subtracted off
         idx_subtract = (np.abs(list2[1].wn_full-wn)).argmin()
         # subtract
-#        abs_difference[idx] = (x.abs_full_cm[idx_upper_spectrum] - 
-#                           list2[1].abs_full_cm[idx_subtract])
         abs_difference[idx] = (abs_upper_spectrum[idx] - 
                                 list2[1].abs_full_cm[idx_subtract])
         idx += 1
@@ -1722,13 +1699,7 @@ def subtract_2spectra(list2, wn_high=4000, wn_low=3000):
     if len(list2[0].base_wn) != len(list2[1].base_wn):
         print('Length problem in subtract_spectra. To be dealt with.')
         return
-    
-    # subtract
-#    difference = np.zeros_like(list2[0].base_wn)
-#    for inx in range(len(list2[0].base_wn)):
-#        difference[inx] = list2[0].abs - list2[1].abs
-#    return difference
-    
+        
 
 def make_all_specta_lists(classname=Profile):
     for obj in gc.get_objects():
@@ -1736,16 +1707,11 @@ def make_all_specta_lists(classname=Profile):
             obj.make_spectra()
     
 
-#
-# General plot setup
-#
-
 def plotsetup_3x3minus2(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
                         xtickgrid=250, ytickgrid=0.5):
     """Setup plot for spectra comparison e.g., Kunlun_peakcheck.py"""
     fig = plt.figure()
     fig.set_size_inches(6.5, 6.5)
-#    fig.set_size_inches(3, 3)
     gs = gridspec.GridSpec(3,3)
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[0, 1])
@@ -1781,6 +1747,7 @@ def plotsetup_3x3minus2(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
         plt.setp(ax.get_yticklabels(), visible=True)
         plt.setp(ax.get_xticklabels(), visible=True, rotation=45)    
     return axis_list
+
 
 def plotsetup_3x3(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
                   xtickgrid=250, ytickgrid=0.5,
@@ -1819,16 +1786,8 @@ def plotsetup_3x3(yhi = 1, ylo = 0, xlo = 3000, xhi = 4000,
         plt.setp(ax.get_yticklabels(), visible=True)
     for ax in [ax7, ax8, ax9]:
         plt.setp(ax.get_xticklabels(), visible=True, rotation=45)    
-
-#    blue_line = mlines.Line2D([], [], label='Observed', 
-#                              **sp.style_spectrum)
-#    green_line = mlines.Line2D([], [], label='Fit peaks', **sp.style_fitpeak)
-#    dashed_line = mlines.Line2D([], [], label='Sum of fit peaks', 
-#                                **sp.style_summed)
-#    leg = axis_list[7].legend(handles=[blue_line, green_line, dashed_line], ncol=3,
-#            loc = 'upper center', bbox_to_anchor = (0.5, -0.5), fancybox=True)
-        
     return axis_list
+
 
 def plotsetup_3stacked(yhi=2, ylo=0, xlo = 3200, xhi = 3800,
                   xtickgrid=200, ytickgrid=0.5):
@@ -1845,7 +1804,6 @@ def plotsetup_3stacked(yhi=2, ylo=0, xlo = 3200, xhi = 3800,
     ymajorLocator = MultipleLocator(ytickgrid)
 
     for ax in axis_list:
-#        ax.grid()
         ax.set_xlim([xhi, xlo])
         ax.set_ylim([ylo, yhi])
         ax.xaxis.set_major_locator(xmajorLocator)
@@ -1853,15 +1811,11 @@ def plotsetup_3stacked(yhi=2, ylo=0, xlo = 3200, xhi = 3800,
         ax.get_xaxis().get_major_formatter().set_useOffset(False)
         plt.setp(ax.get_xticklabels(), rotation=45)    
 
-     # Place label A., B. C.
-#    for k in range(len(axis_list)):
-#        axis_list[k].text(xhi-(0.02*xhi), yhi-(0.2*yhi), 
-#                string.ascii_uppercase[k], fontweight='bold')
-
     ax3.set_xlabel('Wavenumber (cm$^{-1}$)')
     for ax in [ax1, ax2]:
         plt.setp(ax.get_xticklabels(), visible=False)
     return axis_list
+
 
 #%% Generate 3D whole-block area and water profiles
 def make_3DWB_area_profile(final_profile, 
@@ -1983,8 +1937,6 @@ def make_3DWB_area_profile(final_profile,
         ylabelstring = 'Final area / Initial area'
         if peakwn is not None:
             print('NOT READY FOR PEAKFITTING YET')
-#            extrabit = '\n for peak at ' + str(peakwn) + ' cm$^{-1}$'
-#            ylabelstring = ylabelstring + extrabit
         ax.set_ylabel(ylabelstring)
         style = fin.choose_marker_style()
         ax.plot([-leng/2.0, leng/2.0], [1, 1], **styles.style_1)
@@ -2067,5 +2019,3 @@ def make_3DWB_water_profile(final_profile, water_ppmH2O_initial=None,
         return water, fig, ax_areas
     else:
         return water
-
-                

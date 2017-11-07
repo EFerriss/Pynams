@@ -127,6 +127,7 @@ def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1,
 
     return ylow, yhigh
           
+
 def make_line_style(direction, style_marker):
     """Take direction and marker style and return line style dictionary
     that reflects the direction (x, y, z, or u for unoriented) with the 
