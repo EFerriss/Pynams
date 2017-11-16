@@ -82,7 +82,7 @@ def solubility_of_H_in_olivine(Celsius, water_fugacity_GPa=None,
     return ppm
 
 
-def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
+def convertHunit(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
     """
     Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
@@ -326,34 +326,51 @@ def furnace_calibration(reading_celsius):
     return real_temp
 
 
-def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
-    """Takes milliVolts reading from pO2 meter and temperature in Celsius and 
-    and returns log10 oxygen fugacity in bars using the Nernst equation:
+def log10fO2_from_V(volts, celsius, buffermix='CO-CO2'):
+    """
+    Input:
+        Volts reading from pO2 meter 
+        Temperature in Celsius 
+        
+        
+    Returns log10 oxygen fugacity in bars 
+    
+    Uses the Nernst equation:
     E(Volts) = -(RT/zF)lnQ 
-    and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
-    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    and for now assumes a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
+    number of electrons z = 2
+    """
     Kelvin = celsius + 273.15
     z = 2.
-    exponent_in_Q = -0.5    
+    exponent_in_Q = -0.5
+    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
-    logfO2 = -1. * my_constant * mV / (Kelvin)
+    logfO2 = -1. * my_constant * volts / (Kelvin)
+    
     print('{:.1f}'.format(logfO2), 'log10 oxygen fugacity')
     return logfO2
 
     
-def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
-    """Reverse of log10fO2_from_mV
-    Takes target log10fO2 for furnace and temperature in Celsius and 
-    and returns target mV reading on pO2 sensor using the Nernst equation:
+def V_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
+    """
+    Reverse of log10fO2_from_V
+    
+    Input:
+        Target log10fO2 for furnace 
+        Temperature in Celsius 
+        
+        
+    Returns target V reading on pO2 sensor using the Nernst equation:
     E(Volts) = -(RT/zF)lnQ 
     and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
-    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    number of electrons z = 2
+    """
     Kelvin = celsius + 273.15
     z = 2.
     exponent_in_Q = -0.5    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
-    mV = -1. * log10fO2 * Kelvin / my_constant
-    print('\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n')
+    Volts = -1. * log10fO2 * Kelvin / my_constant
+    print('\n', '{:.3f}'.format(Volts), 'target Volts on pO2 meter\n')
 
     
 def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
