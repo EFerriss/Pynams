@@ -1028,6 +1028,7 @@ class Spectrum():
             self.peak_heights = [float(i) for i in peak_heights]
         
         self.numPeaks = len(self.peakpos)
+        self.make_peakareas()
         
         if show_plot is True:
             fig, ax = self.plot_peakfit()
@@ -1045,9 +1046,9 @@ class Spectrum():
             folder = self.folder          
         filename = folder + self.fname + peak_ending
         a = np.transpose(np.vstack((self.peakpos, self.peak_heights, 
-                                    self.peak_widths)))
+                                    self.peak_widths, self.peak_areas)))
         t = ['peak position (wavenumber /cm)', 'height (/cm)', 
-             'width of gaussian (/cm)']
+             'width of gaussian (/cm)', 'area (/cm2)']
         d = pd.DataFrame(data=a, columns=t)
         d.to_csv(filename, index=False)
         print('Saved', filename)
@@ -1072,14 +1073,17 @@ class Spectrum():
         Get individual peaks for spectrum from peakfit file, 
         typically fname-peakfit.CSV, but the peak_ending 
         (default='-peakfit.CSV') can be changed. 
-        Return curves (assumes Gaussians) and summation.       
+        
+        Data is stored in attributes peak_heights, peak_widths, and
+        peak_areas
         """
         if folder is None:
             folder = self.folder
         filename = folder + self.fname + peak_ending
         if os.path.isfile(filename) is True:
             previous_fit = pd.read_csv(filename)
-            # old peakfit files don't have headings
+            
+            # older version peakfit files don't have headings
             if len(list(previous_fit)[0]) < 20:
                 previous_fit = pd.read_csv(filename, header=None)
             
@@ -1089,7 +1093,7 @@ class Spectrum():
             self.numPeaks = len(self.peakpos)
             self.peak_heights = np.array(previous_fit[headers[1]])
             self.peak_widths = np.array(previous_fit[headers[2]])
-            self.make_peakareas()
+            self.peak_areas = np.array(previous_fit[headers[3]])
             print('Got peak info from', filename)
         else:
             print(' ')            
@@ -1111,6 +1115,7 @@ class Spectrum():
         except AttributeError:
             print('No peakfitting information available yet')
             return False, False
+        
         try:
             peakfitcurves = np.ones([len(peakpos), len(self.base_wn)])
         except AttributeError:
@@ -1130,39 +1135,55 @@ class Spectrum():
 
     def make_peakareas(self):
         """
-        Assign peak area based on Gaussian curves from current peak
-        width and height
+        Determine peak area based on Gaussian curves from peak
+        width and height and store them in spectrum.peak_areas
         """
         peakfitcurves, summed_spectrum = self.get_gaussians()
         if peakfitcurves is False:
+            print('Problem making Gaussian for peak area')
             return
         else:
-            self.peak_areas = np.zeros(len(self.peakpos))
-            for k in range(len(self.peakpos)):
-                dx = self.base_high_wn - self.base_low_wn
-                dy = np.mean(peakfitcurves[k])
-                area = dx * dy
-                self.peak_areas[k] = area
-    
+            dx = self.base_high_wn - self.base_low_wn
+            peak_areas = []
+            for curve in peakfitcurves:
+                peak_areas.append(dx * np.mean(curve))
+            self.peak_areas = peak_areas
+#            print('# of curves', len(peakfitcurves))
+#            print('# of peaks', len(self.peakpos))
+            
     
     def make_composite_peak(self, peak_idx_list):
-        """Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
-        other peaks given by their indexes in peak_idx_list"""
+        """
+        Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
+        other peaks given by their indexes in peak_idx_list
+        
+        Input is a list of peak indexes to be grouped together.
+        
+        Adds a new peak to the list of existing information, and lists 
+        the new peak position as the sum of the wavenumbers of the 
+        peaks passed in to create the new composite peak information.
+        """
         peakpos_new = 0.
         peak_height_new = 0.
         peak_width_new = 0.
         peak_area_new = 0.
+        
+        # determine new peak index and if it is already present
         for idx in peak_idx_list:
-            peakpos_new = peakpos_new + self.peakpos[idx]
-            peak_height_new = peak_height_new + self.peak_heights[idx]
-            peak_width_new = peak_width_new + self.peak_widths[idx]
-            peak_area_new = peak_area_new + self.peak_areas[idx]
-    
+            peakpos_new = peakpos_new + self.peakpos[idx]    
 
-        self.peakpos = np.append(self.peakpos, peakpos_new)
-        self.peak_heights = np.append(self.peak_heights, peak_height_new)
-        self.peak_widths = np.append(self.peak_widths, peak_width_new)
-        self.peak_areas = np.append(self.peak_areas, peak_area_new)
+        if np.in1d(peakpos_new, self.peakpos)[0]:
+            print('That composite peak already exists')
+            
+        else:
+            for idx in peak_idx_list:
+                peak_height_new = peak_height_new + self.peak_heights[idx]
+                peak_width_new = peak_width_new + self.peak_widths[idx]
+                peak_area_new = peak_area_new + self.peak_areas[idx]
+            self.peakpos = np.append(self.peakpos, peakpos_new)
+            self.peak_heights = np.append(self.peak_heights, peak_height_new)
+            self.peak_widths = np.append(self.peak_widths, peak_width_new)
+            self.peak_areas = np.append(self.peak_areas, peak_area_new)
         
         
     def plot_peakfit(self, style=styles.style_spectrum, 

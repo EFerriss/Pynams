@@ -454,6 +454,9 @@ class Block():
                         radius=0.25, center=(0, 0), frame=False)
                 ax_pie.axis('equal')
                 ax_pie.set_title(tit)
+        
+        if axes3 is None:
+            return fig, ax
 
 
     def make_composite_peak(self, peak_idx_list):

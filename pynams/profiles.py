@@ -463,6 +463,22 @@ class Profile():
             spec.save_peakfit(folder=folder, peak_ending=peak_ending)
 
 
+    def make_peakfits(self, sensitivity=40, peak_positions=None,
+                      peak_heights=None, peak_widths=None,
+                      show_plots=False):
+        """ 
+        Applies Spectrum method make_peakfit() to all spectra in profile
+        """
+        for spec in self.spectra:
+            spec.make_peakfit(sensitivity=sensitivity, 
+                              peak_positions=peak_positions,
+                              peak_heights=peak_heights, 
+                              peak_widths=peak_widths,
+                              show_plot=show_plots)
+
+        self.get_peak_info()
+        
+
     def get_peakfits(self, peak_ending='-peakfit.CSV'):
         """
         Get saved fit peak information for all spectra in profile and
