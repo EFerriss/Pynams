@@ -1053,12 +1053,15 @@ class Spectrum():
         return base
 
 
-    def automated_baseline(self,wn_high= 4000, wn_low= 2800,polynomial_order=6, make_new_baseline=False, filter_window=21, filter_order=4):
+    def automated_baseline(self,wn_high= 4000, wn_low= 2800,polynomial_order=6, make_new_baseline=True, filter_window=21, filter_order=4):
         #Code for automatically fitting polynomial baselines with pynams
+        #TODO Add baseline functions for Convex hull (Rubberband) Baseline and Asymmetric Least Squares Smoothing
+        #
         """
         Calls PeakUtils baseline function to make Pynams Spectrum Baseline
-        -Set make make_new_baseline to True if you have previously made a baseline
-        for a spectrum
+
+        Code is designed to support multiple calls to produce iterative baselines.
+        Set make_new_baseline=False to make an iterative refinement to a baseline
 
         -filter_window and filter_order control the smoothing of the spectrum that
         the baseline is fit off of. The filter fits savgol polynomials of the
