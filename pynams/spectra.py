@@ -25,8 +25,11 @@ from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
 import gc
 from scipy import signal as scipysignal
 import scipy.linalg as LA
+
 from math import pow
 import scipy.integrate as integrate
+
+
 
 class Spectrum():
     """
@@ -798,7 +801,14 @@ class Spectrum():
 
         'mean_abs' uses the mean of the absorbance to calcuate the area.
         it is less accurate than trapz but maintained for legacy support.
+
+        Discrepency between intergration types is only apparent at small peak
+        widths
         """
+        from scipy.integrate import trapz, simps
+        # For some reason functions only work if imported within method
+
+
         self.subtract_baseline(raw_data=raw_data)
 
         if wn_high is None:
@@ -811,21 +821,21 @@ class Spectrum():
         idx_high = (np.abs(self.base_wn-wn_high)).argmin()
         idx_low = (np.abs(self.base_wn-wn_low)).argmin()
 
-        if type = 'trapz':
-            y = spectrum.abs_nobase_cm[idx_low:idx_high]
-            x = spectrum.wn_full[idx_low:idx_high]
+        if type == 'trapz':
+            y = self.abs_nobase_cm[idx_low:idx_high]
+            x = self.wn_full[idx_low:idx_high]
+            #area = scipytrapz(y, x)
+            area = trapz(y, x)
+            self.area = area
 
-            self.area = integ.trapz(y,x)
+        if type == 'simps':
+            y = self.abs_nobase_cm[idx_low:idx_high]
+            x = self.wn_full[idx_low:idx_high]
+            area = simps(y, x)
+            #area = scipysimps(y, x)
+            self.area = area
 
-        if type = 'simps':
-            y = spectrum.abs_nobase_cm[idx_low:idx_high]
-            x = spectrum.wn_full[idx_low:idx_high]
-
-            self.area = integ.simps(y,x)
-
-        #integrate.trapz
-        #integrate.simps
-        if type = 'mean_abs':
+        if type == 'mean_abs':
             dx = wn_high - wn_low
             dy = np.mean(self.abs_nobase_cm[idx_low:idx_high])
 
@@ -1096,7 +1106,7 @@ class Spectrum():
         base = Spectrum.PeakUtils_baseline(abs_range_hat,deg=polynomial_order)
 
         #Checks if it should make a first iteration baseline
-        if hasattr(self, 'base_abs') == False or make_new_baseline==True:
+        if hasattr(self, 'base_abs') == False or make_new_baseline == True:
             self.base_abs = base
 
         #for second iteration baseline it adds the curret iteration baseline to the older baselines
