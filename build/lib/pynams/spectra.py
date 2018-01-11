@@ -26,7 +26,6 @@ import gc
 from scipy import signal as scipysignal
 import scipy.linalg as LA
 from math import pow
-import scipy.integrate as integrate
 
 class Spectrum():
     """
@@ -775,7 +774,7 @@ class Spectrum():
 
     def make_area(self, show_plot=False, raw_data=False,
                              printout=True, numformat='{:.1f}',
-                             wn_high=None, wn_low=None, type = 'trapz'):
+                             wn_high=None, wn_low=None):
         """
         Returns area under the curve in cm^2 between wavenumbers given
         by wn_high and wn_low.
@@ -790,14 +789,6 @@ class Spectrum():
         format specified by numformat, default 1 number after the decimal.
 
         To plot the baseline at the same time, set show_plot=True.
-
-        Type sets the type of integration used to calcualte the area.
-        'trapz' is a trapezoidal approximation of area.
-
-        'simps' uses the Simpson approximation for integration.
-
-        'mean_abs' uses the mean of the absorbance to calcuate the area.
-        it is less accurate than trapz but maintained for legacy support.
         """
         self.subtract_baseline(raw_data=raw_data)
 
@@ -805,33 +796,14 @@ class Spectrum():
             wn_high = self.base_high_wn
         if wn_low is None:
             wn_low = self.base_low_wn
-
         dx = wn_high - wn_low
 
         idx_high = (np.abs(self.base_wn-wn_high)).argmin()
         idx_low = (np.abs(self.base_wn-wn_low)).argmin()
+        dy = np.mean(self.abs_nobase_cm[idx_low:idx_high])
 
-        if type = 'trapz':
-            y = spectrum.abs_nobase_cm[idx_low:idx_high]
-            x = spectrum.wn_full[idx_low:idx_high]
-
-            self.area = integ.trapz(y,x)
-
-        if type = 'simps':
-            y = spectrum.abs_nobase_cm[idx_low:idx_high]
-            x = spectrum.wn_full[idx_low:idx_high]
-
-            self.area = integ.simps(y,x)
-
-        #integrate.trapz
-        #integrate.simps
-        if type = 'mean_abs':
-            dx = wn_high - wn_low
-            dy = np.mean(self.abs_nobase_cm[idx_low:idx_high])
-
-            area = dx * dy
-            self.area = area
-
+        area = dx * dy
+        self.area = area
 
         if printout is True:
             print(self.fname)
@@ -999,116 +971,112 @@ class Spectrum():
         self.base_low_wn = np.min(data[columns[0]])
         return self.base_abs, self.abs_nobase_cm
 
-    @staticmethod
-    def PeakUtils_baseline(y, deg=3, max_it=100, tol=1e-3):
+@staticmethod
+def PeakUtils_baseline(y, deg=3, max_it=100, tol=1e-3):
 
-        # Baseline function from PeakUtils 1.1.0 by Lucas Hermann Negri
-        """
-        Baseline function from PeakUtils 1.1.0 by Lucas Hermann Negri
-        Computes the baseline of a given data.
-        Iteratively performs a polynomial fitting in the data to detect its
-        baseline. At every iteration, the fitting weights on the regions with
-        peaks are reduced to identify the baseline only.
-        Parameters
-        ----------
-        y : ndarray
-            Data to detect the baseline.
-        deg : int
-            Degree of the polynomial that will estimate the data baseline. A low
-            degree may fail to detect all the baseline present, while a high
-            degree may make the data too oscillatory, especially at the edges.
-        max_it : int
-            Maximum number of iterations to perform.
-        tol : float
-            Tolerance to use when comparing the difference between the current
-            fit coefficient and the ones from the last iteration. The iteration
-            procedure will stop when the difference between them is lower than
-            *tol*.
-        Returns
-        -------
-        ndarray
-            Array with the baseline amplitude for every original point in *y*
-        """
-        order = deg + 1
-        coeffs = np.ones(order)
+    # Baseline function from PeakUtils 1.1.0 by Lucas Hermann Negri
+    """
+    Baseline function from PeakUtils 1.1.0 by Lucas Hermann Negri
+    Computes the baseline of a given data.
+    Iteratively performs a polynomial fitting in the data to detect its
+    baseline. At every iteration, the fitting weights on the regions with
+    peaks are reduced to identify the baseline only.
+    Parameters
+    ----------
+    y : ndarray
+        Data to detect the baseline.
+    deg : int
+        Degree of the polynomial that will estimate the data baseline. A low
+        degree may fail to detect all the baseline present, while a high
+        degree may make the data too oscillatory, especially at the edges.
+    max_it : int
+        Maximum number of iterations to perform.
+    tol : float
+        Tolerance to use when comparing the difference between the current
+        fit coefficient and the ones from the last iteration. The iteration
+        procedure will stop when the difference between them is lower than
+        *tol*.
+    Returns
+    -------
+    ndarray
+        Array with the baseline amplitude for every original point in *y*
+    """
+    order = deg + 1
+    coeffs = np.ones(order)
 
-        # try to avoid numerical issues
-        cond = pow(y.max(), 1. / order)
-        x = np.linspace(0., cond, y.size)
-        base = y.copy()
+    # try to avoid numerical issues
+    cond = pow(y.max(), 1. / order)
+    x = np.linspace(0., cond, y.size)
+    base = y.copy()
 
-        vander = np.vander(x, order)
-        vander_pinv = LA.pinv2(vander)
+    vander = np.vander(x, order)
+    vander_pinv = LA.pinv2(vander)
 
-        for _ in range(max_it):
-            coeffs_new = np.dot(vander_pinv, y)
+    for _ in range(max_it):
+        coeffs_new = np.dot(vander_pinv, y)
 
-            if LA.norm(coeffs_new - coeffs) / LA.norm(coeffs) < tol:
-                break
+        if LA.norm(coeffs_new - coeffs) / LA.norm(coeffs) < tol:
+            break
 
-            coeffs = coeffs_new
-            base = np.dot(vander, coeffs)
-            y = np.minimum(y, base)
+        coeffs = coeffs_new
+        base = np.dot(vander, coeffs)
+        y = np.minimum(y, base)
 
-        return base
-
-
-    def automated_baseline(self,wn_high= 4000, wn_low= 2800,polynomial_order=6, make_new_baseline=False, filter_window=21, filter_order=4):
-        #Code for automatically fitting polynomial baselines with pynams
-        """
-        Calls PeakUtils baseline function to make Pynams Spectrum Baseline
-        -Set make make_new_baseline to True if you have previously made a baseline
-        for a spectrum
-
-        -filter_window and filter_order control the smoothing of the spectrum that
-        the baseline is fit off of. The filter fits savgol polynomials of the
-        window lenght to the self. Wider filters and lower orders produce more
-        smoothing. Window must be an odd number.
-        """
-        #Checks if it should make a first iteration baseline
-
-        if hasattr(self, 'abs_nobase_cm') == False or make_new_baseline==True:
-            if hasattr(self, 'abs_full_cm') == False:
-                self.start_at_zero()
-
-            idx_high = (np.abs(self.wn_full-wn_high)).argmin()
-            idx_low = (np.abs(self.wn_full-wn_low)).argmin()
-
-            abs_range = self.abs_full_cm[idx_low:idx_high]
-            wn_range = self.wn_full[idx_low:idx_high]
+    return base
 
 
-        else:
-            idx_high = (np.abs(self.base_wn-wn_high)).argmin()
-            idx_low = (np.abs(self.base_wn-wn_low)).argmin()
+def Automated_Baseline(self,wn_high= 4000, wn_low= 2800,polynomial_order=6, make_new_baseline=False, filter_window=21, filter_order=4):
+    #Code for automatically fitting polynomial baselines with pynams
+    """
+    Calls PeakUtils baseline function to make Pynams Spectrum Baseline
+    -Set make make_new_baseline to True if you have previously made a baseline
+    for a spectrum
 
-            abs_range = self.abs_nobase_cm[idx_low:idx_high]
-            wn_range = self.base_wn[idx_low:idx_high]
+    -filter_window and filter_order control the smoothing of the spectrum that
+    the baseline is fit off of. The filter fits savgol polynomials of the
+    window lenght to the self. Wider filters and lower orders produce more
+    smoothing. Window must be an odd number.
+    """
+    #Checks if it should make a first iteration baseline
+    if hasattr(self, 'abs_nobase_cm') == False or make_new_baseline==True:
+        idx_high = (np.abs(self.wn_full-wn_high)).argmin()
+        idx_low = (np.abs(self.wn_full-wn_low)).argmin()
 
-        #Create smoothed profile for baseline fitting and peak ID only
-        abs_range_med = scipysignal.medfilt(abs_range,3) # median filter to remove outliers
-        abs_range_hat = scipysignal.savgol_filter(abs_range_med, filter_window, filter_order) # smoothes spectrum with iterative polynomical that works on a window # window size 51, polynomial order 3
-
-        #fit iterative polynomial baseline using PeakUtils baseline module
-        base = Spectrum.PeakUtils_baseline(abs_range_hat,deg=polynomial_order)
-
-        #Checks if it should make a first iteration baseline
-        if hasattr(self, 'base_abs') == False or make_new_baseline==True:
-            self.base_abs = base
-
-        #for second iteration baseline it adds the curret iteration baseline to the older baselines
-        else:
-            idx_high = (np.abs(self.base_wn-wn_high)).argmin()
-            idx_low = (np.abs(self.base_wn-wn_low)).argmin()
-            old_base = self.base_abs[idx_low:idx_high]
-            self.base_abs = old_base + base
-            #this is a problem with the order of operations. I need to make sure that base is subtracted from old base. difference between D= C-A+B and D=C-(A+B)
+        abs_range = self.abs_full_cm[idx_low:idx_high]
+        wn_range = self.wn_full[idx_low:idx_high]
 
 
-        self.base_wn = wn_range
+    else:
+        idx_high = (np.abs(self.base_wn-wn_high)).argmin()
+        idx_low = (np.abs(self.base_wn-wn_low)).argmin()
+
+        abs_range = self.abs_nobase_cm[idx_low:idx_high]
+        wn_range = self.base_wn[idx_low:idx_high]
+
+    #Create smoothed profile for baseline fitting and peak ID only
+    abs_range_med = scipysignal.medfilt(abs_range,3) # median filter to remove outliers
+    abs_range_hat = scipysignal.savgol_filter(abs_range_med, filter_window, filter_order) # smoothes spectrum with iterative polynomical that works on a window # window size 51, polynomial order 3
+
+    #fit iterative polynomial baseline using PeakUtils baseline module
+    base = PeakUtils_baseline(abs_range_hat,deg=polynomial_order)
+
+    #Checks if it should make a first iteration baseline
+    if hasattr(self, 'base_abs') == False or make_new_baseline==True:
+        self.base_abs = base
+
+    #for second iteration baseline it adds the curret iteration baseline to the older baselines
+    else:
+        idx_high = (np.abs(self.base_wn-wn_high)).argmin()
+        idx_low = (np.abs(self.base_wn-wn_low)).argmin()
+        old_base = self.base_abs[idx_low:idx_high]
+        self.base_abs = old_base + base
+        #this is a problem with the order of operations. I need to make sure that base is subtracted from old base. difference between D= C-A+B and D=C-(A+B)
 
 
-        self.subtract_baseline(wn_low=wn_low,wn_high=wn_high, show_plot=False)
+    self.base_wn = wn_range
+
+
+    self.subtract_baseline(wn_low=wn_low,wn_high=wn_high, show_plot=False)
 
     def get_3baselines(self, folder=None, delim=',',
                 baseline_ending='-3baselines.CSV'):
