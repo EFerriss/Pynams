@@ -14,7 +14,7 @@ Please cite this code as
 Ferriss, E. (2018); pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.2.0; DOI: 10.5281/zenodo.1172001
 
 A note on versions:  
-pynams v0.2.0 was used to interpret data on [H diffusion in olivine](https://github.com/EFerriss/olivine)
+pynams v0.2.0 was used to interpret data on [H diffusion in olivine](https://github.com/EFerriss/olivine)  
 pynams v0.1.0 was used to interpret data on [H diffusion in clinopyroxene](https://github.com/EFerriss/HydrogenCpx)
 
 This material is based upon work supported by the National Science Foundation under Grant Number 1449699. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
