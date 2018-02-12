@@ -151,15 +151,6 @@ D16 = Diffusivities(description='Demouchy et al. 2016',
 #                            'fillstyle' : 'none',
 #                            'linestyle' : 'none', 'markersize' : 10})
 #
-## Du Frane & Tybursky 2012 self-diffusion in olivine
-#DuFrane = Diffusivities(
-#          description = 'H self-diffusion\nDuFrane & Tybursky 2012',
-#          celsius_x = [750, 800, 900], logDx = [-12.3, -11.7, -11.2],
-#          celsius_z = [900], logDz = [-12], logDx_error = [0.3, 0.1, 0.1],
-#          logDz_error = [0.2],
-#          basestyle = {'color' : 'purple', 'marker' : 's', 'alpha' : 0.5,
-#                       'markersize' :  markersizefloat})
-#
 
 ##%% clinopyroxene
 #H_CrDiopside_Ingrin95 = Diffusivities(
