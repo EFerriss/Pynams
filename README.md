@@ -11,7 +11,7 @@ Interpret [FTIR](https://en.wikipedia.org/wiki/Fourier_transform_infrared_spectr
 ## [Check out the tutorial](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb)
 
 Please cite this code as  
-Ferriss, E. (2018); pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.2.0; DOI: 10.5281/zenodo.1172001
+Elizabeth Ferriss. (2018) Pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.2.0; Zenodo. http://doi.org/10.5281/zenodo.1172001
 
 A note on versions:  
 pynams v0.2.0 was used to interpret data on [H diffusion in olivine](https://github.com/EFerriss/olivine)  
