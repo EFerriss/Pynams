@@ -4,34 +4,89 @@ Created on Wed Dec 02 09:33:13 2015
 
 @author: Ferriss
 
-supporting functions for performing experiments on 
-nominally anhydrous minerals. For now there's only one function.
+Functions to help with performing and interpreting experiments on 
+nominally anhydrous minerals. 
 
-pressure_design() takes dimensions and details for sample in 
-high pressure piston cylinder experiments
+
 """
 from __future__ import print_function, division, absolute_import
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.path import Path
 from scipy import constants
+from scipy.interpolate import interp1d
 import numpy as np
 
 GAS_CONSTANT = constants.physical_constants['molar gas constant'][0] # J/molK
 FARADAY_CONSTANT = constants.physical_constants['Faraday constant'][0]
 
-style_pressure_medium = {'hatch' : 'O', 'facecolor' : 'lightgrey'}
-style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
-style_MgO = {'hatch' : '..', 'facecolor' : 'white'}
-style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
-style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
-style_buffer = {'facecolor' : 'w', 'hatch' : '*', 'edgecolor' : 'g'}
+#%% water concentration as a function of water fugacity   
+def solubility_of_H_in_olivine(Celsius, water_fugacity_GPa=None, 
+                               pressure_GPa=1, author='Mosenfelder',
+                               printout=True):
+    """
+    Returns fully saturated solubility of olivine in H/10^6 Si and ppm H2O.
 
-def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
+    Required: temperature in Celsius and either the pressure in GPa (default=1)
+    or the water fugacity in GPa. Setting the water fugacity overrides the
+    water fugacity calculated based on the pressure and an assumed temperature
+    of 1100 C.
+        
+    Options for volume change with pressure dV are set by kwarg author.
+    Use 'Mosenfelder' (default) for dV from Mosenfelder et al. 2006, 
+    'Kohlstedt' for Kohlstedt et al. 1996, or 'Zhao' for Zhao et al. 2004
+    """
+    Kelvin = Celsius + 273.15
+    
+    if water_fugacity_GPa is None and pressure_GPa is None:
+        print('Required: either water_fugacity in GPa or pressure in GPa')
+        return
+    
+    if author == 'Mosenfelder':
+        # Mosenfelder et al. 2006
+        dV = 10.2e-6 # m^3/mol
+    elif author == 'Kohlstedt':
+        # Kohlstedt et al. 1996
+        dV = 10.0e-6 # m^3/mol
+    elif author == 'Zhao':
+        # Zhao et al. 2004
+        dV = 10.6e-6 # m^3/mol
+    else:
+        print('author options are Mosenfelder, Kohlstedt, or Zhao')
+        print('defaulting to Mosenfelder et al. 2006')
+        dV = 10.2e-6 # m^3/mol
+
+    # water fugacity as a function of pressure at constant temp of 1100 C
+    # www.esci.umn.edu/people/researchers/withe012/fugacity.htm
+    GPa = [0.01, 0.1, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    fugacity = [0.00997, 0.098, 0.6, 2, 12.13, 55.3, 218.66, 784.98, 2625, 
+                8305.9, 25092.63, 72904., 204764.6, 558205.715, 1481665.06]
+
+    if pressure_GPa is None:
+        f_spline_fit = interp1d(np.log10(fugacity), GPa, kind='cubic')
+        pressure_GPa = f_spline_fit(np.log10(water_fugacity_GPa))
+
+    if water_fugacity_GPa is None:
+        f_spline_fit_p2f = interp1d(GPa, fugacity, kind='cubic')
+        water_fugacity_GPa = f_spline_fit_p2f(pressure_GPa)
+
+    # The exponent part keeps going to 1 because all the numbers are so small.
+    pressure_Nm2 = pressure_GPa * 1e9
+    exponent_part = np.exp((-1.0*pressure_Nm2*dV) / (GAS_CONSTANT*Kelvin))
+    A = 2.45 # H/10^6 Si / GPa
+    n = 1
+    C = A * (water_fugacity_GPa**n) * exponent_part
+    ppm = C * 60
+    if printout is True:
+        print('Solubility of H in olivine:', ppm, 'ppm H2O')
+    return ppm
+
+
+def convertHunit(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
              printout=True):
     """
     Convert hydrogen concentrations to/from H/10^6 Si and ppm H2O.
-    See Table 3 of Denis et al. 2013
+    Based on Table 3 of Denis et al. 2013
     """
     if phase == 'Fo90':
         H_to_1_ppm = 16.35
@@ -79,6 +134,7 @@ def convertH(conc, from_unit='H/10^6 Si', to_unit='ppm H2O', phase='Fo90',
                            '{:.2f}'.format(new_conc), to_unit, 'for', phase))
         print(output)
     return new_conc
+
 
 def bubble_tower(panel='middle', minor_setting=40, 
                  major_setting=155., major_gas='CO2',
@@ -225,13 +281,19 @@ def bubble_tower(panel='middle', minor_setting=40,
     percentCO2 = 100. * yCO2 / (yCO2 + yCO)
     ax.text(10., 0.9, ''.join(('{:.2f}'.format(percentCO2), '% CO$_2$')))
 
+
 def fO2(celsius, bars=1., buffer_curve='QFM'):
     """ 
-    Input is temperature in Celcius, pressure in bars (default is 1)
+    Input:
+        Temperature in Celcius
+        Pressure in bars (default is 1)
+        Buffer curve. Options are QFM (default), NNO, and IW
+            QFM = quartz - fayalite - magnetite buffer (default)
+            NNO = Ni-NiO
+            IW = iron-wustite; Fe-FeO
+
     Output is log10 oxygen fugacity in bars for buffer_curve
-    QFM = quartz - fayalite - magnetite buffer (default)
-    NNO = Ni-NiO
-    IW = iron-wustite; Fe-FeO
+
     Regression of data from O’Neill (1987b) from Herd, 2008.
     """
     Kelvin = celsius + 273.15
@@ -255,6 +317,7 @@ def fO2(celsius, bars=1., buffer_curve='QFM'):
     logfO2 = ((A / Kelvin) + B + (C * (bars-1.0) / Kelvin))
     return logfO2
     
+
 def furnace_calibration(reading_celsius):
     """Calibration for furnace 4 in Dave Walker's lab at LDEO
     based on gold calibration"""
@@ -262,34 +325,102 @@ def furnace_calibration(reading_celsius):
     print('{:.1f}'.format(real_temp), 'degrees C')
     return real_temp
 
-def log10fO2_from_mV(mV, celsius, buffermix='CO-CO2'):
-    """Takes milliVolts reading from pO2 meter and temperature in Celsius and 
-    and returns log10 oxygen fugacity in bars using the Nernst equation:
+
+def log10fO2_from_V(volts, celsius, buffermix='CO-CO2'):
+    """
+    Input:
+        Volts reading from pO2 meter 
+        Temperature in Celsius 
+        
+        
+    Returns log10 oxygen fugacity in bars 
+    
+    Uses the Nernst equation:
     E(Volts) = -(RT/zF)lnQ 
-    and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
-    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    and for now assumes a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
+    number of electrons z = 2
+    """
     Kelvin = celsius + 273.15
     z = 2.
-    exponent_in_Q = -0.5    
+    exponent_in_Q = -0.5
+    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
-    logfO2 = -1. * my_constant * mV / (Kelvin)
+    logfO2 = -1. * my_constant * volts / (Kelvin)
+    
     print('{:.1f}'.format(logfO2), 'log10 oxygen fugacity')
     return logfO2
+
     
-def mV_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
-    """Reverse of log10fO2_from_mV
-    Takes target log10fO2 for furnace and temperature in Celsius and 
-    and returns target mV reading on pO2 sensor using the Nernst equation:
+def V_from_log10fO2(log10fO2, celsius, buffermix='CO-CO2'):
+    """
+    Reverse of log10fO2_from_V
+    
+    Input:
+        Target log10fO2 for furnace 
+        Temperature in Celsius 
+        
+        
+    Returns target V reading on pO2 sensor using the Nernst equation:
     E(Volts) = -(RT/zF)lnQ 
     and for now assuming a mixture of CO and CO2, so Q ~= fO2 ^(1/2) and 
-    number of electrons z = 2, so there is a factor of 4 in the mix"""
+    number of electrons z = 2
+    """
     Kelvin = celsius + 273.15
     z = 2.
     exponent_in_Q = -0.5    
     my_constant = z * FARADAY_CONSTANT / (exponent_in_Q * GAS_CONSTANT * 2.303) 
-    mV = -1. * log10fO2 * Kelvin / my_constant
-    print('\n', '{:.3f}'.format(mV), 'target mV on pO2 meter\n')
+    Volts = -1. * log10fO2 * Kelvin / my_constant
+    print('\n', '{:.3f}'.format(Volts), 'target Volts on pO2 meter\n')
+
     
+def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
+    """
+    Makes and returns path representing the capsule shape for use in 
+    pressure vessel schematics as in pressure_design()
+    """
+    thick = (outerD - innerD) / 2.
+    if shape == 'regular':
+        verts = [(x + thick*2 + innerD, y),
+                 (x, y),
+                 (x, y + height),
+                 (x + thick, y + height),
+                 (x + thick, y + innerD/2.),
+                 (x + thick + innerD/2., y + thick),
+                 (x + thick + innerD, y + innerD/2.),
+                 (x + thick + innerD, y + height),
+                 (x + thick*2 + innerD, y + height),
+                 (0., 0.)]
+        codes = [Path.MOVETO] + ([Path.LINETO] * 8) + [Path.CLOSEPOLY]
+    elif shape == 'suaged':
+        th_flap = thick/2.
+        verts = [(x + thick*2 + innerD, y),
+                 (x, y),
+                 (x, y + height + th_flap),
+                 (x + thick + innerD/2., y + height + th_flap),
+                 (x + thick + innerD/2., y + height),
+                 (x + thick, y + height),
+#                 (x + thick, y + thick),
+                 (x + thick, y + innerD/2.),
+                 (x + thick + innerD/2., y + thick),
+                 (x + thick + innerD, y + innerD/2.), 
+#                 (x + thick + innerD, y + thick),
+                 (x + thick + innerD, y + height),
+                 (x + thick + innerD/2., y + height),
+                 (x + thick + innerD/2., y + height + th_flap),
+                 (x + thick*2 + innerD, y + height + th_flap),
+                 (x + thick*2 + innerD, y + height - th_flap),
+                 (0., 0.)]
+        codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
+    path = Path(verts, codes)
+    return path
+
+style_pressure_medium = {'hatch' : '..', 'facecolor' : 'lightgrey'}
+style_graphite = {'hatch' : '/', 'facecolor' : 'dimgrey'}
+style_MgO = {'hatch' : None, 'facecolor' : 'white', 'edgecolor' : 'k'}
+style_pyrophyllite = {'hatch' : 'xx', 'facecolor' : 'hotpink'}
+style_capsule = {'facecolor' : 'orange', 'edgecolor' : 'k'}
+style_buffer = {'facecolor' : 'w', 'hatch' : 'xxxxx', 'edgecolor' : 'k'}
+
        
 def pressure_design(capsule_material = 'copper',
                     pressure_medium_material='BaCO$_3$',
@@ -366,41 +497,7 @@ def pressure_design(capsule_material = 'copper',
                              
     MgO_base = patches.Rectangle((xgc+th_gc, h_graphite_button),
                                  od_MgO_base, h_MgO_base, **style_MgO)
-
-    def make_capsule_shape(x, y, height, outerD, innerD, shape='regular'):
-        thick = (outerD - innerD) / 2.
-        if shape == 'regular':
-            verts = [(x + thick*2 + innerD, y),
-                     (x, y),
-                     (x, y + height),
-                     (x + thick, y + height),
-                     (x + thick, y + innerD/2.),
-                     (x + thick + innerD/2., y + thick),
-                     (x + thick + innerD, y + innerD/2.),
-                     (x + thick + innerD, y + height),
-                     (x + thick*2 + innerD, y + height),
-                     (0., 0.)]
-            codes = [Path.MOVETO] + ([Path.LINETO] * 8) + [Path.CLOSEPOLY]
-        elif shape == 'suaged':
-            th_flap = thick/2.
-            verts = [(x + thick*2 + innerD, y),
-                     (x, y),
-                     (x, y + height + th_flap),
-                     (x + thick + innerD/2., y + height + th_flap),
-                     (x + thick + innerD/2., y + height),
-                     (x + thick, y + height),
-                     (x + thick, y + thick),
-                     (x + thick + innerD, y + thick),
-                     (x + thick + innerD, y + height),
-                     (x + thick + innerD/2., y + height),
-                     (x + thick + innerD/2., y + height + th_flap),
-                     (x + thick*2 + innerD, y + height + th_flap),
-                     (x + thick*2 + innerD, y + height - th_flap),
-                     (0., 0.)]
-            codes = [Path.MOVETO] + ([Path.LINETO] * (len(verts)-2)) + [Path.CLOSEPOLY]
-        path = Path(verts, codes)
-        return path
-    
+   
     # sleeve around capsule
     sleeve_path = make_capsule_shape(x=xgc + th_gc, 
                                      y=h_graphite_button + h_MgO_base,
@@ -531,7 +628,6 @@ def pressure_design(capsule_material = 'copper',
         lid = patches.Rectangle((xgc + th_gc + th_sleeve, 
                     h_graphite_button + h_MgO_base + th_sleeve + h_capsule),
                     id_sleeve, h_lid, **style_capsule)
-
 
     ax.add_patch(pressure_medium)
     ax.add_patch(graphite_button)

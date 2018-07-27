@@ -17,21 +17,6 @@ style_points = {'color' : 'b', 'marker' : 'o', 'markersize' : 6,
                 'fillstyle' : 'full', 'linestyle' : 'none',}
 style_lightgreen = {'color' : 'lightgreen', 'linewidth' : 4}
 style_blue = {'color' : 'blue', 'linestyle' : '-', 'marker': None}
-#style_points_tiny = {'color' : 'blue', 'marker' : '.', 'markersize' : 1,
-#                     'fillstyle' : 'none', 'linestyle' : 'none', 
-#                     'linewidth' : 1, 'alpha' : 1}
-#
-#                    
-#                
-#style_points_crosses = {'color' : 'k', 'marker' : '+', 'markersize' : 10,
-#                        'linestyle' : 'none'}
-#style_initial_bittleboxes = {'color' : 'black', 'marker' : 's', 'markersize' : 3,
-#                            'fillstyle' : 'none', 'linestyle' : 'none', 
-#                            'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
-#                            'markerfacecolor' : 'w'}
-#style_profile_default = {'markeredgecolor' : 'blue', 'linestyle' : 'none', 
-#                         'marker' : 's', 'fillstyle' : 'none', 
-#                         'markersize' : 10, 'alpha' : 0.5}
 style_points0 = {'color' : 'black', 'marker' : 'D', 'markersize' : 6,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial',
@@ -60,19 +45,6 @@ style_points6 = {'color' : 'orangered', 'marker' : 'o', 'markersize' : 5,
 style_points7 = {'color' : 'violet', 'marker' : 'v', 'markersize' : 7,
                  'fillstyle' : 'full', 'linestyle' : 'none', 
                  'linewidth' : 1, 'alpha' : 1, 'label' : 'initial'}
-#
-#style_list_points = [style_points0,
-#                     style_points1,
-#                     style_points2,
-#                     style_points3,
-#                     style_points4,
-#                     style_points5,
-#                     style_points6,
-#                     style_points7,
-#                     style_points]
-#
-#
-##                'markerfacecolor' : 'w'}
 style_baseline = {'color' : 'k', 'linewidth' : 1, 'linestyle' :'-'}
 style_spectrum = {'color' : 'b', 'linewidth' : 3}
 style_spectrum_red = {'color' : 'r'}
@@ -80,11 +52,7 @@ style_fitpeak = {'color' : 'g', 'linewidth' : 1}
 style_summed = {'color' : 'orangered', 'linewidth' : 2, 'linestyle' : '--'}
 style_profile = {'markeredgecolor' : 'black', 'linestyle' : '', 'marker' : 'o', 
                  'markersize' : 10, 'markerfacecolor' : 'grey', 'alpha' : 0.5}
-#
-#style_initial_point = {'color' : 'grey', 'label' : 'initial', 'linestyle' : 'none',
-#                       'marker' : 'o', 'alpha' : 0.5}
 style_initial = {'color' : 'blue', 'label' : 'initial', 'linestyle' : '--'}                 
-#style_initialgrey = {'color' : 'grey', 'label' : 'initial', 'linestyle' : '-'}
 style_1a = {'linestyle' : '--', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_1 = {'linestyle' : '-', 'color' : 'k', 'marker' : None, 'linewidth' : 1}
 style_2 = {'color':'red', 'linewidth': 2.5, 'linestyle' : '-.'}
@@ -98,34 +66,7 @@ style_6 = {'color':'cyan', 'linewidth':2., 'linestyle' : '--'}
 style_7 = {'color':'steelblue', 'linewidth':3., 'linestyle' : '-.'}
 style_8 = {'color':'violet', 'linewidth':2., 'linestyle' : '-'}
 style_grey = {'color' : 'grey', 'linewidth':4, 'linestyle' : '-'}
-#
-#style_list = [style_initial, 
-#              style_2,
-#              style_3,
-#              style_4,
-#              style_5,
-#              style_6,
-#              style_7,
-#              style_8,
-#              style_1]
-#
-#style_list2 = [style_1, 
-#               style_grey, 
-#               style_2, 
-#               style_3, 
-#               style_4,
-#               style_5, 
-#               style_6, 
-#               style_7, 
-#               style_8]
-#
-#style_unoriented = {'fillstyle' : 'none'}
-#
-#style_diffusioncurve = {'color' : 'grey', 'linewidth' : 4, 
-#                        'linestyle' : '-', 'alpha' : 0.5}
-#style_errorbounds = {'color' : 'grey', 'linewidth' : 2, 
-#                     'linestyle' : '--', 'alpha' : 0.5}
-#
+
 ## different profile directions
 style_Dx = {'fillstyle' : 'left', 'color' : 'red', 'markerfacecolor' : 'red'}
 style_Dy = {'fillstyle' : 'bottom', 'color' : 'green', 
@@ -138,39 +79,8 @@ style_Dx_line = {'linestyle' : '--', 'color' : 'red'}
 style_Dy_line = {'linestyle' : '-.', 'color' : 'green'}
 style_Dz_line = {'linestyle' : ':', 'color' : 'blue'}
 style_Du_line = {'linestyle' : '-', 'color' : 'black'}
-#style_orient = [style_Dx, style_Dy, style_Dz, style_Du]            
-#style_orient_lines = [style_Dx_line, style_Dy_line, style_Dz_line, style_Du_line]            
-#
-## different ray paths
-#style_Rx = {'marker' : 'd'}
-#style_Ry = {'marker' : 'o'}
-#style_Rz = {'marker' : 's'}
-#
-#style_bulk = {'marker' : 'o', 'fillstyle' : 'none', 'linestyle' : 'none',
-#              'color' : 'k', 'markersize' : 7}
-#
-#style_peak0 = {'marker' : 'x', 'fillstyle' : 'none', 'linestyle' : 'none',
-#              'color' : 'r', 'markersize' : 6, 'label' : '3645 cm$^{-1}$'}
-#
-#style_peak1 = {'marker' : '+', 'fillstyle' : 'none', 'linestyle' : 'none',
-#              'color' : 'orange', 'markersize' : 6, 'label' : '3617 cm$^{-1}$'}
-#
-#style_peak2 = {'marker' : 's', 'fillstyle' : 'full', 'linestyle' : 'none',
-#              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'teal',
-#              'alpha' : 0.5, 'label' : '3540 cm$^{-1}$'}
-#
-#style_peak3 = {'marker' : '_', 'fillstyle' : 'none', 'linestyle' : 'none',
-#              'color' : 'g', 'markersize' : 6, 'mew' : 2,
-#              'label' : '3460 cm$^{-1}$'}
-#
-#style_peak4 = {'marker' : '|', 'fillstyle' : 'none', 'linestyle' : 'none',
-#              'color' : 'b', 'markersize' : 6, 'mew' : 2,
-#              'label' : '3443 cm$^{-1}$'}
-#
-#style_peak5 = {'marker' : 'd', 'fillstyle' : 'full', 'linestyle' : 'none',
-#              'color' : 'k', 'markersize' : 6, 'markerfacecolor' : 'violet',
-#              'alpha' : 0.5, 'label' : '3350 cm$^{-1}$'}
-#
+
+
 def get_iorient(orient):
     """Converts x, y, z, u and a, b, c, u to 0, 1, 2, 3. 
     This is a helper function for bound methods in class diffusivitiy 
@@ -186,6 +96,7 @@ def get_iorient(orient):
     else:
         iorient = orient
     return iorient
+
         
 def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1, 
                 pad_bot=0., raw_data=False):
@@ -194,12 +105,15 @@ def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1,
     y-axis of plots based on the absorbance values for the specified wavenumber
     range and padded top and bottom with pad variable
     """
-    if spectrum.thickness_microns is None:
+    try:
+        if spectrum.thickness_microns is None:
+            absorbance = spectrum.abs_raw
+        else:
+            spectrum.start_at_zero(wn_xlim_left=wn_xlim_left,
+                               wn_xlim_right=wn_xlim_right)
+            absorbance = spectrum.abs_full_cm
+    except AttributeError:
         absorbance = spectrum.abs_raw
-    else:
-        spectrum.start_at_zero(wn_xlim_left=wn_xlim_left,
-                           wn_xlim_right=wn_xlim_right)
-        absorbance = spectrum.abs_full_cm
         
     idx_lo = (np.abs(spectrum.wn_full-wn_xlim_right)).argmin()
     idx_hi = (np.abs(spectrum.wn_full-wn_xlim_left)).argmin()
@@ -213,6 +127,7 @@ def ylim_picker(spectrum, wn_xlim_left=4000, wn_xlim_right=3000, pad_top=0.1,
 
     return ylow, yhigh
           
+
 def make_line_style(direction, style_marker):
     """Take direction and marker style and return line style dictionary
     that reflects the direction (x, y, z, or u for unoriented) with the 
@@ -227,6 +142,7 @@ def make_line_style(direction, style_marker):
         d = style_Du_line
     d.update({'linewidth' : 2})
     return d
+
 
 def plot_spectrum_outline(size_inches=(6, 6), shrinker=0.15,
                           figaxis=None, wn_xlim_left=4000., 
@@ -255,12 +171,15 @@ def plot_spectrum_outline(size_inches=(6, 6), shrinker=0.15,
     if figaxis is None:
         return f, ax
     
+
 def plot_area_profile_outline(centered=True, peakwn=None,
                               set_size=(6.5, 4), ytop=1.2, 
                               wholeblock=False, heights_instead=False,
                               show_water_ppm=True):
-    """Set up area profile outline and style defaults. 
-    Default is for 0 to be the middle of the profile (centered=True)."""
+    """
+    Set up area profile outline and style defaults. 
+    Default is for 0 to be the middle of the profile (centered=True).
+    """
     fig = plt.figure(figsize=set_size)
     ax = SubplotHost(fig, 1,1,1)
     fig.add_subplot(ax)
@@ -292,6 +211,7 @@ def plot_area_profile_outline(centered=True, peakwn=None,
     ax.grid()
     return fig, ax, ax_ppm
 
+
 def plot_3panels_outline(style=None, ytop=1.2, figsize=(6.5, 2.5),
                          shrinker=0.1, heights_instead=False,
                          wholeblock=True, unit='microns'):
@@ -304,7 +224,6 @@ def plot_3panels_outline(style=None, ytop=1.2, figsize=(6.5, 2.5),
 
     for k in range(3):
         axis3[k].set_ylim(0, ytop)
-#        axis3[k].grid()
         box = axis3[k].get_position()
         plt.setp(axis3[k].xaxis.get_majorticklabels(), rotation=45)
         axis3[k].set_position([box.x0 + box.width*shrinker, 
@@ -336,17 +255,17 @@ def plot_3panels_outline(style=None, ytop=1.2, figsize=(6.5, 2.5),
     plt.setp(axis3[2].get_yticklabels(), visible=False)
     return fig, axis3
     
+
 def plot_3panels(positions_microns, area_profiles, lengths=None,
                  styles3=[None, None, None], ytop=1.2, figaxis3=None, 
                  show_line_at_1=True, init=1., 
-                 label4legend=[None, None, None],
                  centered=True, unit='microns',
                  percent_error=3., xerror=50., yerror=None,
                  heights_instead=False, wholeblock=True,
-                 use_errorbar=False):
-    """Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
+                 use_errorbar=False, scale=1.):
+    """
+    Make 3 subplots for 3D and 3DWB profiles. The position and area profiles
     are passed in lists of three lists for a, b, and c.
-    Positions are assumed to start at 0 and then are centered.
     """
     if figaxis3 is None:
         fig, axis3 = plot_3panels_outline(ytop=ytop, wholeblock=wholeblock,
@@ -364,8 +283,8 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         x = positions_microns[k]
         if unit == 'mm':
             x = np.array(x) / 1000.
-        y = area_profiles[k]
-                
+        y = np.array(area_profiles[k])
+
         if len(x) != len(y):
             print('Problem in plot_3panels')
             print('len(x):', len(x))
@@ -374,17 +293,20 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
         a = lengths[k] / 2.
         pos = x 
         
+        current_length = axis3[k].get_xlim()[1]
         if centered is True:
-            axis3[k].set_xlim(-a, a)
+            if current_length < a:
+                axis3[k].set_xlim(-a, a)
         else:
-            axis3[k].set_xlim(0., lengths[k])            
+            if current_length < lengths[k]:
+                axis3[k].set_xlim(0., lengths[k])            
 
         if show_line_at_1 is True:
             axis3[k].plot([-a, lengths[k]], [init, init], '--k')
             
         if styles3[k] is None:
             styles3[k] = style_lightgreen
-            
+                   
         if np.isnan(y).any():
             axis3[k].text(0, axis3[k].get_ylim()[1]/2., 
                          'nan values!\n\nProbably the\ninitial area was 0',
@@ -399,16 +321,15 @@ def plot_3panels(positions_microns, area_profiles, lengths=None,
                          verticalalignment='center')
 
         else:
-            styles3[k]['label'] = label4legend[k]
             if use_errorbar is True:
                 if yerror is None:
-                    yerrorplot = np.array(y) * percent_error/100.
+                    yerrorplot = np.array(y*scale) * percent_error/100.
                 else:
                     yerrorplot = np.ones_like(pos) * yerror
-                axis3[k].errorbar(pos, y, xerr=xerror, yerr=yerrorplot, 
-                                **styles3[k])
+                axis3[k].errorbar(pos, y*scale, 
+                                  xerr=xerror, yerr=yerrorplot, **styles3[k])
             else:
-                axis3[k].plot(pos, y, **styles3[k])
+                axis3[k].plot(pos, y*scale, **styles3[k])
 
     if figaxis3 is None:
         return fig, axis3   

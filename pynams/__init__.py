@@ -13,8 +13,10 @@ from .profiles import Profile
 from .blocks import Block
 from . import styles
 from .diffusion import literaturevalues as dlib
-from .diffusion.arrhenius import Diffusivities
+from .diffusion.diffusivities import Diffusivities
 from . import example_FTIR_spectra
-import os
-ftirpath = os.path.dirname(example_FTIR_spectra.__file__)
-example_FTIR_file_location = ''.join((ftirpath,'\\'))
+from .experiments import solubility_of_H_in_olivine
+from .experiments import convertHunit
+from .experiments import fO2
+from .experiments import V_from_log10fO2
+from .experiments import log10fO2_from_V

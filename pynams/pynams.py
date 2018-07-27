@@ -7,9 +7,9 @@ but they both use functions stored here.
 
 """
 from __future__ import print_function, division, absolute_import
-#from .uncertainties import ufloat
 from uncertainties import ufloat
 import numpy as np
+
 
 def absorption_coefficients(phase, calibration):
     """
@@ -48,6 +48,7 @@ def absorption_coefficients(phase, calibration):
         return False
 
     return absorption_coeff        
+
     
 def area2water(area_cm2, phase='cpx', calibration='Bell'):
     """
@@ -58,6 +59,7 @@ def area2water(area_cm2, phase='cpx', calibration='Bell'):
                                                calibration=calibration)
     w = absorption_coeff * area_cm2
     return w
+
         
 def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     """
@@ -67,3 +69,21 @@ def make_gaussian(pos, h, w, x=np.linspace(3000, 4000, 150)):
     y = h * np.e**(-((x-pos) / (0.6005615*w))**2)
     return y
 
+
+def make_peakheights(wb, peaks=[3600, 3525, 3356, 3236]):
+    """
+    Requires:
+        1. wb: a wholeblock object that already has baselines.
+        2. peaks: a list of peak wavenumber locations in cm-1
+        (default peaks=[3600, 3525, 3356, 3236])
+    Creates profiles peak positions and peak_heights using that baseline
+    """
+    for prof in wb.profiles:
+        prof.peakpos = peaks
+        prof.peak_heights = [[]]*len(peaks)    
+        for pidx, peak in enumerate(peaks): 
+            prof.peak_heights[pidx] = []
+            for spec in prof.spectra:
+                idx = np.abs(peak - spec.base_wn).argmin()
+                height = spec.abs_nobase_cm[idx]
+                prof.peak_heights[pidx].append(height)

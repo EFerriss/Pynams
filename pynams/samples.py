@@ -72,6 +72,7 @@ class Sample():
         else:
             self.Fe = Fe
 
+
         def floatify(lengthy):
             """
             Takes a length or list of lengths and makes it into a single 
@@ -98,6 +99,7 @@ class Sample():
         thinness = floatify(thickness_thinslab_microns)
         self.thickness_microns = [twoA, twoB, twoC, thinness]
         self.lengths_microns = [twoA, twoB, twoC]
+
         
     def get_MgNumber(self):
         """ 
@@ -115,8 +117,8 @@ class Sample():
             print("You don't seem to have any Mg")            
         try:
             MgNum = 100. * self.Mg / (self.Fe + self.Mg)
-            print('Woohoo! Another successful test! Here is the Mg#:')
+            print('\nThe Mg#:')
             print(MgNum)
             self.MgNum = MgNum
         except TypeError:
-            print('Check your Mg and Fe values')
+            print('\nCheck your Mg and Fe values')

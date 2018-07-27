@@ -1,4 +1,4 @@
-peak position (wavenumber /cm),height (/cm),width of gaussian (/cm)
-3616.0,2.6,60.0
-3560.0,1.3,60.0
-3460.0,2.8,150.0
+peak position (wavenumber /cm),height (/cm),width of gaussian (/cm),area (/cm2)
+3616.0,2.6,60.0,165.5072128747839
+3560.0,1.3,60.0,82.7949848483459
+3460.0,2.8,150.0,445.77318986353373

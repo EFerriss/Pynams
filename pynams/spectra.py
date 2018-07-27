@@ -19,23 +19,10 @@ import matplotlib.pyplot as plt
 import pynams.styles as styles
 import scipy.interpolate as interp
 import pandas as pd
-#from .uncertainties import ufloat
 from uncertainties import ufloat
 from . import pynams
 from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-#import diffusion
 import gc
-#import matplotlib.lines as mlines
-#from .uncertainties import ufloat
-#from mpl_toolkits.axes_grid1.parasite_axes import SubplotHost
-#import matplotlib.gridspec as gridspec
-#from matplotlib.ticker import MultipleLocator
-#import string as string
-#import lmfit
-#import uncertainties
-#from matplotlib.backends.backend_pdf import PdfPages
-#import xlsxwriter
-#import json
 from scipy import signal as scipysignal
 
 class Spectrum():
@@ -97,8 +84,7 @@ class Spectrum():
     def __init__(self, fname, filetype='.CSV', folder='', sample=None,
                  thickness_microns=None, raypath=None, polar=None, 
                  base_low_wn=3200, base_high_wn=3700,
-                 base_mid_wn=3550,
-                 ):
+                 base_mid_wn=3550):
         """
         Automatically locates the FTIR file and pulls out the wavenumber 
         (wn_full) and raw absorbance data (abs_raw) and sets the 
@@ -115,47 +101,40 @@ class Spectrum():
         self.filetype = filetype
         self.raypath = raypath        
         
-        try:
-            self.filename = self.folder + self.fname + self.filetype
-            synthetic = False
-        except TypeError:
-            synthetic = True
+        if self.fname is None:
+            return
+        
+        self.filename = self.folder + self.fname + self.filetype
 
-        ### Get the wavenumber and absorbance data from the FTIR file
-        if synthetic is False:
-            if os.path.isfile(self.filename):
-                # read in the signal
-                if self.filetype == '.CSV':
-                    signal = pd.read_csv(self.filename, header=None)
-#                    signal = np.loadtxt(self.filename, delimiter=',')
-                elif self.filetype == '.txt':
-                    try:
-                        signal = np.loadtxt(self.filename, delimiter='\t', 
-                                            dtype=None) 
-                    except ValueError:
-                        print('\nProblem reading this file format. Try .CSV')
-                else:
-                    print('For now only CSV and txt files work.')
-
-                signal = signal.sort_values(by=[0])
-                self.wn_full = np.array(signal[0])
-                self.abs_raw = np.array(signal[1])
-                
-                # set up thickness information
-                if thickness_microns is not None:
-                    self.thickness_microns = thickness_microns
-                else:
-                    if sample is not None:
-                        idx = styles.get_iorient(raypath)
-                        self.thickness_microns = sample.thickness_microns[idx]
-                    else:
-                        self.thickness_microns = None
-    #                    print('Warning: the thickness was not set.')
+        if os.path.isfile(self.filename):
+            if self.filetype == '.CSV':
+                signal = pd.read_csv(self.filename, header=None)
+            elif self.filetype == '.txt':
+                try:
+                    signal = np.loadtxt(self.filename, delimiter='\t', 
+                                        dtype=None) 
+                except ValueError:
+                    print('\nProblem reading this file format. Try .CSV')
             else:
-                print('There is a problem finding the file.')
-                print('filename =', self.filename)
-    #            print('current working directory = ', os.getcwd())
-                print('Maybe check the folder name')
+                print('For now only CSV and txt files work.')
+
+            signal = signal.sort_values(by=[0])
+            self.wn_full = np.array(signal[0])
+            self.abs_raw = np.array(signal[1])
+            
+            if thickness_microns is not None:
+                self.thickness_microns = thickness_microns
+            else:
+                if sample is not None:
+                    idx = styles.get_iorient(raypath)
+                    self.thickness_microns = sample.thickness_microns[idx]
+                else:
+                    self.thickness_microns = None
+        else:
+            print('There is a problem finding the file.')
+            print('filename =', self.filename)
+            print('Maybe check the folder name')
+            
 
     def plot_spectrum(self, axes=None, style=None, offset=0., 
                       label=None, wn_xlim_left=4000., wn_xlim_right=3000., 
@@ -246,6 +225,7 @@ class Spectrum():
         ax.set_ylim(ylow, yhigh)
         ax.set_title(self.fname)
         return fig, ax
+    
 
     def orientation(self, label=None):
         """
@@ -297,7 +277,6 @@ class Spectrum():
         ytext = ax1.get_ylim()[1] - 0.1*ax1.get_ylim()[1]
         wns = [2035, 1925, 1840, 1785, 1670, 1600]
         for idx, wn in enumerate(wns):
-#            print(wn)
             ax1.plot([wn, wn], ax1.get_ylim(), '-r')
             ax1.text(wn, ytext, str(wn), rotation=90, backgroundcolor='w',
                     va='center', ha='center', fontsize=12)
@@ -306,6 +285,7 @@ class Spectrum():
         plt.tight_layout()
         plt.subplots_adjust(wspace=-0.1)
         return fig
+
 
     def get_thickness_from_SiO(self, show_plot=False, printout=False,
                                accept_thickness=True):
@@ -351,7 +331,8 @@ class Spectrum():
             self.divide_by_thickness()
             self.start_at_zero()
         return thickness_microns
-#
+
+
     def find_lowest_wn_over_given_range(self, wn_mid_range_high=3500., 
                                         wn_mid_range_low=3300.,
                                         relative=True):
@@ -417,21 +398,48 @@ class Spectrum():
                 ax.plot([wn, wn], ax.get_ylim(), '-r', linewidth=1.5)        
 
         return self.base_wn[peaks]
+    
         
+    def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
+        """
+        Requires a list of peak wavenumber locations in cm-1
+            (default peaks=[3600, 3525, 3356, 3236])
+        Creates or overwrites any existing peak positions and peak_heights 
+        with peak heights from current baseline
+        """
+        self.peakpos = peaks
+        self.peak_heights = []
+        for peak in (peaks):
+            idx = np.abs(peak - self.base_wn).argmin()
+            height_base = self.base_abs[idx]
+            idx = np.abs(peak - self.wn_full).argmin()
+            height_abs = self.abs_full_cm[idx]                        
+            height = height_abs - height_base
+            self.peak_heights.append(height)
+
+    
     def make_average_spectra(self, spectra_list, folder=None):
         """Takes list of spectra and returns average absorbance (/cm)
         to the new spectrum (self)"""       
         list_abs_to_average = []
+        list_abs_full_to_average = []
         list_wn = []
+        thicknesses = []
         for sp in spectra_list:
-            abs_to_append = sp.abs_raw
-            list_abs_to_average.append(abs_to_append)
+            list_abs_to_average.append(sp.abs_raw)
+            try:
+                list_abs_full_to_average.append(sp.abs_full_cm)
+            except AttributeError:
+                sp.divide_by_thickness()
+                sp.start_at_zero()
+                list_abs_full_to_average.append(sp.abs_full_cm)
             list_wn.append(sp.wn_full)
-        ave_abs = np.mean(list_abs_to_average, axis=0)
-        waven = np.mean(list_wn, axis=0)
-        self.wn_full = waven
-        self.abs_raw = ave_abs
-        self.thickness_microns = None
+            thicknesses.append(sp.thickness_microns)
+        self.wn_full = np.mean(list_wn, axis=0)
+        self.abs_raw = np.mean(list_abs_to_average, axis=0)
+        self.abs_full_cm = np.mean(list_abs_full_to_average, axis=0)
+        self.thickness_microns = np.mean(thicknesses, axis=0)
+        
     
     def divide_by_thickness(self):
         """
@@ -453,6 +461,7 @@ class Spectrum():
             
         self.abs_full_cm = self.abs_raw * 1e4 / th
         return self.abs_full_cm
+    
 
     def start_at_zero(self, wn_xlim_left=4000., wn_xlim_right=3000.):
         """
@@ -479,7 +488,8 @@ class Spectrum():
             print('index_hi at wn', wn_xlim_left, ':', index_hi)
             return False
         return self.abs_full_cm
-#
+    
+
     def make_baseline(self, 
                       raw_data=False, 
                       wn_low=3200, 
@@ -692,6 +702,7 @@ class Spectrum():
                     
         return base_abs
 
+
     def subtract_baseline(self, baseline_abs=None, wn_low=None, wn_high=None,
                           show_plot=False, raw_data=False):
         """
@@ -723,7 +734,6 @@ class Spectrum():
             print('No baseline. Try using raw data or check thickness.')
             return
 
-
         # get wavenumber range in cm-1
         if wn_low is None:
             wn_low = np.max(self.base_wn)
@@ -749,7 +759,6 @@ class Spectrum():
             for n in range(ndif):
                 humps = np.append(humps, humps[-1])
 
-
         abs_nobase_cm = humps - base_abs
 
         if show_plot is True:
@@ -757,6 +766,7 @@ class Spectrum():
 
         self.abs_nobase_cm = abs_nobase_cm
         return abs_nobase_cm
+
 
     def make_area(self, show_plot=False, raw_data=False,
                              printout=True, numformat='{:.1f}', 
@@ -806,6 +816,7 @@ class Spectrum():
             
         return area
 
+
     def water(self, phase='cpx', calibration='Bell', numformat='{:.1f}',
               printout=True, scale_water=3):
         """
@@ -829,6 +840,7 @@ class Spectrum():
                            str(scale_water), ' = ', 
                     numformat.format(w*3.), ' ppm H2O')))
         return w*scale_water
+
 
     def save_spectrum(self, delim='\t', file_ending='-per-cm.txt', 
                       folder=None, raw_data=False, printout=True):
@@ -863,11 +875,11 @@ class Spectrum():
             
         abs_filename = ''.join((folder, self.fname, file_ending))
         a = np.transpose(np.vstack((self.wn_full, absorbance)))
-        d = pd.DataFrame(data=a, columns=['wavenumber (cm-1)', 
-                                          'absorbance (cm-1)'])
-        d.to_csv(abs_filename, index=False)
+        d = pd.DataFrame(data=a)
+        d.to_csv(abs_filename, index=False, header=False)
         if printout is True:
             print('Saved', abs_filename)
+            
             
     def save_baseline(self, folder=None, delim=',',
                       baseline_ending='-baseline.CSV'):
@@ -918,6 +930,7 @@ class Spectrum():
         d.to_csv(base_filename, index=False)
         print('Saved', base_filename)
 
+
     def get_baseline(self, folder=None, delim=',', 
                      baseline_ending='-baseline.CSV',
                      print_confirmation=True):
@@ -935,7 +948,11 @@ class Spectrum():
         """
         if folder is None:
             folder = self.folder
-        filename = ''.join((folder, self.fname, baseline_ending))
+        try:
+            filename = ''.join((folder, self.fname, baseline_ending))
+        except TypeError:
+            print('Problem making filename.')
+            print('Probably you need to specify the folder.')
         if os.path.isfile(filename) is False:
             return
         data = pd.read_csv(filename)
@@ -950,6 +967,7 @@ class Spectrum():
         self.base_low_wn = np.min(data[columns[0]])
         return self.base_abs, self.abs_nobase_cm
         
+    
     def get_3baselines(self, folder=None, delim=',', 
                 baseline_ending='-3baselines.CSV'):
         """Returns block of baseline data saved by water_from_spectra()
@@ -965,6 +983,7 @@ class Spectrum():
                              skip_header=1)
         return data                            
                 
+    
     def make_peakfit(self, sensitivity=40, peak_positions=None,
                      peak_heights=None, peak_widths=None,
                      show_plot=True):
@@ -1009,10 +1028,12 @@ class Spectrum():
             self.peak_heights = [float(i) for i in peak_heights]
         
         self.numPeaks = len(self.peakpos)
+        self.make_peakareas()
         
         if show_plot is True:
             fig, ax = self.plot_peakfit()
             return fig, ax
+
 
     def save_peakfit(self, folder=None, peak_ending='-peakfit.CSV',
                      delim=','):
@@ -1025,12 +1046,13 @@ class Spectrum():
             folder = self.folder          
         filename = folder + self.fname + peak_ending
         a = np.transpose(np.vstack((self.peakpos, self.peak_heights, 
-                                    self.peak_widths)))
+                                    self.peak_widths, self.peak_areas)))
         t = ['peak position (wavenumber /cm)', 'height (/cm)', 
-             'width of gaussian (/cm)']
+             'width of gaussian (/cm)', 'area (/cm2)']
         d = pd.DataFrame(data=a, columns=t)
         d.to_csv(filename, index=False)
         print('Saved', filename)
+
 
     def make_peakfit_like(self, spectrum):
         """
@@ -1044,20 +1066,24 @@ class Spectrum():
         self.numPeaks = spectrum.numPeaks
         self.make_peakareas()
 
+
     def get_peakfit(self, folder=None, delim=',', 
                     peak_ending='-peakfit.CSV'):
         """
         Get individual peaks for spectrum from peakfit file, 
         typically fname-peakfit.CSV, but the peak_ending 
         (default='-peakfit.CSV') can be changed. 
-        Return curves (assumes Gaussians) and summation.       
+        
+        Data is stored in attributes peak_heights, peak_widths, and
+        peak_areas
         """
         if folder is None:
             folder = self.folder
         filename = folder + self.fname + peak_ending
         if os.path.isfile(filename) is True:
             previous_fit = pd.read_csv(filename)
-            # old peakfit files don't have headings
+            
+            # older version peakfit files don't have headings
             if len(list(previous_fit)[0]) < 20:
                 previous_fit = pd.read_csv(filename, header=None)
             
@@ -1067,12 +1093,13 @@ class Spectrum():
             self.numPeaks = len(self.peakpos)
             self.peak_heights = np.array(previous_fit[headers[1]])
             self.peak_widths = np.array(previous_fit[headers[2]])
-            self.make_peakareas()
+            self.peak_areas = np.array(previous_fit[headers[3]])
             print('Got peak info from', filename)
         else:
             print(' ')            
             print('Unable to get peak info from', filename)
             print('Try spec.make_peakfit')            
+        
         
     def get_gaussians(self):
         """
@@ -1088,6 +1115,7 @@ class Spectrum():
         except AttributeError:
             print('No peakfitting information available yet')
             return False, False
+        
         try:
             peakfitcurves = np.ones([len(peakpos), len(self.base_wn)])
         except AttributeError:
@@ -1104,40 +1132,59 @@ class Spectrum():
             summed_spectrum += peakfitcurves[k]
         return peakfitcurves, summed_spectrum
 
+
     def make_peakareas(self):
         """
-        Assign peak area based on Gaussian curves from current peak
-        width and height
+        Determine peak area based on Gaussian curves from peak
+        width and height and store them in spectrum.peak_areas
         """
         peakfitcurves, summed_spectrum = self.get_gaussians()
         if peakfitcurves is False:
+            print('Problem making Gaussian for peak area')
             return
         else:
-            self.peak_areas = np.zeros(len(self.peakpos))
-            for k in range(len(self.peakpos)):
-                dx = self.base_high_wn - self.base_low_wn
-                dy = np.mean(peakfitcurves[k])
-                area = dx * dy
-                self.peak_areas[k] = area
+            dx = self.base_high_wn - self.base_low_wn
+            peak_areas = []
+            for curve in peakfitcurves:
+                peak_areas.append(dx * np.mean(curve))
+            self.peak_areas = peak_areas
+#            print('# of curves', len(peakfitcurves))
+#            print('# of peaks', len(self.peakpos))
+            
     
     def make_composite_peak(self, peak_idx_list):
-        """Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
-        other peaks given by their indexes in peak_idx_list"""
+        """
+        Make a new 'peak', e.g., for [Ti] in olivine, by summing up 
+        other peaks given by their indexes in peak_idx_list
+        
+        Input is a list of peak indexes to be grouped together.
+        
+        Adds a new peak to the list of existing information, and lists 
+        the new peak position as the sum of the wavenumbers of the 
+        peaks passed in to create the new composite peak information.
+        """
         peakpos_new = 0.
         peak_height_new = 0.
         peak_width_new = 0.
         peak_area_new = 0.
+        
+        # determine new peak index and if it is already present
         for idx in peak_idx_list:
-            peakpos_new = peakpos_new + self.peakpos[idx]
-            peak_height_new = peak_height_new + self.peak_heights[idx]
-            peak_width_new = peak_width_new + self.peak_widths[idx]
-            peak_area_new = peak_area_new + self.peak_areas[idx]
-    
+            peakpos_new = peakpos_new + self.peakpos[idx]    
 
-        self.peakpos = np.append(self.peakpos, peakpos_new)
-        self.peak_heights = np.append(self.peak_heights, peak_height_new)
-        self.peak_widths = np.append(self.peak_widths, peak_width_new)
-        self.peak_areas = np.append(self.peak_areas, peak_area_new)
+        if np.in1d(peakpos_new, self.peakpos)[0]:
+            print('That composite peak already exists')
+            
+        else:
+            for idx in peak_idx_list:
+                peak_height_new = peak_height_new + self.peak_heights[idx]
+                peak_width_new = peak_width_new + self.peak_widths[idx]
+                peak_area_new = peak_area_new + self.peak_areas[idx]
+            self.peakpos = np.append(self.peakpos, peakpos_new)
+            self.peak_heights = np.append(self.peak_heights, peak_height_new)
+            self.peak_widths = np.append(self.peak_widths, peak_width_new)
+            self.peak_areas = np.append(self.peak_areas, peak_area_new)
+        
         
     def plot_peakfit(self, style=styles.style_spectrum, 
                      stylesum=styles.style_summed, 
@@ -1186,6 +1233,7 @@ class Spectrum():
             ax.set_title(self.fname)
             return fig, ax
 
+
     def abs_at_given_wn(self, wn, absorbance='thickness normalized'):
         """Input wavenumber, output absorbance that is thickness normalized
         (absorbance='normalized' default), 'raw', or 'baseline-subtracted'"""
@@ -1206,8 +1254,6 @@ class Spectrum():
             
         elif absorbance == 'raw':
             print('Sorry, raw not programmed in yet')
-#            if self.abs_raw is None:
-#                self.get_data()
             return
         elif absorbance == 'baseline-subtracted':
             print('Sorry, baseline-subtracted not programmed in yet')
@@ -1218,18 +1264,23 @@ class Spectrum():
             print('raw')
             print('baseline-subtracted')
 
+
     def absorbance_picker(self):
         """Is this raw or thickness normalized absorbance you're after?"""
-        if self.thickness_microns is None:
+        try:
+            if self.thickness_microns is None:
+                absorbance = self.abs_raw
+            else:
+                try:
+                    absorbance = self.abs_full_cm
+                except AttributeError:
+                    self.start_at_zero()
+                    absorbance = self.abs_full_cm
+        except AttributeError:
             absorbance = self.abs_raw
-        else:
-            try:
-                absorbance = self.abs_full_cm
-            except AttributeError:
-                self.start_at_zero()
-                absorbance = self.abs_full_cm
         return absorbance
         
+    
     def plot_showbaseline(self, axes=None, 
                           abs_baseline=None, 
                           wn_baseline=None, 
@@ -1309,8 +1360,11 @@ class Spectrum():
 
         ax.plot(self.wn_full, absorbance + offset, **style_to_use)
         ax.plot(wn_baseline, abs_baseline + offset, **style_base)
-        
-        if self.thickness_microns is None:
+
+        try:        
+            if self.thickness_microns is None:
+                ax.set_ylabel('Raw absorbance')
+        except AttributeError:
             ax.set_ylabel('Raw absorbance')
 
         # zoom in on y-axis
@@ -1319,6 +1373,7 @@ class Spectrum():
         ax.set_ylim(ylow, yhigh)
             
         return fig, ax
+
 
     def plot_subtractbaseline(self, 
                               style=styles.style_spectrum, 
@@ -1349,6 +1404,7 @@ class Spectrum():
         ax.plot(self.base_wn, abs_nobase_cm+offset, **style_to_use)
         ax.set_title(self.fname)
         return fig, ax
+
 
     def plot_peakfit_and_baseline(self, style=styles.style_spectrum, 
                                   stylesum=styles.style_summed, 
@@ -1394,7 +1450,6 @@ class Spectrum():
 
         return fig, ax
 
-           
 
 def make_filenames(folder, classname=Spectrum, file_ending='.CSV'):
     """ Set filename attribute based on folder and fname attribute
@@ -1406,6 +1461,7 @@ def make_filenames(folder, classname=Spectrum, file_ending='.CSV'):
                     obj.filename = ''.join((folder, obj.fname, file_ending))
             except AttributeError:
                 print('just chill, ok?')
+
 
 def water_from_spectra(list3, folder, phase='cpx', 
                        proper3=False, numformat='{:.0f}',
@@ -1457,7 +1513,7 @@ def water_from_spectra(list3, folder, phase='cpx',
         spec.make_baseline()
         baseline_list = np.ones([3, len(spec.base_wn)])
         pek_list = np.ones([3, len(spec.base_wn)])
-#        
+        
         k = 0
         for bam in [window_small, -window_small, -window_large]:
             # Setting up 3 different baseline shapes
@@ -1530,6 +1586,7 @@ def water_from_spectra(list3, folder, phase='cpx',
     print('water:', numformat.format(w), 'ppm H2O')
     print(' ')
     return a, w  
+
 
 def list_with_attribute(classname, attributename, attributevalue):
     """Gather all instances in specified class with a particular attribute"""
