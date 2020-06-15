@@ -14,7 +14,8 @@ class Block():
                  time_seconds=None, sample=None, get_baselines=False, 
                  initialWB=None, celsius=None):
         """
-        Sets up and checks new Block
+        Sets up and checks new Block object.
+
         - Check that profiles list contains a list of three (3) profiles
         - Generate list of initial profiles
         - Generate list of profile directions
@@ -104,7 +105,7 @@ class Block():
     def get_baselines(self, initial_too=True, folder=None, delim=',', 
                       baseline_ending='-baseline.CSV',
                       print_confirmation=False):
-        """Get baselines for all spectra in whole block"""
+        """Get baselines for all spectra in the block"""
         if self.initial_profiles is None:
             self.setupWB()
         for prof in self.profiles:
@@ -121,7 +122,7 @@ class Block():
 
             
     def plot_showbaselines(self):
-        """Plot baselines for all spectra in the whole block"""
+        """Plot baselines for all spectra in the block"""
         for prof in self.profiles:
             for spec in prof.spectra:
                 spec.plot_showbaseline()
@@ -129,7 +130,7 @@ class Block():
 
     def plot_subtractbaselines(self):
         """
-        Plot all spectra.plot_subtractbaseline() with default settings
+        Plot all spectra using plot_subtractbaseline() with default settings
         """
         for prof in self.profiles:
             for spec in prof.spectra:
@@ -137,15 +138,13 @@ class Block():
 
             
     def make_areas(self, show_plot=False, printout_area=False, peak=None):
-            """
-            Make list of areas from all profiles, including whole-block areas.
-            """
-            self.areas = []
-            self.wb_areas = []
-            for idx, prof in enumerate(self.profiles):
-                prof.make_wholeblock()
-                self.areas.append(prof.areas)
-                self.wb_areas.append(prof.wb_areas)            
+        """Make list of areas from all profiles, including whole-block areas."""
+        self.areas = []
+        self.wb_areas = []
+        for idx, prof in enumerate(self.profiles):
+            prof.make_wholeblock()
+            self.areas.append(prof.areas)
+            self.wb_areas.append(prof.wb_areas)            
 
 
     def average_spectra(self):
@@ -178,7 +177,7 @@ class Block():
                      show_final_ave=True, plot_all=False, 
                      initial_and_final_together=False, style=styles.style_spectrum, 
                      stylei=styles.style_initial, wn=None):
-        """Plot all spectra in all or specified profile in whole-block"""
+        """Plot all spectra in all or specified profile in the Block"""
         if profile_idx is None:
             proflist = ([self.profiles[0]] + 
                         [self.profiles[1]] + 
@@ -202,7 +201,7 @@ class Block():
                                 figsize=(6., 4), show_initial=True,
                                 legloc=5, label='Final', figax3=None):
         """
-        Three suplots showing average initial and final spectra in each
+        Create three suplots showing average initial and final spectra in each
         direction
         """
         if self.initial_profiles is None:
@@ -266,10 +265,7 @@ class Block():
 
     def xy_picker(self, peak_idx=None, wholeblock=True, heights_instead=False,
                   centered=True, unit='microns'):
-        """
-        Picks out and returns appropriate x and y-data for 3D plotting
-        and diffusion
-        """
+        """ Pick out and return x and y-data for 3D plotting and diffusion """
         positions = []
         y = []
             
@@ -454,13 +450,13 @@ class Block():
                         radius=0.25, center=(0, 0), frame=False)
                 ax_pie.axis('equal')
                 ax_pie.set_title(tit)
-        
+
         if axes3 is None:
             return fig, ax
 
 
     def make_composite_peak(self, peak_idx_list):
-        """Make composite peaks for all spectra in whole block"""
+        """Make composite peaks for all spectra in the Block"""
         for prof in self.profiles:
             for spec in prof.spectra:
                 spec.make_composite_peak(peak_idx_list)
@@ -468,8 +464,7 @@ class Block():
 
 
     def print_spectra_names(self, show_initials=True):
-        """Print out fnames of all spectra associated with the whole-block 
-        instance."""
+        """Print out fnames of all spectra in the Block."""
         if show_initials is True:
             if self.initial_profiles is None:
                 self.setupWB()
@@ -518,9 +513,9 @@ class Block():
                       store_baseline=True
                       ):
         """
-        Make spectra baselines for all spectra whole-block. 
+        Make spectra baselines for all spectra the Block. 
         
-        Keywords are similar to spectrum.make_baseline
+        Keywords are similar to spectrum.make_baseline()
         """  
         for prof in self.profiles:
             prof.make_baselines(raw_data=raw_data, wn_low=wn_low, 
@@ -541,14 +536,14 @@ class Block():
 
     def save_baselines(self, initial_too=True, 
                        baseline_ending='-baseline.CSV'):
-        """Make and save spectra baselines for all spectra."""
+        """Make and save spectra baselines for all spectra in the Block."""
         for prof in self.profiles:
             for spectrum in prof.spectra:
                 spectrum.save_baseline(baseline_ending=baseline_ending)
 
 
     def plot_peakfits(self, initial_too=False, profile_idx=None, legloc=1):
-        """Whole block: Plot peakfits for all spectra in all profiles"""
+        """ Plot peakfits for all spectra in all profiles in the Block """
         if profile_idx is None:
             for prof in self.profiles:
                 prof.plot_peakfits(initial_too, legloc=legloc)
@@ -559,7 +554,7 @@ class Block():
 
     def print_max_arearatio(self, peak_idx=None, heights_instead=False):
         """ Prints out the maximum whole-block area ratio observed 
-        in any profile of the wholeblock for specified peak_idx"""
+        in any profile of the Block for specified peak_idx"""
         if peak_idx is None:
             self.setupWB(False, True)
         else:
@@ -657,21 +652,18 @@ class Block():
 
     def save_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
-        """Save diffusivities for all profiles in whole-block instance
-        to files"""
+        """Save diffusivities for all profiles in Block to files"""
         for prof in self.profiles:
             prof.save_diffusivities(folder, file_ending)
 
             
     def get_diffusivities(self, folder=None, 
                            file_ending='-diffusivities.txt'):
-        """Gets diffusivities for all profiles in whole-block instance
-        from previously saved files"""
+        """Gets diffusivities for all profiles in Block from saved files"""
         if folder is None:
             folder = self.folder
         for prof in self.profiles:
             prof.get_diffusivities(folder, file_ending)
-
 
     def diffusion_profiles(self, 
                            init=1., 
@@ -686,18 +678,27 @@ class Block():
                            heights_instead=False, 
                            approximation1D=False):
         """
+		Calculate diffusion profiles in the Block
+
         Requires:
             * time in seconds either explicitly passed here or as an
-        attribute of the Block object
-            * list of log10 diffusivities in m2/s (default=[-12, -12, -12])
+        	  attribute of the Block object
+            * list of log10 diffusivities in m2/s 
+              (default=[-12, -12, -12])
             * initial value (default init=1)
             * final value (default fin=0)
         
+        Defaults:
+        	* Calculates 3D non-path-integrated profiles 
+        	  (wholeblock_diffusion=False) as opposed to path-integrated
+        	  whole-block profiles (wholeblock_diffusion=True)
+        	* Assumes the data are not normalized to any initial 
+        	  value (wholeblock_data=False) as opposed to normalized
+        	  (wholeblock_data=True). This matters for determining the 
+        	  maximum and minimum values
+
         Returns lmfit parameters, x-data, and y-data for 3-dimensional 
-        diffusion in a block.
-        
-        Assumes 3D non-path-integrated (wholeblock_diffusion=False), 
-        but wholeblock_diffusion can be set to True.
+        diffusion in a block.        
         """
         if self.lengths is None:
             self.setupWB(peakfit=False, make_wb_areas=False)
@@ -753,7 +754,7 @@ class Block():
         params = models.params_setup3D(L3, D3, time_seconds, 
                                        init_unit, fin_unit)
 
-        if wholeblock_diffusion is True:        
+        if wholeblock_diffusion is True:
             xdiff, ydiff = models.diffusion3Dwb_params(params, 
                                                    raypaths=self.raypaths, 
                                                    erf_or_sum=erf_or_sum,
@@ -764,24 +765,33 @@ class Block():
                                                            centered=False)
         
         if wholeblock_data is False:
-            ydiff = (np.array(ydiff)*np.max(maxval))
+            maxareas = []
+            for prof in self.profiles:
+                if len(prof.fnames) > 0:
+                    try:
+                        maxa = np.max(prof.areas)
+                    except AttributeError:
+                        prof.make_areas()
+                        maxa = np.max(prof.areas)
+                    maxareas.append(maxa)
+            ydiff = np.array(ydiff) * np.max(maxareas)
 
         return params, xdiff, list(ydiff)
 
             
-    def plot_diffusion(self, 
+    def plot_diffusion(self, wholeblock_diffusion=False, 
+    				   wholeblock_data=True, 
+                       peak_idx=None, 
                        time_seconds=None, 
                        log10D_m2s=[-12., -12., -12.], 
                        init=1., 
                        fin=0, 
-                       wholeblock_data=False, 
-                       wholeblock_diffusion=False,
-                       peak_idx=None, 
                        erf_or_sum='erf', 
                        show_plot=True, 
                        show_data=True,
                        xaxis='centered',
                        show_slice=False, 
+                       label4legend=[None, None, None],
                        axes3=None, 
                        points=50, 
                        top_spectra=1.0,
@@ -799,20 +809,22 @@ class Block():
                        show_line_at_1=True,
                        ):
         """
-        Applies 3-dimensionsal diffusion equations using equations in 
+        Plot 3D diffusion profiles for Block.
+
+        Applies 3-dimensionsal diffusion equations in 
         pynams.diffusion.models and plots non-path-integrated 3-dimensional
         diffusion curves (default) or path-integrated whole-block profiles
-        described in Ferriss et al. 2015 (set wholeblock_diffusion=True).
+        described in Ferriss et al. 2015 (wholeblock_diffusion=True).
         
         If show_data is True (the default), also plots the data, either
         directly as the measured areas (default) or peak heights
         (with heights_instead=True) or as the ratio of the
         measured area to a best-fit line through the initial areas
-        (set wholeblock_data=True)
+        (wholeblock_data=True)
         
-        Default initial values is 1 and final is 0. Change keywords init and 
-        fin to change these values, including to switch from diffusion out to 
-        diffusion in.
+        Default initial value is 1, and default final value is 0. 
+        Change keywords init and fin to change these values, including 
+        to switch from diffusion out to diffusion in.
         
         If axes3 = a list of 3 axes handles, the data and diffusion curve
         are plotted there. Otherwise, the figure handle and a list of 
@@ -827,33 +839,31 @@ class Block():
         Change the maximum y value with the top keyword.
         """        
         D3 = models.D_checker(log10D_m2s)
-        params, xdiff, ydiff = self.diffusion_profiles(
-                               wholeblock_diffusion=wholeblock_diffusion,
-                               peak_idx=peak_idx,
-                               time_seconds=time_seconds,
-                               log10D_m2s=D3,
-                               erf_or_sum=erf_or_sum,
-                               points=points,
-                               heights_instead=heights_instead,
-                               init=init, fin=fin,
-                               approximation1D=approximation1D)
+        hinstead = heights_instead
+        approx = approximation1D
+        params, xdiff, ydiff = self.diffusion_profiles(wholeblock=wholeblock_data,
+                                                   peak_idx=peak_idx,
+                                                   time_seconds=time_seconds,
+                                                   log10D_m2s=D3,
+                                                   erf_or_sum=erf_or_sum,
+                                                   wholeblock_diffusion=wholeblock_diffusion,
+                                                   points=points,
+                                                   heights_instead=hinstead,
+                                                   init=init, fin=fin,
+                                                   approximation1D=approx)
 
         if params is False:
             return False, False
 
         if axes3 is None:
-            try:
-                fig, axes3 = self.plot_areas_3panels(peak_idx=peak_idx, 
-                                             ytop=ytop,
-                                             wholeblock=wholeblock_data, 
-                                             heights_instead=heights_instead,
-                                             show_line_at_1=False,
-                                             styles3=[style_data]*3,
-                                             centered=centered)
-            except TypeError:
-                print('Something funky happened in block.plot_areas_3panels')
-                return
-            
+            fig, axes3 = self.plot_areas_3panels(peak_idx=peak_idx, ytop=ytop,
+                                              wholeblock=wholeblock_data, 
+                                              heights_instead=heights_instead,
+                                              show_line_at_1=False,
+                                              label4legend=label4legend,
+                                              styles3=[style_data]*3,
+                                              centered=centered,
+                                              show_errorbars=show_errorbars)
         if centered is True:
             for idx_len in range(3):
                 xdiff[idx_len] = xdiff[idx_len] - (self.lengths[idx_len]/2.)
@@ -899,17 +909,26 @@ class Block():
             pass
 
        
-    def fitD(self, peak_idx=None, init=1., fin=0.,
+    def fitD(self, peak_idx=None, 
+    		 init=1., 
+    		 fin=0.,
              log10Ds_m2s=[-13., -13., -13.], 
-             heights_instead=False, wholeblock_data=True,
-             vary_initial=False, vary_final=False, 
+             heights_instead=False, 
+             wholeblock_data=True,
+             vary_initial=False, 
+             vary_final=False, 
              vary_diffusivities=[True, True, True],
-             erf_or_sum='erf', show_plot=True, wholeblock_diffusion=True, 
-             centered=True, show_initial_guess=True, style_initial=None,
-             style_final={'color':'red'}, points=50, top=1.2):
+             erf_or_sum='erf', 
+             show_plot=True, 
+             wholeblock_diffusion=True, 
+             centered=True, 
+             show_initial_guess=True, 
+             style_initial=None,
+             style_final={'color':'red'}, 
+             points=50, 
+             top=1.2):
         """
-        Forward modeling to determine diffusivities in three dimensions 
-        from uncut blocks of data.
+        Fit 3D diffusion curves to Block data.
         
         You can solve for any or all of the following:
             * diffusivities in all three directions (vary_diffusivities;
@@ -926,13 +945,14 @@ class Block():
         a list passed into log10D_m2s. 
         
         The data can be either "wholeblock", which has a range from 0 to 1, 
-        (default) or not 
+        (default) or not (set wholeblock_data=False)
         
         To hold one or more diffusivities constant: pass lists of 
         diffusivities in through log10Ds_m2s (default=[-13, -13, -13]) 
         and what to hold constant (vary_diffusivities=[True, True, True]
         by default) 
         """        
+
         # x and y are the data that we will fit to, centered for fitting
         try:
             x, y = self.xy_picker(peak_idx=peak_idx, 
@@ -986,17 +1006,27 @@ class Block():
                rim_value=None, weighting_factor_lambda=0.2, 
                show_residuals_plot=True):
         """
+		Invert Block data to estimate internal concentrations. Tomography!
+
         Takes a list of three whole-block concentration profiles (either A/Ao 
         or water ok but must be consistent for all three) in three orthogonal 
         directions and list of three integers to indicate number of divisions
         in each direction. Returns matrix of values in each grid cell. 
         Default plot showing residuals for how well results match the 
-        whole-block observations.
+        whole-block observations. 
+
+        Ferriss did this in MATLAB for the 2015 paper establishing
+        the whole-block method but never needed it for the papers on 
+        clinopyroxene and olivine, so this function never got written 
+        in python.
         """
         pass
 
+
     def make_peakheights(self, peaks=[3600, 3525, 3356, 3236]):
         """
+		Estimate peak heights for all spectra in Block. 
+
         Requires a list of peak wavenumber locations in cm-1
             (default peaks=[3600, 3525, 3356, 3236])
         Creates or overwrites profiles peak positions and peak_heights using 
