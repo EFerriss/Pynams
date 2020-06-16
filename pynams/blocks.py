@@ -841,7 +841,7 @@ class Block():
         D3 = models.D_checker(log10D_m2s)
         hinstead = heights_instead
         approx = approximation1D
-        params, xdiff, ydiff = self.diffusion_profiles(wholeblock=wholeblock_data,
+        params, xdiff, ydiff = self.diffusion_profiles(wholeblock_data=wholeblock_data,
                                                    peak_idx=peak_idx,
                                                    time_seconds=time_seconds,
                                                    log10D_m2s=D3,

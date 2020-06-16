@@ -15,5 +15,5 @@ setup(
     version = "0.2.0",
     packages = ['pynams', 'pynams.diffusion', 'pynams.example_FTIR_spectra'],
     name = "pynams",
-    install_requires = ['lmfit==0.8.0', 'uncertainties==3.0.1']
+    install_requires = ['lmfit==0.8.0', 'uncertainties==3.1.3']
 )
