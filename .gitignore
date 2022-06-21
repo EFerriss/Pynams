@@ -2,3 +2,5 @@ __pycache__/
 .ipynb_checkpoints
 pynams.egg-info/
 *.pyc
+.DS_Store
+dist

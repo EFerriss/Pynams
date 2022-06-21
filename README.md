@@ -7,8 +7,10 @@ Interpret [FTIR](https://en.wikipedia.org/wiki/Fourier_transform_infrared_spectr
 * Estimate water concentrations
 * Handle peak-specific data
 * Model diffusion in 1D and 3D
+
+Install latest version with 'pip install pynams'
  
-## [Check out the tutorial](https://github.com/EFerriss/Pynams/blob/master/EXAMPLES.ipynb)
+## Several usage examples are provided in Jupyter notebookes in the EXAMPLES folder
 
 Please cite this code as  
 Elizabeth Ferriss. (2018) Pynams: a Python package for interpreting FTIR spectra of nominally anhydrous minerals (NAMs), v0.2.0; Zenodo. http://doi.org/10.5281/zenodo.1172001
