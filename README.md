@@ -8,7 +8,7 @@ Interpret [FTIR](https://en.wikipedia.org/wiki/Fourier_transform_infrared_spectr
 * Handle peak-specific data
 * Model diffusion in 1D and 3D
 
-Install latest version with 'pip install pynams'
+Install latest version with `pip install pynams`
  
 ## Several usage examples are provided in Jupyter notebookes in the EXAMPLES folder
 
