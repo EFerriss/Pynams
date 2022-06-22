@@ -20,3 +20,4 @@ setup(
     license = "MIT",
     install_requires = ['lmfit==0.8.0', 'uncertainties>=3.1.3'],
     include_package_data = True
+    )
