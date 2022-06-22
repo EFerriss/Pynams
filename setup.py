@@ -14,9 +14,9 @@ setup(
     author = 'Elizabeth Ferriss',
     author_email = 'elizabeth.ferriss@gmail.com',
     url = 'https://github.com/EFerriss/Pynams',
-    version = "0.2.0",
-    packages = ['pynams'],
+    version = "0.2.2",
+    packages = ['pynams', 'pynams.diffusion'],
     name = "pynams",
     license = "MIT",
-    install_requires = ['lmfit==0.8.0', 'uncertainties>=3.1.3']
-)
+    install_requires = ['lmfit==0.8.0', 'uncertainties>=3.1.3'],
+    include_package_data = True
