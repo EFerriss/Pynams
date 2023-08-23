@@ -18,6 +18,6 @@ setup(
     packages = ['pynams', 'pynams.diffusion', 'pynams.example_FTIR_spectra'],
     name = "pynams",
     license = "MIT",
-    install_requires = ['lmfit==0.8.0', 'uncertainties>=3.1.3'],
+    install_requires = ['lmfit==0.8.3', 'uncertainties>=3.1.3'],
     include_package_data = True
     )
