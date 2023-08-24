@@ -14,7 +14,7 @@ setup(
     author = 'Elizabeth Ferriss',
     author_email = 'elizabeth.ferriss@gmail.com',
     url = 'https://github.com/EFerriss/Pynams',
-    version = "0.2.3",
+    version = "0.2.4",
     packages = ['pynams', 'pynams.diffusion', 'pynams.example_FTIR_spectra'],
     name = "pynams",
     license = "MIT",
